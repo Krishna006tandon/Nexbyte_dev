@@ -3,6 +3,20 @@ import './Projects.css';
 
 const projects = [
   {
+    title: 'OverXchange',
+    description: 'A web application designed to bridge the gap between suppliers and vendors in the food industry. The platform provides a robust solution for order management, inventory tracking, and analytics.',
+    features: [
+      'Dual-User System: Separate dashboards and functionalities for both Suppliers and Vendors.',
+      'Stock & Order Management: Suppliers can easily manage their inventory, while vendors can place and track orders in real-time.',
+      'Analytics Dashboard: A powerful analytics dashboard for suppliers, offering business insights into sales, stock value, and product performance.',
+      'VendorNet B2B Marketplace: A unique feature that allows vendors to trade, collaborate, and exchange surplus stock among themselves.',
+      'Automated License Verification: A built-in system to automatically verify the authenticity of a supplier\'s food license (FSSAI).',
+      'Secure Authentication & Payments: Secure login using JWT (JSON Web Tokens) and a secure structure for payment processing.'
+    ],
+    techStack: 'Python, Flask, MongoDB, HTML, CSS, JavaScript',
+    liveLink: 'https://over-xchange-zrvi.vercel.app/'
+  },
+  {
     title: 'ZenSpace',
     description: 'A full-stack wellness & mindfulness web app to promote daily emotional well-being, self-reflection, and spiritual growth.',
     features: [
