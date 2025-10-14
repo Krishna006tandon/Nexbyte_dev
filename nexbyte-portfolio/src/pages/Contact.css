@@ -1,0 +1,17 @@
+
+.contact-form .dark-input {
+  background-color: #2c2c2c;
+  color: #ffffff;
+  border: 1px solid #444444;
+}
+
+.contact-form .dark-input::placeholder {
+  color: #bbbbbb;
+}
+
+.contact-form .dark-input:focus {
+  background-color: #333333;
+  color: #ffffff;
+  border-color: #007bff;
+  box-shadow: none;
+}
