@@ -1,0 +1,29 @@
+.about-container h1 {
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.about-container .lead {
+  font-size: 1.5rem;
+  color: #aaaaaa;
+}
+
+.about-container h4 {
+  font-weight: bold;
+  color: #00c6ff;
+  margin-top: 30px;
+}
+
+.about-container .social-links a {
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.about-container .social-links a:hover {
+  background-color: #007bff;
+  transform: translateY(-3px);
+}
+
+.collaborator-name {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
