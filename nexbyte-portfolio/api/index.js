@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+
 
 const app = express();
 
@@ -23,7 +23,7 @@ connection.once('open', () => {
   console.log("MongoDB database connection established successfully");
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -59,12 +59,11 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-app.get('/api/hello', (req, res) => {
+app.get('/hello', (req, res) => {
     res.json({ message: "Hello from server!" });
 });
 
 // Define all your other API routes here. For example:
 // app.get('/api/projects', (req, res) => { ... });
 
-const port = process.env.PORT || 3001;
-app.listen(port, () => console.log(`API server listening on port ${port}`));
+module.exports = app;
