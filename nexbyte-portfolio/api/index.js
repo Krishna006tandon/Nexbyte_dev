@@ -3,10 +3,13 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const cors = require('cors');
 
 
 const app = express();
 
+// Allow requests from your frontend origin
+app.use(cors({ origin: 'https://nexbyte-dev.vercel.app' }));
 app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
