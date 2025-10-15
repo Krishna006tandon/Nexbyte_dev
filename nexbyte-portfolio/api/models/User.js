@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, default: 'user' },
 });
+//admin role added for admin user
 
 const User = mongoose.model('User', userSchema);
 
