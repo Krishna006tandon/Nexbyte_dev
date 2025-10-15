@@ -5,12 +5,16 @@ import './Login.css';
 const Login = ({ setIsAdmin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch('https://nexbyte-dev.vercel.app/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,11 +33,13 @@ const Login = ({ setIsAdmin }) => {
           navigate('/');
         }
       } else {
-        alert(data.message);
+        setError(data.message || 'Login failed. Please check your credentials.');
       }
     } catch (err) {
       console.error(err);
-      alert('An error occurred. Please try again.');
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,7 +69,10 @@ const Login = ({ setIsAdmin }) => {
             required
           />
         </div>
-        <button type="submit">Login</button>
+        {error && <p className="error-message">{error}</p>}
+        <button type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
     </div>
   );
