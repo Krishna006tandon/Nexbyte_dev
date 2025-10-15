@@ -10,7 +10,7 @@ const Login = ({ setIsAdmin }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('https://nexbyte-dev.vercel.app/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
