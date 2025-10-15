@@ -3,13 +3,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
-const cors = require('cors');
-
 
 const app = express();
 
-// Allow requests from your frontend origin
-app.use(cors({ origin: 'https://nexbyte-dev.vercel.app' }));
 app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
@@ -19,14 +15,14 @@ if (!uri) {
     process.exit(1);
 }
 
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(uri);
 
 const connection = mongoose.connection;
 connection.once('open', () => {
   console.log("MongoDB database connection established successfully");
 });
 
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -62,11 +58,11 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.get('/hello', (req, res) => {
+app.get('/api/hello', (req, res) => {
     res.json({ message: "Hello from server!" });
 });
 
 // Define all your other API routes here. For example:
-// app.get('/api/projects', (req, res) => { ... });
+// app.get('/api/projects', (req, res) => { ... }); // Make sure all routes start with /api
 
 module.exports = app;
