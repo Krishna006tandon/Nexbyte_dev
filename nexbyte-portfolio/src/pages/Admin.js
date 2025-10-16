@@ -36,36 +36,38 @@ const Admin = () => {
     <div className="admin-container">
       <Sidebar />
       <div className="main-content">
-        <h1>Admin Dashboard</h1>
-        {location.pathname === '/admin/contacts' ? (
-          <div>
-            <h2>Contact Messages</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Mobile</th>
-                  <th>Message</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contacts.map((contact) => (
-                  <tr key={contact._id}>
-                    <td>{contact.name}</td>
-                    <td>{contact.email}</td>
-                    <td>{contact.mobile}</td>
-                    <td>{contact.message}</td>
-                    <td>{new Date(contact.date).toLocaleString()}</td>
+        <div className="card">
+          <h1>Admin Dashboard</h1>
+          {location.pathname === '/admin/contacts' ? (
+            <div>
+              <h2>Contact Messages</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Mobile</th>
+                    <th>Message</th>
+                    <th>Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p>Welcome to the admin dashboard!</p>
-        )}
+                </thead>
+                <tbody>
+                  {contacts.map((contact) => (
+                    <tr key={contact._id}>
+                      <td>{contact.name}</td>
+                      <td>{contact.email}</td>
+                      <td>{contact.mobile}</td>
+                      <td>{contact.message}</td>
+                      <td>{new Date(contact.date).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>Welcome to the admin dashboard!</p>
+          )}
+        </div>
       </div>
     </div>
   );

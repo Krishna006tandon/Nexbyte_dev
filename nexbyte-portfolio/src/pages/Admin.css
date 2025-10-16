@@ -9,6 +9,12 @@
   color: #fff;
 }
 
+.main-content .card {
+  background-color: #343a40;
+  border-radius: 10px;
+  padding: 20px;
+}
+
 h1, h2 {
   color: #fff;
 }
@@ -17,7 +23,6 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   color: #fff;
 }
 
@@ -28,7 +33,7 @@ thead tr {
 }
 
 th, td {
-  padding: 12px 15px;
+  padding: 15px;
   border-bottom: 1px solid #454d55;
 }
 
@@ -41,10 +46,9 @@ tbody tr:nth-of-type(even) {
 }
 
 tbody tr:last-of-type {
-  border-bottom: 2px solid #009879;
+  border-bottom: none;
 }
 
-tbody tr.active-row {
-  font-weight: bold;
-  color: #009879;
+tbody tr:hover {
+  background-color: #495057;
 }
