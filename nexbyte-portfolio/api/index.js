@@ -62,7 +62,33 @@ app.get('/api/hello', (req, res) => {
     res.json({ message: "Hello from server!" });
 });
 
+const Contact = require('./models/Contact');
+
+app.post('/api/contact', async (req, res) => {
+  const { name, email, mobile, message } = req.body;
+
+  try {
+    const newContact = new Contact({
+      name,
+      email,
+      mobile,
+      message
+    });
+
+    await newContact.save();
+    res.json({ message: 'Contact form submitted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // Define all your other API routes here. For example:
 // app.get('/api/projects', (req, res) => { ... }); // Make sure all routes start with /api
 
 module.exports = app;
+
+if (process.env.NODE_ENV !== 'production') {
+  const port = process.env.PORT || 3001;
+  app.listen(port, () => console.log(`Server listening on port ${port}`));
+}
