@@ -64,6 +64,29 @@ app.get('/api/hello', (req, res) => {
 
 const Contact = require('./models/Contact');
 
+const auth = (req, res, next) => {
+  const token = req.header('x-auth-token');
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+const admin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  next();
+};
+
 app.post('/api/contact', async (req, res) => {
   const { name, email, mobile, message } = req.body;
 
@@ -91,6 +114,16 @@ app.post('/api/contact', async (req, res) => {
 
     await newContact.save();
     res.json({ message: 'Contact form submitted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+app.get('/api/contacts', auth, admin, async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ date: -1 });
+    res.json(contacts);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
