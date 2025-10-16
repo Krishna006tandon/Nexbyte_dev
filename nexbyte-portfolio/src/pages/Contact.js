@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import './Contact.css';
 
+const Alert = ({ message, type }) => {
+  if (!message) return null;
+  return (
+    <div className={`alert alert-${type}`} role="alert">
+      {message}
+    </div>
+  );
+};
+
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -8,13 +17,30 @@ const Contact = () => {
     mobile: '',
     message: ''
   });
+  const [alert, setAlert] = useState({ message: null, type: null });
 
   const { name, email, mobile, message } = formData;
 
   const onChange = e => setFormData({ ...formData, [e.target.id]: e.target.value });
 
+  const showAlert = (message, type) => {
+    setAlert({ message, type });
+    setTimeout(() => setAlert({ message: null, type: null }), 5000);
+  };
+
   const onSubmit = async e => {
     e.preventDefault();
+    if (!name || !email || !mobile || !message) {
+      return showAlert('Please fill in all fields', 'danger');
+    }
+    const emailRegex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    if (!emailRegex.test(email)) {
+      return showAlert('Invalid email format', 'danger');
+    }
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(mobile)) {
+      return showAlert('Invalid mobile number format', 'danger');
+    }
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
@@ -24,23 +50,27 @@ const Contact = () => {
         body: JSON.stringify(formData)
       });
       const data = await res.json();
-      console.log(data);
-      alert('Message sent successfully!');
-      setFormData({
-        name: '',
-        email: '',
-        mobile: '',
-        message: ''
-      });
+      if (res.ok) {
+        showAlert('Message sent successfully!', 'success');
+        setFormData({
+          name: '',
+          email: '',
+          mobile: '',
+          message: ''
+        });
+      } else {
+        showAlert(data.message, 'danger');
+      }
     } catch (err) {
       console.error(err);
-      alert('Something went wrong!');
+      showAlert('Something went wrong!', 'danger');
     }
   };
 
   return (
     <div className="container mt-5">
       <h1 className="text-center">Contact Us</h1>
+      <Alert message={alert.message} type={alert.type} />
       <form className="contact-form" onSubmit={onSubmit}>
         <div className="mb-3">
           <label htmlFor="name" className="form-label">Name</label>

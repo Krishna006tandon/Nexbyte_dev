@@ -67,6 +67,20 @@ const Contact = require('./models/Contact');
 app.post('/api/contact', async (req, res) => {
   const { name, email, mobile, message } = req.body;
 
+  if (!name || !email || !mobile || !message) {
+    return res.status(400).json({ message: 'Please enter all fields' });
+  }
+
+  const emailRegex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+
+  const mobileRegex = /^[0-9]{10}$/;
+  if (!mobileRegex.test(mobile)) {
+    return res.status(400).json({ message: 'Invalid mobile number format' });
+  }
+
   try {
     const newContact = new Contact({
       name,
