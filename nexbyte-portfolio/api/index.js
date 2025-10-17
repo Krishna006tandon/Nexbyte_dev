@@ -222,6 +222,109 @@ app.delete('/api/users/:id', auth, admin, async (req, res) => {
   }
 });
 
+const Client = require('./models/Client');
+
+// @route   POST api/clients
+// @desc    Add a new client
+// @access  Private (admin)
+app.post('/api/clients', auth, admin, async (req, res) => {
+  const {
+    clientName,
+    contactPerson,
+    email,
+    phone,
+    companyAddress,
+    projectName,
+    projectType,
+    projectRequirements,
+    projectDeadline,
+    totalBudget,
+    billingAddress,
+    gstNumber,
+    paymentTerms,
+    paymentMethod,
+    domainRegistrarLogin,
+    webHostingLogin,
+    logoAndBrandingFiles,
+    content,
+  } = req.body;
+
+  try {
+    const newClient = new Client({
+      clientName,
+      contactPerson,
+      email,
+      phone,
+      companyAddress,
+      projectName,
+      projectType,
+      projectRequirements,
+      projectDeadline,
+      totalBudget,
+      billingAddress,
+      gstNumber,
+      paymentTerms,
+      paymentMethod,
+      domainRegistrarLogin,
+      webHostingLogin,
+      logoAndBrandingFiles,
+      content,
+    });
+
+    await newClient.save();
+
+    // Send welcome email
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: email,
+      subject: 'Welcome to NexByte!',
+      html: `<p>Welcome! Your project "${projectName}" has been registered with us.</p>`,
+    };
+
+    try {
+      console.log('Attempting to send email...');
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Email sent:', info.response);
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+
+    res.json({ message: 'Client added successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/clients
+// @desc    Get all clients
+// @access  Private (admin)
+app.get('/api/clients', auth, admin, async (req, res) => {
+  try {
+    const clients = await Client.find().sort({ date: -1 });
+    res.json(clients);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   DELETE api/clients/:id
+// @desc    Delete a client
+// @access  Private (admin)
+app.delete('/api/clients/:id', auth, admin, async (req, res) => {
+  try {
+    const client = await Client.findByIdAndDelete(req.params.id);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    res.json({ message: 'Client removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // Define all your other API routes here. For example:
 // app.get('/api/projects', (req, res) => { ... }); // Make sure all routes start with /api
 
