@@ -11,21 +11,14 @@ import Admin from './pages/Admin';
 
 import SrsGenerator from './pages/SrsGenerator';
 
-import ClientPanel from './pages/ClientPanel';
-
 import './App.css';
 
 const PrivateRoute = ({ isAdmin, children }) => {
   return isAdmin ? children : <Navigate to="/login" />;
 };
 
-const ClientRoute = ({ isClient, children }) => {
-  return isClient ? children : <Navigate to="/login" />;
-};
-
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isClient, setIsClient] = useState(false);
 
   return (
     <Router>
@@ -40,8 +33,6 @@ function App() {
 
             <Route path="/srs-generator" element={<SrsGenerator />} />
             <Route path="/login" element={<Login setIsAdmin={setIsAdmin} />} />
-
-            <Route path="/login" element={<Login setIsAdmin={setIsAdmin} setIsClient={setIsClient} />} />
 
             <Route
               path="/admin"
