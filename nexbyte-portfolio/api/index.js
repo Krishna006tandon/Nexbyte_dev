@@ -415,7 +415,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest"});
 
     const prompt = `
       Create a comprehensive Software Requirements Specification (SRS) document based on the following details:
@@ -462,6 +462,8 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = await response.text();
+
+    res.json({ srs: text });
     
   } catch (err) {
     console.error('Error generating SRS:', err);
