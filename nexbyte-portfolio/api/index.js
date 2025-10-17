@@ -410,7 +410,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   }
 
   try {
-    // Manually construct the SRS document in HTML format with professional styling
+    // Manually construct the SRS document in HTML format with professional dark theme styling
     const srsContent = `
     <html>
       <head>
@@ -418,22 +418,22 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
           body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background-color: #f4f4f4;
+            color: #e0e0e0;
+            background-color: #1a1a1a;
             margin: 0;
             padding: 20px;
           }
           .srs-container {
             max-width: 800px;
             margin: auto;
-            background: #fff;
+            background: #2c2c2c;
             padding: 30px;
-            border: 1px solid #ddd;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border: 1px solid #444;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
           }
           h1, h2, h3 {
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
+            color: #5dade2;
+            border-bottom: 2px solid #555;
             padding-bottom: 10px;
             margin-top: 20px;
           }
@@ -452,11 +452,11 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
             margin-bottom: 10px;
           }
           strong {
-            color: #3498db;
+            color: #5dade2;
           }
           div {
             padding-left: 20px;
-            border-left: 3px solid #eee;
+            border-left: 3px solid #444;
           }
         </style>
       </head>
