@@ -130,6 +130,83 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
   }
 });
 
+const nodemailer = require('nodemailer');
+
+// Nodemailer transporter setup
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: "nexbyte.dev@gmail.com",
+    pass: "huwt cbde ccev xxnu",
+  },
+});
+
+// @route   POST api/users
+// @desc    Add a new user
+// @access  Private (admin)
+app.post('/api/users', auth, admin, async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Please enter all fields' });
+  }
+
+  try {
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    user = new User({
+      email,
+      password,
+      role: 'user',
+    });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    await user.save();
+
+    // Send welcome email
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: email,
+      subject: 'Welcome to NexByte!',
+      html: `<p>Welcome! Your account has been created.</p><p>Your login credentials are:</p><p>Email: ${email}</p><p>Password: ${password}</p>`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error sending email:', error);
+        // We don't want to fail the request if the email fails
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
+
+    res.json({ message: 'User created successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/users
+// @desc    Get all users
+// @access  Private (admin)
+app.get('/api/users', auth, admin, async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // Define all your other API routes here. For example:
 // app.get('/api/projects', (req, res) => { ... }); // Make sure all routes start with /api
 
