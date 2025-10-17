@@ -49,7 +49,10 @@ app.post('/api/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: 3600 },
       (err, token) => {
-        if (err) throw err;
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: 'Error signing token' });
+        }
         res.json({ token, role: user.role });
       }
     );
