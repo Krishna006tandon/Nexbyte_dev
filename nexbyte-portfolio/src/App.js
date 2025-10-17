@@ -36,6 +36,10 @@ function App() {
               path="/admin/contacts"
               element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
             />
+            <Route
+              path="/admin/members"
+              element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+            />
           </Routes>
         </main>
         <Footer />

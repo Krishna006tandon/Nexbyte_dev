@@ -8,6 +8,7 @@ const Admin = () => {
   const [members, setMembers] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('user'); // Add role state
   const location = useLocation();
 
   useEffect(() => {
@@ -51,7 +52,7 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role }), // Include role in the body
       });
       const data = await res.json();
       if (res.ok) {
@@ -66,6 +67,26 @@ const Admin = () => {
         if (fetchRes.ok) {
           setMembers(updatedMembers);
         }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteMember = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMembers(members.filter((member) => member._id !== id));
       } else {
         console.error(data.message);
       }
@@ -127,6 +148,10 @@ const Admin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
                 <button type="submit">Add Member</button>
               </form>
 
@@ -136,6 +161,7 @@ const Admin = () => {
                   <tr>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -143,6 +169,9 @@ const Admin = () => {
                     <tr key={member._id}>
                       <td>{member.email}</td>
                       <td>{member.role}</td>
+                      <td>
+                        <button onClick={() => handleDeleteMember(member._id)}>Delete</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
