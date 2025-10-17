@@ -8,6 +8,7 @@ import Projects from './pages/Projects';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
+import SrsGenerator from './pages/SrsGenerator';
 import './App.css';
 
 const PrivateRoute = ({ isAdmin, children }) => {
@@ -27,6 +28,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/srs-generator" element={<SrsGenerator />} />
             <Route path="/login" element={<Login setIsAdmin={setIsAdmin} />} />
             <Route
               path="/admin"
@@ -42,6 +44,10 @@ function App() {
             />
             <Route
               path="/admin/clients"
+              element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+            />
+            <Route
+              path="/admin/srs-generator"
               element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
             />
           </Routes>

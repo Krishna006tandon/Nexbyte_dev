@@ -66,7 +66,8 @@ tbody tr:hover {
 }
 
 .form-container input,
-.form-container select {
+.form-container select,
+.form-container textarea {
     width: 100%;
     padding: 15px;
     margin-bottom: 15px;
@@ -76,8 +77,14 @@ tbody tr:hover {
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
+.form-container textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
 .form-container input:focus,
-.form-container select:focus {
+.form-container select:focus,
+.form-container textarea:focus {
     border-color: #80bdff;
     outline: 0;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
@@ -108,4 +115,27 @@ tbody tr:hover {
 
 .btn-danger:hover {
     background-color: #c82333;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.generated-srs {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.generated-srs h1,
+.generated-srs h2 {
+  border-bottom: none;
+  padding-bottom: 0;
 }

@@ -34,6 +34,17 @@ const Admin = () => {
     content: '',
   });
 
+  const [srsData, setSrsData] = useState({
+    projectName: '',
+    projectDescription: '',
+    targetAudience: '',
+    functionalRequirements: '',
+    nonFunctionalRequirements: '',
+  });
+  const [generatedSrs, setGeneratedSrs] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
@@ -56,7 +67,7 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (location.pathname === '/admin/clients') {
+        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator') {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -218,6 +229,49 @@ const Admin = () => {
     setClientData({ ...clientData, [e.target.name]: e.target.value });
   };
 
+  const handleSrsChange = (e) => {
+    setSrsData({ ...srsData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenerateSrs = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/generate-srs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(srsData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGeneratedSrs(data.srs);
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  const handleClientSelect = (clientId) => {
+    setSelectedClientId(clientId);
+    const selectedClient = clients.find(client => client._id === clientId);
+    if (selectedClient) {
+      setSrsData({
+        projectName: selectedClient.projectName || '',
+        projectDescription: selectedClient.projectRequirements || '',
+        targetAudience: '',
+        functionalRequirements: '',
+        nonFunctionalRequirements: '',
+      });
+    }
+  };
+
   return (
     <div className="admin-container">
       <Sidebar />
@@ -365,6 +419,40 @@ const Admin = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/srs-generator' && (
+            <div>
+              <h2>SRS Generator</h2>
+              <div className="form-container">
+                <form onSubmit={handleGenerateSrs}>
+                  <h3>Generate New SRS</h3>
+                  <select onChange={(e) => handleClientSelect(e.target.value)} value={selectedClientId}>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="text" name="projectName" placeholder="Project Name" value={srsData.projectName} onChange={handleSrsChange} required />
+                  <textarea name="projectDescription" placeholder="Project Description" value={srsData.projectDescription} onChange={handleSrsChange}></textarea>
+                  <textarea name="targetAudience" placeholder="Target Audience" value={srsData.targetAudience} onChange={handleSrsChange}></textarea>
+                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={srsData.functionalRequirements} onChange={handleSrsChange}></textarea>
+                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={srsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? 'Generating...' : 'Generate SRS'}
+                  </button>
+                </form>
+              </div>
+
+              {loading && <p>Loading...</p>}
+
+              {generatedSrs && (
+                <div className="generated-srs">
+                  <h3>Generated SRS</h3>
+                  <div dangerouslySetInnerHTML={{ __html: generatedSrs }} />
+                </div>
+              )}
             </div>
           )}
 

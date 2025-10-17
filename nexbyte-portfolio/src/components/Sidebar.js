@@ -10,6 +10,7 @@ const Sidebar = () => {
         <li><Link to="/admin/contacts">Contact Messages</Link></li>
         <li><Link to="/admin/members">Members</Link></li>
         <li><Link to="/admin/clients">Clients</Link></li>
+        <li><Link to="/admin/srs-generator">SRS Generator</Link></li>
       </ul>
     </div>
   );

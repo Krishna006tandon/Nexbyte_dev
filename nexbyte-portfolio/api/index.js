@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 
@@ -388,6 +389,77 @@ app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
   }
 });
 
+// @route   POST api/generate-srs
+// @desc    Generate SRS document
+// @access  Private (admin)
+app.post('/api/generate-srs', auth, admin, async (req, res) => {
+  const { projectName, projectDescription, targetAudience, functionalRequirements, nonFunctionalRequirements } = req.body;
+
+  if (!projectName || !projectDescription) {
+    return res.status(400).json({ message: 'Project name and description are required' });
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ message: 'Gemini API key not configured' });
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+
+    const prompt = `
+      Create a comprehensive Software Requirements Specification (SRS) document based on the following details:
+
+      **Project Name:** ${projectName}
+
+      **Project Description:** ${projectDescription}
+
+      **Target Audience:** ${targetAudience}
+
+      **Functional Requirements:** 
+      ${functionalRequirements}
+
+      **Non-Functional Requirements:**
+      ${nonFunctionalRequirements}
+
+      Please structure the SRS with the following sections:
+      1.  **Introduction**: 
+          - Purpose of the document
+          - Scope of the project
+          - Overview of the system
+      2.  **Overall Description**:
+          - Product Perspective
+          - Product Functions
+          - User Characteristics
+          - Constraints
+          - Assumptions and Dependencies
+      3.  **System Features**:
+          - Detailed breakdown of functional requirements. For each, describe the feature and its purpose.
+      4.  **External Interface Requirements**:
+          - User Interfaces
+          - Hardware Interfaces
+          - Software Interfaces
+          - Communications Interfaces
+      5.  **Non-functional Requirements**:
+          - Performance Requirements
+          - Safety Requirements
+          - Security Requirements
+          - Software Quality Attributes
+      
+      Generate a detailed and professional SRS document in HTML format.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = await response.text();
+    
+    res.json({ srs: text });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
 
 module.exports = app;
 
