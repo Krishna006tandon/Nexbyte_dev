@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+
 
 const app = express();
 
@@ -409,65 +409,45 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     return res.status(400).json({ message: 'Project name and description are required' });
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ message: 'Gemini API key not configured' });
-  }
-
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+    // Manually construct the SRS document in HTML format
+    const srsContent = `
+    <h1>Software Requirements Specification (SRS)</h1>
+    <h2>for</h2>
+    <h1>${projectName}</h1>
+    <br/>
+    
+    <h3>1. Introduction</h3>
+    <p><strong>1.1 Purpose:</strong> The purpose of this document is to provide a detailed description of the requirements for the ${projectName}.</p>
+    <p><strong>1.2 Scope:</strong> The system will ${projectDescription}.</p>
+    <p><strong>1.3 Overview:</strong> This document outlines the functional and non-functional requirements for the project.</p>
+    
+    <h3>2. Overall Description</h3>
+    <p><strong>2.1 Product Perspective:</strong> To be defined.</p>
+    <p><strong>2.2 Product Functions:</strong> The system will allow users to perform the functions outlined in the functional requirements section.</p>
+    <p><strong>2.3 User Characteristics:</strong> The target audience for this system is ${targetAudience || 'Not specified'}.</p>
+    <p><strong>2.4 Constraints:</strong> To be defined.</p>
+    <p><strong>2.5 Assumptions and Dependencies:</strong> To be defined.</p>
+    
+    <h3>3. System Features</h3>
+    <p><strong>3.1 Functional Requirements:</strong></p>
+    <div>${functionalRequirements || 'No functional requirements specified.'}</div>
+    
+    <h3>4. External Interface Requirements</h3>
+    <p><strong>4.1 User Interfaces:</strong> To be defined.</p>
+    <p><strong>4.2 Hardware Interfaces:</strong> To be defined.</p>
+    <p><strong>4.3 Software Interfaces:</strong> To be defined.</p>
+    <p><strong>4.4 Communications Interfaces:</strong> To be defined.</p>
 
-    const prompt = `
-      Create a comprehensive Software Requirements Specification (SRS) document based on the following details:
+    <h3>5. Non-functional Requirements</h3>
+    <div>${nonFunctionalRequirements || 'No non-functional requirements specified.'}</div>
+`;
 
-      **Project Name:** ${projectName}
-
-      **Project Description:** ${projectDescription}
-
-      **Target Audience:** ${targetAudience}
-
-      **Functional Requirements:** 
-      ${functionalRequirements}
-
-      **Non-Functional Requirements:**
-      ${nonFunctionalRequirements}
-
-      Please structure the SRS with the following sections:
-      1.  **Introduction**: 
-          - Purpose of the document
-          - Scope of the project
-          - Overview of the system
-      2.  **Overall Description**:
-          - Product Perspective
-          - Product Functions
-          - User Characteristics
-          - Constraints
-          - Assumptions and Dependencies
-      3.  **System Features**:
-          - Detailed breakdown of functional requirements. For each, describe the feature and its purpose.
-      4.  **External Interface Requirements**:
-          - User Interfaces
-          - Hardware Interfaces
-          - Software Interfaces
-          - Communications Interfaces
-      5.  **Non-functional Requirements**:
-          - Performance Requirements
-          - Safety Requirements
-          - Security Requirements
-          - Software Quality Attributes
-      
-      Generate a detailed and professional SRS document in HTML format.
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = await response.text();
-
-    res.json({ srs: text });
+    res.json({ srs: srsContent });
     
   } catch (err) {
     console.error('Error generating SRS:', err);
-    res.status(500).json({ message: err.message || 'An unexpected error occurred during SRS generation.' });
+    res.status(500).json({ message: 'An unexpected error occurred during SRS generation.' });
   }
 });
 
