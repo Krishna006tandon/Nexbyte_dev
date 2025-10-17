@@ -410,38 +410,91 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   }
 
   try {
-    // Manually construct the SRS document in HTML format
+    // Manually construct the SRS document in HTML format with professional styling
     const srsContent = `
-    <h1>Software Requirements Specification (SRS)</h1>
-    <h2>for</h2>
-    <h1>${projectName}</h1>
-    <br/>
-    
-    <h3>1. Introduction</h3>
-    <p><strong>1.1 Purpose:</strong> The purpose of this document is to provide a detailed description of the requirements for the ${projectName}.</p>
-    <p><strong>1.2 Scope:</strong> The system will ${projectDescription}.</p>
-    <p><strong>1.3 Overview:</strong> This document outlines the functional and non-functional requirements for the project.</p>
-    
-    <h3>2. Overall Description</h3>
-    <p><strong>2.1 Product Perspective:</strong> To be defined.</p>
-    <p><strong>2.2 Product Functions:</strong> The system will allow users to perform the functions outlined in the functional requirements section.</p>
-    <p><strong>2.3 User Characteristics:</strong> The target audience for this system is ${targetAudience || 'Not specified'}.</p>
-    <p><strong>2.4 Constraints:</strong> To be defined.</p>
-    <p><strong>2.5 Assumptions and Dependencies:</strong> To be defined.</p>
-    
-    <h3>3. System Features</h3>
-    <p><strong>3.1 Functional Requirements:</strong></p>
-    <div>${functionalRequirements || 'No functional requirements specified.'}</div>
-    
-    <h3>4. External Interface Requirements</h3>
-    <p><strong>4.1 User Interfaces:</strong> To be defined.</p>
-    <p><strong>4.2 Hardware Interfaces:</strong> To be defined.</p>
-    <p><strong>4.3 Software Interfaces:</strong> To be defined.</p>
-    <p><strong>4.4 Communications Interfaces:</strong> To be defined.</p>
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+          }
+          .srs-container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          h1, h2, h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 20px;
+          }
+          h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 0;
+          }
+          h2 {
+            text-align: center;
+            font-size: 1.5em;
+            margin-top: 0;
+            border-bottom: none;
+          }
+          p {
+            margin-bottom: 10px;
+          }
+          strong {
+            color: #3498db;
+          }
+          div {
+            padding-left: 20px;
+            border-left: 3px solid #eee;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="srs-container">
+          <h1>Software Requirements Specification (SRS)</h1>
+          <h2>for</h2>
+          <h1>${projectName}</h1>
+          <br/>
+          
+          <h3>1. Introduction</h3>
+          <p><strong>1.1 Purpose:</strong> The purpose of this document is to provide a detailed description of the requirements for the ${projectName}.</p>
+          <p><strong>1.2 Scope:</strong> The system will ${projectDescription}.</p>
+          <p><strong>1.3 Overview:</strong> This document outlines the functional and non-functional requirements for the project.</p>
+          
+          <h3>2. Overall Description</h3>
+          <p><strong>2.1 Product Perspective:</strong> To be defined.</p>
+          <p><strong>2.2 Product Functions:</strong> The system will allow users to perform the functions outlined in the functional requirements section.</p>
+          <p><strong>2.3 User Characteristics:</strong> The target audience for this system is ${targetAudience || 'Not specified'}.</p>
+          <p><strong>2.4 Constraints:</strong> To be defined.</p>
+          <p><strong>2.5 Assumptions and Dependencies:</strong> To be defined.</p>
+          
+          <h3>3. System Features</h3>
+          <p><strong>3.1 Functional Requirements:</strong></p>
+          <div>${functionalRequirements || 'No functional requirements specified.'}</div>
+          
+          <h3>4. External Interface Requirements</h3>
+          <p><strong>4.1 User Interfaces:</strong> To be defined.</p>
+          <p><strong>4.2 Hardware Interfaces:</strong> To be defined.</p>
+          <p><strong>4.3 Software Interfaces:</strong> To be defined.</p>
+          <p><strong>4.4 Communications Interfaces:</strong> To be defined.</p>
 
-    <h3>5. Non-functional Requirements</h3>
-    <div>${nonFunctionalRequirements || 'No non-functional requirements specified.'}</div>
-`;
+          <h3>5. Non-functional Requirements</h3>
+          <div>${nonFunctionalRequirements || 'No non-functional requirements specified.'}</div>
+        </div>
+      </body>
+    </html>
+    `;
 
     res.json({ srs: srsContent });
     
