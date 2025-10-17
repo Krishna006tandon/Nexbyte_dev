@@ -21,6 +21,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   return (
+    // Define the main application structure with routing
     <Router>
       <div className="App d-flex flex-column min-vh-100">
         <Navbar />
