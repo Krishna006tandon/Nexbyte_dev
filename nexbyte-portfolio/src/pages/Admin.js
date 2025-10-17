@@ -132,28 +132,30 @@ const Admin = () => {
           {location.pathname === '/admin/members' && (
             <div>
               <h2>Manage Members</h2>
-              <form onSubmit={handleAddMember}>
-                <h3>Add New Member</h3>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <select value={role} onChange={(e) => setRole(e.target.value)}>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <button type="submit">Add Member</button>
-              </form>
+              <div className="form-container">
+                <form onSubmit={handleAddMember}>
+                  <h3>Add New Member</h3>
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <select value={role} onChange={(e) => setRole(e.target.value)}>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button type="submit" className="btn btn-primary">Add Member</button>
+                </form>
+              </div>
 
               <h3>All Members</h3>
               <table>
@@ -170,7 +172,7 @@ const Admin = () => {
                       <td>{member.email}</td>
                       <td>{member.role}</td>
                       <td>
-                        <button onClick={() => handleDeleteMember(member._id)}>Delete</button>
+                        <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                       </td>
                     </tr>
                   ))}
