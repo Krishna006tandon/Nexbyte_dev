@@ -101,7 +101,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -185,14 +185,13 @@ app.post('/api/users', auth, admin, async (req, res) => {
       html: `<p>Welcome! Your account has been created.</p><p>Your login credentials are:</p><p>Email: ${email}</p><p>Password: ${password}</p>`,
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending email:', error);
-        // We don't want to fail the request if the email fails
-      } else {
-        console.log('Email sent:', info.response);
-      }
-    });
+    try {
+      console.log('Attempting to send email...');
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Email sent:', info.response);
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
 
     res.json({ message: 'User created successfully' });
   } catch (err) {
@@ -219,12 +218,10 @@ app.get('/api/users', auth, admin, async (req, res) => {
 // @access  Private (admin)
 app.delete('/api/users/:id', auth, admin, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    await user.remove();
     res.json({ message: 'User removed' });
   } catch (err) {
     console.error(err.message);
@@ -232,19 +229,172 @@ app.delete('/api/users/:id', auth, admin, async (req, res) => {
   }
 });
 
-app.get('/api/client/data', auth, client, (req, res) => {
-  res.json({ 
-    message: "Welcome to your client panel!",
-    clientData: {
-      project: "Project X",
-      status: "In Progress",
-      dueDate: "2025-12-31"
+const Client = require('./models/Client');
+
+// Function to generate a random password
+const generatePassword = () => {
+  return Math.random().toString(36).slice(-8);
+};
+
+// @route   POST api/clients
+// @desc    Add a new client
+// @access  Private (admin)
+app.post('/api/clients', auth, admin, async (req, res) => {
+  const {
+    clientName,
+    contactPerson,
+    email,
+    phone,
+    companyAddress,
+    projectName,
+    projectType,
+    projectRequirements,
+    projectDeadline,
+    totalBudget,
+    billingAddress,
+    gstNumber,
+    paymentTerms,
+    paymentMethod,
+    domainRegistrarLogin,
+    webHostingLogin,
+    logoAndBrandingFiles,
+    content,
+  } = req.body;
+
+  try {
+    const password = generatePassword();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newClient = new Client({
+      clientName,
+      contactPerson,
+      email,
+      phone,
+      companyAddress,
+      projectName,
+      projectType,
+      projectRequirements,
+      projectDeadline,
+      totalBudget,
+      billingAddress,
+      gstNumber,
+      paymentTerms,
+      paymentMethod,
+      domainRegistrarLogin,
+      webHostingLogin,
+      logoAndBrandingFiles,
+      content,
+      password: hashedPassword,
+    });
+
+    await newClient.save();
+
+    // Send welcome email
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: email,
+      subject: 'Welcome to NexByte!',
+      html: `
+        <p>Welcome! Your project "${projectName}" has been registered with us.</p>
+        <h2>Client Details:</h2>
+        <ul>
+          <li><strong>Client/Company Name:</strong> ${clientName}</li>
+          <li><strong>Contact Person's Name:</strong> ${contactPerson}</li>
+          <li><strong>Email Address:</strong> ${email}</li>
+          <li><strong>Phone Number:</strong> ${phone}</li>
+          <li><strong>Company Address:</strong> ${companyAddress}</li>
+        </ul>
+        <h2>Project Details:</h2>
+        <ul>
+          <li><strong>Project Name:</strong> ${projectName}</li>
+          <li><strong>Project Type:</strong> ${projectType}</li>
+          <li><strong>Project Requirements:</strong> ${projectRequirements}</li>
+          <li><strong>Project Deadline:</strong> ${projectDeadline}</li>
+          <li><strong>Total Budget:</strong> ${totalBudget}</li>
+        </ul>
+        <h2>Billing and Payment Information:</h2>
+        <ul>
+          <li><strong>Billing Address:</strong> ${billingAddress}</li>
+          <li><strong>GST Number:</strong> ${gstNumber}</li>
+          <li><strong>Payment Terms:</strong> ${paymentTerms}</li>
+          <li><strong>Payment Method:</strong> ${paymentMethod}</li>
+        </ul>
+        <h2>Technical Details:</h2>
+        <ul>
+          <li><strong>Domain Registrar Login:</strong> ${domainRegistrarLogin}</li>
+          <li><strong>Web Hosting Login:</strong> ${webHostingLogin}</li>
+          <li><strong>Logo and Branding Files:</strong> ${logoAndBrandingFiles}</li>
+          <li><strong>Content:</strong> ${content}</li>
+        </ul>
+        <h2>Login Credentials:</h2>
+        <ul>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Password:</strong> ${password}</li>
+        </ul>
+      `,
+    };
+
+    try {
+      console.log('Attempting to send email...');
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Email sent:', info.response);
+    } catch (error) {
+      console.error('Error sending email:', error);
     }
-  });
+
+    res.json({ message: 'Client added successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 });
 
-// Define all your other API routes here. For example:
-// app.get('/api/projects', (req, res) => { ... }); // Make sure all routes start with /api
+// @route   GET api/clients
+// @desc    Get all clients
+// @access  Private (admin)
+app.get('/api/clients', auth, admin, async (req, res) => {
+  try {
+    const clients = await Client.find().select('-password').sort({ date: -1 });
+    res.json(clients);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   DELETE api/clients/:id
+// @desc    Delete a client
+// @access  Private (admin)
+app.delete('/api/clients/:id', auth, admin, async (req, res) => {
+  try {
+    const client = await Client.findByIdAndDelete(req.params.id);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    res.json({ message: 'Client removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/clients/:id/password
+// @desc    Get client password
+// @access  Private (admin)
+app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
+  try {
+    const client = await Client.findById(req.params.id).select('password');
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    res.json({ password: client.password });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 
 module.exports = app;
 

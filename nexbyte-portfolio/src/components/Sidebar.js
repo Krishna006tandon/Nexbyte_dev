@@ -9,6 +9,7 @@ const Sidebar = () => {
         <li><Link to="/admin">Dashboard</Link></li>
         <li><Link to="/admin/contacts">Contact Messages</Link></li>
         <li><Link to="/admin/members">Members</Link></li>
+        <li><Link to="/admin/clients">Clients</Link></li>
       </ul>
     </div>
   );

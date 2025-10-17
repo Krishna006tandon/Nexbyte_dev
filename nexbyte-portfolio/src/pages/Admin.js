@@ -6,10 +6,33 @@ import Sidebar from '../components/Sidebar';
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
   const [members, setMembers] = useState([]);
+  const [clients, setClients] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('user'); // Add role state
+  const [role, setRole] = useState('user');
+  const [clientPasswords, setClientPasswords] = useState({});
   const location = useLocation();
+
+  const [clientData, setClientData] = useState({
+    clientName: '',
+    contactPerson: '',
+    email: '',
+    phone: '',
+    companyAddress: '',
+    projectName: '',
+    projectType: '',
+    projectRequirements: '',
+    projectDeadline: '',
+    totalBudget: '',
+    billingAddress: '',
+    gstNumber: '',
+    paymentTerms: '',
+    paymentMethod: '',
+    domainRegistrarLogin: '',
+    webHostingLogin: '',
+    logoAndBrandingFiles: '',
+    content: '',
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,6 +56,14 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
+        } else if (location.pathname === '/admin/clients') {
+          const res = await fetch('/api/clients', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setClients(data);
+          } else {
+            console.error(data.message);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -52,14 +83,13 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password, role }), // Include role in the body
+        body: JSON.stringify({ email, password, role }),
       });
       const data = await res.json();
       if (res.ok) {
         setMembers([...members, data]);
         setEmail('');
         setPassword('');
-        // Refetch members to get the latest list
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
@@ -93,6 +123,99 @@ const Admin = () => {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleAddClient = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(clientData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setClients([...clients, data]);
+        setClientData({
+          clientName: '',
+          contactPerson: '',
+          email: '',
+          phone: '',
+          companyAddress: '',
+          projectName: '',
+          projectType: '',
+          projectRequirements: '',
+          projectDeadline: '',
+          totalBudget: '',
+          billingAddress: '',
+          gstNumber: '',
+          paymentTerms: '',
+          paymentMethod: '',
+          domainRegistrarLogin: '',
+          webHostingLogin: '',
+          logoAndBrandingFiles: '',
+          content: '',
+        });
+        const fetchRes = await fetch('/api/clients', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedClients = await fetchRes.json();
+        if (fetchRes.ok) {
+          setClients(updatedClients);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteClient = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setClients(clients.filter((client) => client._id !== id));
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleShowPassword = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/clients/${id}/password`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setClientPasswords({ ...clientPasswords, [id]: data.password });
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleClientChange = (e) => {
+    setClientData({ ...clientData, [e.target.name]: e.target.value });
   };
 
   return (
@@ -132,28 +255,30 @@ const Admin = () => {
           {location.pathname === '/admin/members' && (
             <div>
               <h2>Manage Members</h2>
-              <form onSubmit={handleAddMember}>
-                <h3>Add New Member</h3>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <select value={role} onChange={(e) => setRole(e.target.value)}>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <button type="submit">Add Member</button>
-              </form>
+              <div className="form-container">
+                <form onSubmit={handleAddMember}>
+                  <h3>Add New Member</h3>
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <select value={role} onChange={(e) => setRole(e.target.value)}>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button type="submit" className="btn btn-primary">Add Member</button>
+                </form>
+              </div>
 
               <h3>All Members</h3>
               <table>
@@ -170,7 +295,71 @@ const Admin = () => {
                       <td>{member.email}</td>
                       <td>{member.role}</td>
                       <td>
-                        <button onClick={() => handleDeleteMember(member._id)}>Delete</button>
+                        <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/clients' && (
+            <div>
+              <h2>Manage Clients</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddClient}>
+                  <h3>Add New Client</h3>
+                  <input type="text" name="clientName" placeholder="Client/Company Name" value={clientData.clientName} onChange={handleClientChange} required />
+                  <input type="text" name="contactPerson" placeholder="Contact Person's Name" value={clientData.contactPerson} onChange={handleClientChange} required />
+                  <input type="email" name="email" placeholder="Email Address" value={clientData.email} onChange={handleClientChange} required />
+                  <input type="text" name="phone" placeholder="Phone Number" value={clientData.phone} onChange={handleClientChange} />
+                  <input type="text" name="companyAddress" placeholder="Company Address" value={clientData.companyAddress} onChange={handleClientChange} />
+                  <input type="text" name="projectName" placeholder="Project Name" value={clientData.projectName} onChange={handleClientChange} required />
+                  <input type="text" name="projectType" placeholder="Project Type" value={clientData.projectType} onChange={handleClientChange} />
+                  <textarea name="projectRequirements" placeholder="Project Requirements" value={clientData.projectRequirements} onChange={handleClientChange}></textarea>
+                  <input type="date" name="projectDeadline" placeholder="Project Deadline" value={clientData.projectDeadline} onChange={handleClientChange} />
+                  <input type="number" name="totalBudget" placeholder="Total Budget" value={clientData.totalBudget} onChange={handleClientChange} />
+                  <input type="text" name="billingAddress" placeholder="Billing Address" value={clientData.billingAddress} onChange={handleClientChange} />
+                  <input type="text" name="gstNumber" placeholder="GST Number" value={clientData.gstNumber} onChange={handleClientChange} />
+                  <input type="text" name="paymentTerms" placeholder="Payment Terms" value={clientData.paymentTerms} onChange={handleClientChange} />
+                  <input type="text" name="paymentMethod" placeholder="Payment Method" value={clientData.paymentMethod} onChange={handleClientChange} />
+                  <input type="text" name="domainRegistrarLogin" placeholder="Domain Registrar Login" value={clientData.domainRegistrarLogin} onChange={handleClientChange} />
+                  <input type="text" name="webHostingLogin" placeholder="Web Hosting Login" value={clientData.webHostingLogin} onChange={handleClientChange} />
+                  <input type="text" name="logoAndBrandingFiles" placeholder="Logo and Branding Files (URL)" value={clientData.logoAndBrandingFiles} onChange={handleClientChange} />
+                  <input type="text" name="content" placeholder="Content (URL)" value={clientData.content} onChange={handleClientChange} />
+                  <button type="submit" className="btn btn-primary">Add Client</button>
+                </form>
+              </div>
+
+              <h3>All Clients</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client Name</th>
+                    <th>Contact Person</th>
+                    <th>Email</th>
+                    <th>Project Name</th>
+                    <th>Password</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((client) => (
+                    <tr key={client._id}>
+                      <td>{client.clientName}</td>
+                      <td>{client.contactPerson}</td>
+                      <td>{client.email}</td>
+                      <td>{client.projectName}</td>
+                      <td>
+                        {clientPasswords[client._id] ? (
+                          clientPasswords[client._id]
+                        ) : (
+                          <button onClick={() => handleShowPassword(client._id)} className="btn btn-secondary">Show Password</button>
+                        )}
+                      </td>
+                      <td>
+                        <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
                       </td>
                     </tr>
                   ))}

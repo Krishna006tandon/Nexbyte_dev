@@ -46,10 +46,6 @@ function App() {
               path="/admin/members"
               element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
             />
-            <Route
-              path="/client-panel"
-              element={<ClientRoute isClient={isClient}><ClientPanel /></ClientRoute>}
-            />
           </Routes>
         </main>
         <Footer />
