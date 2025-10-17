@@ -178,14 +178,13 @@ app.post('/api/users', auth, admin, async (req, res) => {
       html: `<p>Welcome! Your account has been created.</p><p>Your login credentials are:</p><p>Email: ${email}</p><p>Password: ${password}</p>`,
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending email:', error);
-        // We don't want to fail the request if the email fails
-      } else {
-        console.log('Email sent:', info.response);
-      }
-    });
+    try {
+      console.log('Attempting to send email...');
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Email sent:', info.response);
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
 
     res.json({ message: 'User created successfully' });
   } catch (err) {
@@ -212,12 +211,10 @@ app.get('/api/users', auth, admin, async (req, res) => {
 // @access  Private (admin)
 app.delete('/api/users/:id', auth, admin, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    await user.remove();
     res.json({ message: 'User removed' });
   } catch (err) {
     console.error(err.message);
