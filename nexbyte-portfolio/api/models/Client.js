@@ -27,6 +27,8 @@ const ClientSchema = new mongoose.Schema({
   logoAndBrandingFiles: { type: String }, // Storing as a URL or path
   content: { type: String }, // Storing as a URL or path
 
+  password: { type: String, required: true },
+
   date: {
     type: Date,
     default: Date.now

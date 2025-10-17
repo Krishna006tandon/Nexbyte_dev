@@ -10,6 +10,7 @@ const Admin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
+  const [clientPasswords, setClientPasswords] = useState({});
   const location = useLocation();
 
   const [clientData, setClientData] = useState({
@@ -194,6 +195,25 @@ const Admin = () => {
     }
   };
 
+  const handleShowPassword = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/clients/${id}/password`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setClientPasswords({ ...clientPasswords, [id]: data.password });
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleClientChange = (e) => {
     setClientData({ ...clientData, [e.target.name]: e.target.value });
   };
@@ -320,6 +340,7 @@ const Admin = () => {
                     <th>Contact Person</th>
                     <th>Email</th>
                     <th>Project Name</th>
+                    <th>Password</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -330,6 +351,13 @@ const Admin = () => {
                       <td>{client.contactPerson}</td>
                       <td>{client.email}</td>
                       <td>{client.projectName}</td>
+                      <td>
+                        {clientPasswords[client._id] ? (
+                          clientPasswords[client._id]
+                        ) : (
+                          <button onClick={() => handleShowPassword(client._id)} className="btn btn-secondary">Show Password</button>
+                        )}
+                      </td>
                       <td>
                         <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
                       </td>
