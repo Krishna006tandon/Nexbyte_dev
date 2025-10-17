@@ -55,7 +55,7 @@ app.post('/api/login', async (req, res) => {
     );
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -124,7 +124,7 @@ app.post('/api/contact', async (req, res) => {
     res.json({ message: 'Contact form submitted successfully' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -134,7 +134,7 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
     res.json(contacts);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -197,7 +197,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
     res.json({ message: 'User created successfully' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -207,10 +207,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
 app.get('/api/users', auth, admin, async (req, res) => {
   try {
     const users = await User.find().select('-password');
-    res.json(users);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -226,7 +223,7 @@ app.delete('/api/users/:id', auth, admin, async (req, res) => {
     res.json({ message: 'User removed' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -347,7 +344,7 @@ app.post('/api/clients', auth, admin, async (req, res) => {
     res.json({ message: 'Client added successfully' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -360,7 +357,7 @@ app.get('/api/clients', auth, admin, async (req, res) => {
     res.json(clients);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -376,7 +373,7 @@ app.delete('/api/clients/:id', auth, admin, async (req, res) => {
     res.json({ message: 'Client removed' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -392,7 +389,7 @@ app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
     res.json({ password: client.password });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -460,11 +457,9 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     const response = await result.response;
     const text = await response.text();
     
-    res.json({ srs: text });
-
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error generating SRS:', err);
+    res.status(500).json({ message: err.message || 'An unexpected error occurred during SRS generation.' });
   }
 });
 
