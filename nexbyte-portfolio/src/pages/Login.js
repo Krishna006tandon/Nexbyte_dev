@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
-const Login = ({ setIsAdmin }) => {
+const Login = ({ setIsAdmin, setIsClient }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,9 @@ const Login = ({ setIsAdmin }) => {
         if (data.role === 'admin') {
           setIsAdmin(true);
           navigate('/admin');
+        } else if (data.role === 'client') {
+          setIsClient(true);
+          navigate('/client-panel');
         } else {
           navigate('/');
         }

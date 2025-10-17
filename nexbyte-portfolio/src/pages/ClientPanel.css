@@ -1,0 +1,22 @@
+.client-panel-container {
+    padding: 2rem;
+    text-align: center;
+  }
+  
+  .client-panel-error {
+    color: red;
+    font-size: 1.2rem;
+  }
+  
+  .client-panel-loading {
+    font-size: 1.2rem;
+  }
+  
+  .client-data {
+    margin-top: 2rem;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    border-radius: 5px;
+    display: inline-block;
+  }
+  

@@ -87,6 +87,13 @@ const admin = (req, res, next) => {
   next();
 };
 
+const client = (req, res, next) => {
+  if (req.user.role !== 'client') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  next();
+};
+
 app.post('/api/contact', async (req, res) => {
   const { name, email, mobile, message } = req.body;
 
@@ -223,6 +230,17 @@ app.delete('/api/users/:id', auth, admin, async (req, res) => {
     console.error(err.message);
     res.status(500).send('Server error');
   }
+});
+
+app.get('/api/client/data', auth, client, (req, res) => {
+  res.json({ 
+    message: "Welcome to your client panel!",
+    clientData: {
+      project: "Project X",
+      status: "In Progress",
+      dueDate: "2025-12-31"
+    }
+  });
 });
 
 // Define all your other API routes here. For example:

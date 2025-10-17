@@ -8,14 +8,20 @@ import Projects from './pages/Projects';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
+import ClientPanel from './pages/ClientPanel';
 import './App.css';
 
 const PrivateRoute = ({ isAdmin, children }) => {
   return isAdmin ? children : <Navigate to="/login" />;
 };
 
+const ClientRoute = ({ isClient, children }) => {
+  return isClient ? children : <Navigate to="/login" />;
+};
+
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   return (
     <Router>
@@ -27,7 +33,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/login" element={<Login setIsAdmin={setIsAdmin} />} />
+            <Route path="/login" element={<Login setIsAdmin={setIsAdmin} setIsClient={setIsClient} />} />
             <Route
               path="/admin"
               element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
@@ -39,6 +45,10 @@ function App() {
             <Route
               path="/admin/members"
               element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+            />
+            <Route
+              path="/client-panel"
+              element={<ClientRoute isClient={isClient}><ClientPanel /></ClientRoute>}
             />
           </Routes>
         </main>
