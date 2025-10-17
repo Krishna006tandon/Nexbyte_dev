@@ -88,6 +88,13 @@ const admin = (req, res, next) => {
   next();
 };
 
+const client = (req, res, next) => {
+  if (req.user.role !== 'client') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  next();
+};
+
 app.post('/api/contact', async (req, res) => {
   const { name, email, mobile, message } = req.body;
 
