@@ -27,9 +27,21 @@ app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    let user = await User.findOne({ email });
+    let role = 'user';
+    let userId = '';
+
+    if (user) {
+      role = user.role;
+      userId = user.id;
+    } else {
+      const client = await Client.findOne({ email });
+      if (!client) {
+        return res.status(400).json({ message: 'Invalid credentials' });
+      }
+      user = client;
+      role = 'client';
+      userId = client.id;
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -39,8 +51,8 @@ app.post('/api/login', async (req, res) => {
 
     const payload = {
       user: {
-        id: user.id,
-        role: user.role,
+        id: userId,
+        role: role,
       },
     };
 
@@ -53,7 +65,7 @@ app.post('/api/login', async (req, res) => {
           console.error(err);
           return res.status(500).json({ message: 'Error signing token' });
         }
-        res.json({ token, role: user.role });
+        res.json({ token, role: role });
       }
     );
   } catch (err) {
