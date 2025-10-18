@@ -8,6 +8,7 @@ import Projects from './pages/Projects';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
+import ClientPanel from './pages/ClientPanel';
 
 import SrsGenerator from './pages/SrsGenerator';
 
@@ -17,8 +18,13 @@ const PrivateRoute = ({ isAdmin, children }) => {
   return isAdmin ? children : <Navigate to="/login" />;
 };
 
+const ClientPrivateRoute = ({ isClient, children }) => {
+  return isClient ? children : <Navigate to="/login" />;
+};
+
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   return (
     // Define the main application structure with routing
@@ -33,7 +39,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
 
             <Route path="/srs-generator" element={<SrsGenerator />} />
-            <Route path="/login" element={<Login setIsAdmin={setIsAdmin} />} />
+            <Route path="/login" element={<Login setIsAdmin={setIsAdmin} setIsClient={setIsClient} />} />
 
             <Route
               path="/admin"
@@ -57,6 +63,10 @@ function App() {
               element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
             />
 
+            <Route
+              path="/client-panel"
+              element={<ClientPrivateRoute isClient={isClient}><ClientPanel /></ClientPrivateRoute>}
+            />
 
           </Routes>
         </main>
