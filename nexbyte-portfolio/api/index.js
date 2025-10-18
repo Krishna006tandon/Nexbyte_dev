@@ -480,12 +480,12 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   `;
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const modelName = 'gemini-1.5-pro-latest';
-  const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
+  // Using the specific model and v1beta endpoint confirmed to work for the user's key
+  const modelName = 'gemini-2.5-pro';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const requestBody = {
     contents: [{
-      role: "user",
       parts: [{
         text: promptText
       }]
@@ -493,7 +493,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   };
 
   try {
-    console.log(`Attempting direct API call to model: ${modelName} using v1 endpoint.`);
+    console.log(`Attempting direct API call to model: ${modelName} using v1beta endpoint.`);
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -509,6 +509,8 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     }
 
     const data = await response.json();
+    // The response structure for v1beta might be different.
+    // Assuming it has candidates and content parts. This might need adjustment.
     const srsContent = data.candidates[0].content.parts[0].text;
     res.status(200).json({ srsContent });
 
