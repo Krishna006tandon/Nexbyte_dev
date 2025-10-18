@@ -482,17 +482,26 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     Please generate a comprehensive and well-structured SRS document based on this information. The output should be in Markdown format.
   `;
 
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro"});
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    res.status(200).json({ srsContent: text });
-  } catch (error) {
-    // Log the detailed error from Gemini
-    console.error('Error generating SRS from Gemini:', error);
-    res.status(500).json({ message: 'Failed to generate SRS', error: error.message });
+  const modelsToTry = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-1.0-pro', 'gemini-pro'];
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`Trying model: ${modelName}`);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      return res.status(200).json({ srsContent: text });
+    } catch (error) {
+      console.error(`Error with model ${modelName}:`, error.message);
+      lastError = error;
+    }
   }
+
+  // If all models failed
+  console.error('All models failed to generate SRS.');
+  res.status(500).json({ message: 'Failed to generate SRS with all available models.', error: lastError ? lastError.message : 'Unknown error' });
 });
 
 module.exports = app;
