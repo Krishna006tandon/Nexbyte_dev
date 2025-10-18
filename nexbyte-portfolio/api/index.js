@@ -1,4 +1,4 @@
-const { OpenAI } = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const express = require('express');
 require('dotenv').config();
 const mongoose = require('mongoose');
@@ -11,9 +11,7 @@ const app = express();
 
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const uri = process.env.MONGODB_URI;
 
@@ -430,7 +428,7 @@ app.get('/api/client/data', auth, client, async (req, res) => {
 // @access  Private (admin)
 app.post('/api/generate-srs', auth, admin, async (req, res) => {
   // Log to check if the API key is loaded
-  console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+  console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
 
   const {
     projectName,
@@ -485,16 +483,14 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   `;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-    });
-
-    res.status(200).json({ srsContent: response.choices[0].message.content });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    res.status(200).json({ srsContent: text });
   } catch (error) {
-    // Log the detailed error from OpenAI
-    console.error('Error generating SRS from OpenAI:', error);
+    // Log the detailed error from Gemini
+    console.error('Error generating SRS from Gemini:', error);
     res.status(500).json({ message: 'Failed to generate SRS', error: error.message });
   }
 });
