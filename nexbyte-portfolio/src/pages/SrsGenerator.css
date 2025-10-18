@@ -134,6 +134,20 @@ body {
     border-color: #146c43;
 }
 
+.action-feedback {
+  text-align: center;
+  margin-top: 1.5rem;
+  min-height: 24px; /* Reserve space to prevent layout shift */
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+.text-success {
+  color: #198754;
+}
+
 /* Print-specific styles */
 @media print {
   body {
@@ -161,7 +175,7 @@ body {
     color: #000;
   }
 
-  .action-buttons, .ai-prompt-container {
-    display: none; /* Hide the buttons when printing */
+  .action-buttons, .ai-prompt-container, .action-feedback {
+    display: none; /* Hide the buttons and feedback when printing */
   }
 }

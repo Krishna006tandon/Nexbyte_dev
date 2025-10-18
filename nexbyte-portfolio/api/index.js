@@ -118,7 +118,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -476,7 +476,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     **5. Other Appendices:**
        - Include any other relevant information, such as a glossary, analysis models, or issues list.
 
-    Please generate a comprehensive and well-structured SRS document based on this information. The output should be in Markdown format.
+    Please generate a comprehensive and well-structured SRS document based on this information. The output should be in Markdown format. Do not include any conversational pleasantries, preambles, or apologies in your response. Respond only with the raw Markdown document content starting from the main title.
   `;
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -517,6 +517,94 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   } catch (error) {
     console.error('Error making direct fetch call to Gemini:', error);
     res.status(500).json({ message: 'Failed to generate SRS via direct API call.', error: error.message });
+  }
+});
+
+// @route   POST api/save-srs
+// @desc    Save SRS document to a client
+// @access  Private (admin)
+app.post('/api/save-srs', auth, admin, async (req, res) => {
+  const { clientId, srsContent } = req.body;
+
+  if (!clientId || !srsContent) {
+    return res.status(400).json({ message: 'Client ID and SRS content are required' });
+  }
+
+  try {
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    client.srsDocument = srsContent;
+    await client.save();
+
+    res.json({ message: 'SRS document saved successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error while saving SRS' });
+  }
+});
+
+// @route   POST api/edit-srs
+// @desc    Edit SRS document with AI
+// @access  Private (admin)
+app.post('/api/edit-srs', auth, admin, async (req, res) => {
+  const { srsContent, aiPrompt } = req.body;
+
+  if (!srsContent || !aiPrompt) {
+    return res.status(400).json({ message: 'SRS content and AI prompt are required' });
+  }
+
+  const promptText = `
+    Based on the following document, please perform the requested edit.
+
+    **Instruction:**
+    ${aiPrompt}
+
+    **Document:**
+    ---
+    ${srsContent}
+    ---
+
+    Return only the full, edited document with the changes applied. Do not include any conversational pleasantries, preambles, or apologies.
+  `;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  const modelName = 'gemini-2.5-pro'; // Using the same confirmed model
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+  const requestBody = {
+    contents: [{
+      parts: [{
+        text: promptText
+      }]
+    }]
+  };
+
+  try {
+    console.log(`Attempting AI edit with model: ${modelName} using v1beta endpoint.`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error response from AI edit call:', errorData);
+      throw new Error(errorData.error.message || 'Request failed');
+    }
+
+    const data = await response.json();
+    const editedSrs = data.candidates[0].content.parts[0].text;
+    res.status(200).json({ srsContent: editedSrs });
+
+  } catch (error) {
+    console.error('Error making direct fetch call to Gemini for AI edit:', error);
+    res.status(500).json({ message: 'Failed to edit SRS with AI.', error: error.message });
   }
 });
 

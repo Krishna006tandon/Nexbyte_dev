@@ -27,6 +27,9 @@ const ClientSchema = new mongoose.Schema({
   logoAndBrandingFiles: { type: String }, // Storing as a URL or path
   content: { type: String }, // Storing as a URL or path
 
+  // SRS Document
+  srsDocument: { type: String },
+
   password: { type: String, required: true },
 
   date: {

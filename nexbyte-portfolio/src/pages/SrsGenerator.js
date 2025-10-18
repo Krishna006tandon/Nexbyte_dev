@@ -10,6 +10,11 @@ const SrsGenerator = () => {
   const [editingMode, setEditingMode] = useState('view'); // 'view', 'manual', 'ai'
   const [aiPrompt, setAiPrompt] = useState('');
 
+  // State for actions like saving or AI editing
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
+
   useEffect(() => {
     if (srsFullData) {
       const generateSrs = async () => {
@@ -49,14 +54,73 @@ const SrsGenerator = () => {
     window.print();
   };
 
-  const handleSave = () => {
-    // TODO: Implement save functionality in Phase 3
-    alert('Save functionality will be implemented soon.');
+  const handleSave = async () => {
+    setIsActionLoading(true);
+    setActionError('');
+    setActionSuccess('');
+    try {
+      const token = localStorage.getItem('token');
+      const clientId = srsFullData?.client?._id;
+      if (!clientId) {
+        throw new Error('Client ID not found. Cannot save.');
+      }
+
+      const response = await fetch('/api/save-srs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ clientId, srsContent }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save SRS');
+      }
+
+      setActionSuccess('SRS document saved successfully!');
+      setEditingMode('view');
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  const handleAiEdit = () => {
-    // TODO: Implement AI edit functionality in Phase 4
-    alert('AI edit functionality will be implemented soon.');
+  const handleAiEdit = async () => {
+    if (!aiPrompt) {
+      setActionError('Please enter an AI prompt.');
+      return;
+    }
+    setIsActionLoading(true);
+    setActionError('');
+    setActionSuccess('');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/edit-srs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ srsContent, aiPrompt }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to edit with AI');
+      }
+
+      const data = await response.json();
+      setSrsContent(data.srsContent);
+      setAiPrompt('');
+      setActionSuccess('AI edit complete.');
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   if (!srsFullData) {
@@ -106,6 +170,7 @@ const SrsGenerator = () => {
             className="srs-textarea"
             value={srsContent}
             onChange={(e) => setSrsContent(e.target.value)}
+            disabled={isActionLoading}
           />
         ) : (
           <pre>{srsContent}</pre>
@@ -119,10 +184,18 @@ const SrsGenerator = () => {
               placeholder="Enter your editing instructions... (e.g., 'Make it more formal')"
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
+              disabled={isActionLoading}
             />
-            <button onClick={handleAiEdit} className="btn btn-secondary">Generate with AI</button>
+            <button onClick={handleAiEdit} className="btn btn-secondary" disabled={isActionLoading}>
+              {isActionLoading ? 'Generating...' : 'Generate with AI'}
+            </button>
           </div>
         )}
+
+        <div className="action-feedback">
+          {actionError && <p className="text-danger">{actionError}</p>}
+          {actionSuccess && <p className="text-success">{actionSuccess}</p>}
+        </div>
 
         <div className="text-center mt-4 action-buttons">
           {editingMode === 'view' ? (
@@ -130,12 +203,16 @@ const SrsGenerator = () => {
               <button onClick={handlePrint} className="btn btn-secondary">Print SRS</button>
               <button onClick={() => setEditingMode('manual')} className="btn btn-primary">Edit Manually</button>
               <button onClick={() => setEditingMode('ai')} className="btn btn-primary">Edit with AI</button>
-              <button onClick={handleSave} className="btn btn-success">Save</button>
+              <button onClick={handleSave} className="btn btn-success" disabled={isActionLoading}>
+                {isActionLoading ? 'Saving...' : 'Save'}
+              </button>
             </>
           ) : (
             <>
-              <button onClick={() => setEditingMode('view')} className="btn btn-secondary">Back to View</button>
-              <button onClick={handleSave} className="btn btn-success">Save</button>
+              <button onClick={() => setEditingMode('view')} className="btn btn-secondary" disabled={isActionLoading}>Back to View</button>
+              <button onClick={handleSave} className="btn btn-success" disabled={isActionLoading}>
+                {isActionLoading ? 'Saving...' : 'Save'}
+              </button>
             </>
           )}
         </div>
