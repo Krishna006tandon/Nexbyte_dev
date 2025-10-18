@@ -398,13 +398,21 @@ app.delete('/api/clients/:id', auth, admin, async (req, res) => {
 // @route   GET api/clients/:id/password
 // @desc    Get client password
 // @access  Private (admin)
-app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
+app.get('/api/client/data', auth, client, async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id).select('password');
+    const client = await Client.findById(req.user.id).select('-password');
     if (!client) {
       return res.status(404).json({ message: 'Client not found' });
     }
-    res.json({ password: client.password });
+
+    res.json({
+      message: `Welcome, ${client.clientName}`,
+      clientData: {
+        project: client.projectName,
+        status: 'In Progress',
+        dueDate: client.projectDeadline,
+      },
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
