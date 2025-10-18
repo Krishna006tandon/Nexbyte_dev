@@ -9,6 +9,7 @@ import Contact from './pages/Contact';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import ClientPanel from './pages/ClientPanel';
+import { SrsProvider } from './context/SrsContext';
 
 import SrsGenerator from './pages/SrsGenerator';
 
@@ -28,51 +29,53 @@ function App() {
 
   return (
     // Define the main application structure with routing
-    <Router>
-      <div className="App d-flex flex-column min-vh-100">
-        <Navbar />
-        <main className="flex-grow-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/contact" element={<Contact />} />
+    <SrsProvider>
+      <Router>
+        <div className="App d-flex flex-column min-vh-100">
+          <Navbar />
+          <main className="flex-grow-1">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/contact" element={<Contact />} />
 
-            <Route path="/srs-generator" element={<SrsGenerator />} />
-            <Route path="/login" element={<Login setIsAdmin={setIsAdmin} setIsClient={setIsClient} />} />
+              <Route path="/srs-generator" element={<SrsGenerator />} />
+              <Route path="/login" element={<Login setIsAdmin={setIsAdmin} setIsClient={setIsClient} />} />
 
-            <Route
-              path="/admin"
-              element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-            />
-            <Route
-              path="/admin/contacts"
-              element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-            />
-            <Route
-              path="/admin/members"
-              element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-            />
+              <Route
+                path="/admin"
+                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+              />
+              <Route
+                path="/admin/contacts"
+                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+              />
+              <Route
+                path="/admin/members"
+                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+              />
 
-            <Route
-              path="/admin/clients"
-              element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-            />
-            <Route
-              path="/admin/srs-generator"
-              element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-            />
+              <Route
+                path="/admin/clients"
+                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+              />
+              <Route
+                path="/admin/srs-generator"
+                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
+              />
 
-            <Route
-              path="/client-panel"
-              element={<ClientPrivateRoute isClient={isClient}><ClientPanel /></ClientPrivateRoute>}
-            />
+              <Route
+                path="/client-panel"
+                element={<ClientPrivateRoute isClient={isClient}><ClientPanel /></ClientPrivateRoute>}
+              />
 
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </Router>
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </SrsProvider>
   );
 }
 

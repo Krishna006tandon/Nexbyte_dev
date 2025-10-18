@@ -1,58 +1,43 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
+import { SrsContext } from '../context/SrsContext';
 import './SrsGenerator.css';
 
 const SrsGenerator = () => {
-  const [clientName, setClientName] = useState('');
-  const [clientIndustry, setClientIndustry] = useState('');
-  const [projectGoal, setProjectGoal] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
-  const [srsContent, setSrsContent] = useState('');
+  const { srsData } = useContext(SrsContext);
 
-  const handleGenerate = () => {
-    // AI generation will be simulated here.
-    const generatedSrs = `
-# Software Requirements Specification (SRS) for ${clientName}
-
-## 1. Introduction
-
-### 1.1 Purpose
-This document outlines the requirements for the project: ${projectDescription}.
-
-### 1.2 Project Scope
-The project aims to address the following business goal: ${projectGoal}.
-
-### 1.3 Target Industry
-${clientIndustry}
-
-## 2. Functional Requirements
-- User Authentication
-- Feature A
-- Feature B
-
-## 3. Non-Functional Requirements
-- Performance
-- Security
-- Usability
-    `;
-    setSrsContent(generatedSrs);
+  const handlePrint = () => {
+    window.print();
   };
+
+  if (!srsData) {
+    return (
+      <div className="srs-generator-container">
+        <h1>SRS Generator</h1>
+        <p>Please go to the <a href="/admin/srs-generator">Admin Panel</a> to generate an SRS document.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="srs-generator-container">
-      <h1>AI-Powered SRS Generator</h1>
-      <div className="srs-form">
-        <input type="text" placeholder="Client Name" value={clientName} onChange={(e) => setClientName(e.target.value)} />
-        <input type="text" placeholder="Client Industry (e.g., Healthcare, E-commerce)" value={clientIndustry} onChange={(e) => setClientIndustry(e.target.value)} />
-        <textarea placeholder="Primary Business Goal" value={projectGoal} onChange={(e) => setProjectGoal(e.target.value)} />
-        <textarea placeholder="Project Description" value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} />
-        <button onClick={handleGenerate}>Generate with AI</button>
+      <h1>Software Requirements Specification (SRS)</h1>
+      <div className="srs-output">
+        <section>
+          <h2>1. Introduction</h2>
+          <p><strong>Project Name:</strong> {srsData.projectName}</p>
+          <p><strong>Project Description:</strong> {srsData.projectDescription}</p>
+          <p><strong>Target Audience:</strong> {srsData.targetAudience}</p>
+        </section>
+        <section>
+          <h2>2. Functional Requirements</h2>
+          <pre>{srsData.functionalRequirements}</pre>
+        </section>
+        <section>
+          <h2>3. Non-Functional Requirements</h2>
+          <pre>{srsData.nonFunctionalRequirements}</pre>
+        </section>
+        <button onClick={handlePrint} className="btn btn-primary">Print SRS</button>
       </div>
-      {srsContent && (
-        <div className="srs-output">
-          <h2>Generated SRS</h2>
-          <pre>{srsContent}</pre>
-        </div>
-      )}
     </div>
   );
 };

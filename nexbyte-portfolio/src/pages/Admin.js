@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
+import { SrsContext } from '../context/SrsContext';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -12,6 +13,8 @@ const Admin = () => {
   const [role, setRole] = useState('user');
   const [clientPasswords, setClientPasswords] = useState({});
   const location = useLocation();
+  const navigate = useNavigate();
+  const { setSrsData: setGlobalSrsData } = useContext(SrsContext);
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -41,9 +44,7 @@ const Admin = () => {
     functionalRequirements: '',
     nonFunctionalRequirements: '',
   });
-  const [generatedSrs, setGeneratedSrs] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -233,29 +234,10 @@ const Admin = () => {
     setSrsData({ ...srsData, [e.target.name]: e.target.value });
   };
 
-  const handleGenerateSrs = async (e) => {
+  const handleGenerateSrs = (e) => {
     e.preventDefault();
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch('/api/generate-srs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-        body: JSON.stringify(srsData),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setGeneratedSrs(data.srs);
-      } else {
-        console.error(data.message);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
+    setGlobalSrsData(srsData);
+    navigate('/srs-generator');
   };
 
   const handleClientSelect = (clientId) => {
@@ -439,20 +421,11 @@ const Admin = () => {
                   <textarea name="targetAudience" placeholder="Target Audience" value={srsData.targetAudience} onChange={handleSrsChange}></textarea>
                   <textarea name="functionalRequirements" placeholder="Functional Requirements" value={srsData.functionalRequirements} onChange={handleSrsChange}></textarea>
                   <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={srsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Generating...' : 'Generate SRS'}
+                  <button type="submit" className="btn btn-primary">
+                    Generate SRS
                   </button>
                 </form>
               </div>
-
-              {loading && <p>Loading...</p>}
-
-              {generatedSrs && (
-                <div className="generated-srs">
-                  <h3>Generated SRS</h3>
-                  <div dangerouslySetInnerHTML={{ __html: generatedSrs }} />
-                </div>
-              )}
             </div>
           )}
 
