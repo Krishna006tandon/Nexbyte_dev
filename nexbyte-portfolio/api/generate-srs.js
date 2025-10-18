@@ -6,6 +6,9 @@ const openai = new OpenAI({
 });
 
 module.exports = async (req, res) => {
+  // Log to check if the API key is loaded
+  console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Only POST requests are allowed' });
   }
@@ -71,7 +74,8 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ srsContent: response.choices[0].message.content });
   } catch (error) {
-    console.error('Error generating SRS:', error);
-    res.status(500).json({ message: 'Failed to generate SRS' });
+    // Log the detailed error from OpenAI
+    console.error('Error generating SRS from OpenAI:', error);
+    res.status(500).json({ message: 'Failed to generate SRS', error: error.message });
   }
 };
