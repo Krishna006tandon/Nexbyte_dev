@@ -1,4 +1,3 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const express = require('express');
 require('dotenv').config();
 const mongoose = require('mongoose');
@@ -10,8 +9,6 @@ const User = require('./models/User');
 const app = express();
 
 app.use(express.json());
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const uri = process.env.MONGODB_URI;
 
@@ -443,7 +440,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     return res.status(400).json({ message: 'Project name is required' });
   }
 
-  const prompt = `
+  const promptText = `
     Generate a detailed Software Requirement Specification (SRS) document based on the following details:
 
     **Project Name:** ${projectName}
@@ -482,26 +479,43 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     Please generate a comprehensive and well-structured SRS document based on this information. The output should be in Markdown format.
   `;
 
-  const modelsToTry = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-1.0-pro', 'gemini-pro'];
-  let lastError = null;
+  const apiKey = process.env.GEMINI_API_KEY;
+  const modelName = 'gemini-1.5-pro-latest';
+  const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
 
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`Trying model: ${modelName}`);
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      return res.status(200).json({ srsContent: text });
-    } catch (error) {
-      console.error(`Error with model ${modelName}:`, error.message);
-      lastError = error;
+  const requestBody = {
+    contents: [{
+      role: "user",
+      parts: [{
+        text: promptText
+      }]
+    }]
+  };
+
+  try {
+    console.log(`Attempting direct API call to model: ${modelName} using v1 endpoint.`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error response from direct API call:', errorData);
+      throw new Error(errorData.error.message || 'Request failed');
     }
-  }
 
-  // If all models failed
-  console.error('All models failed to generate SRS.');
-  res.status(500).json({ message: 'Failed to generate SRS with all available models.', error: lastError ? lastError.message : 'Unknown error' });
+    const data = await response.json();
+    const srsContent = data.candidates[0].content.parts[0].text;
+    res.status(200).json({ srsContent });
+
+  } catch (error) {
+    console.error('Error making direct fetch call to Gemini:', error);
+    res.status(500).json({ message: 'Failed to generate SRS via direct API call.', error: error.message });
+  }
 });
 
 module.exports = app;
