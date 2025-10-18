@@ -483,7 +483,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   `;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
+    const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro"});
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
