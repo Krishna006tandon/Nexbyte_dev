@@ -14,7 +14,7 @@ const Admin = () => {
   const [clientPasswords, setClientPasswords] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
-  const { setSrsData: setGlobalSrsData } = useContext(SrsContext);
+  const { setSrsFullData } = useContext(SrsContext);
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -37,7 +37,7 @@ const Admin = () => {
     content: '',
   });
 
-  const [srsData, setSrsData] = useState({
+  const [localSrsData, setLocalSrsData] = useState({
     projectName: '',
     projectDescription: '',
     targetAudience: '',
@@ -129,7 +129,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setMembers(members.filter((member) => member._id !== id));
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -199,7 +200,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClients(clients.filter((client) => client._id !== id));
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -218,7 +220,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClientPasswords({ ...clientPasswords, [id]: data.password });
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -231,12 +234,17 @@ const Admin = () => {
   };
 
   const handleSrsChange = (e) => {
-    setSrsData({ ...srsData, [e.target.name]: e.target.value });
+    setLocalSrsData({ ...localSrsData, [e.target.name]: e.target.value });
   };
 
   const handleGenerateSrs = (e) => {
     e.preventDefault();
-    setGlobalSrsData(srsData);
+    const selectedClient = clients.find(client => client._id === selectedClientId);
+    const fullSrsData = {
+      ...localSrsData,
+      client: selectedClient,
+    };
+    setSrsFullData(fullSrsData);
     navigate('/srs-generator');
   };
 
@@ -244,7 +252,7 @@ const Admin = () => {
     setSelectedClientId(clientId);
     const selectedClient = clients.find(client => client._id === clientId);
     if (selectedClient) {
-      setSrsData({
+      setLocalSrsData({
         projectName: selectedClient.projectName || '',
         projectDescription: selectedClient.projectRequirements || '',
         targetAudience: '',
@@ -416,11 +424,11 @@ const Admin = () => {
                       <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
                     ))}
                   </select>
-                  <input type="text" name="projectName" placeholder="Project Name" value={srsData.projectName} onChange={handleSrsChange} required />
-                  <textarea name="projectDescription" placeholder="Project Description" value={srsData.projectDescription} onChange={handleSrsChange}></textarea>
-                  <textarea name="targetAudience" placeholder="Target Audience" value={srsData.targetAudience} onChange={handleSrsChange}></textarea>
-                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={srsData.functionalRequirements} onChange={handleSrsChange}></textarea>
-                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={srsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
+                  <input type="text" name="projectName" placeholder="Project Name" value={localSrsData.projectName} onChange={handleSrsChange} required />
+                  <textarea name="projectDescription" placeholder="Project Description" value={localSrsData.projectDescription} onChange={handleSrsChange}></textarea>
+                  <textarea name="targetAudience" placeholder="Target Audience" value={localSrsData.targetAudience} onChange={handleSrsChange}></textarea>
+                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={localSrsData.functionalRequirements} onChange={handleSrsChange}></textarea>
+                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={localSrsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
                   <button type="submit" className="btn btn-primary">
                     Generate SRS
                   </button>
