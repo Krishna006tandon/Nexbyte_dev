@@ -1,3 +1,4 @@
+const { OpenAI } = require('openai');
 const express = require('express');
 require('dotenv').config();
 const mongoose = require('mongoose');
@@ -9,6 +10,10 @@ const User = require('./models/User');
 const app = express();
 
 app.use(express.json());
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const uri = process.env.MONGODB_URI;
 
@@ -424,104 +429,73 @@ app.get('/api/client/data', auth, client, async (req, res) => {
 // @desc    Generate SRS document
 // @access  Private (admin)
 app.post('/api/generate-srs', auth, admin, async (req, res) => {
-  const { projectName, projectDescription, targetAudience, functionalRequirements, nonFunctionalRequirements } = req.body;
+  // Log to check if the API key is loaded
+  console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
 
-  if (!projectName || !projectDescription) {
-    return res.status(400).json({ message: 'Project name and description are required' });
+  const {
+    projectName,
+    projectDescription,
+    targetAudience,
+    functionalRequirements,
+    nonFunctionalRequirements,
+    client,
+  } = req.body;
+
+  if (!projectName) {
+    return res.status(400).json({ message: 'Project name is required' });
   }
 
+  const prompt = `
+    Generate a detailed Software Requirement Specification (SRS) document based on the following details:
+
+    **Project Name:** ${projectName}
+
+    **Client Information:**
+    - **Client Name:** ${client?.clientName || 'N/A'}
+    - **Contact Person:** ${client?.contactPerson || 'N/A'}
+    - **Email:** ${client?.email || 'N/A'}
+
+    **1. Introduction:**
+       1.1. **Project Overview:** ${projectDescription || 'Provide a detailed overview of the project.'}
+       1.2. **Scope:** Define the scope of the project based on the requirements.
+       1.3. **Target Audience:** ${targetAudience || 'Describe the target audience for this project.'}
+
+    **2. Overall Description:**
+       2.1. **Product Perspective:** Describe the product's relationship to other products or projects.
+       2.2. **User Characteristics:** Describe the intended users.
+       2.3. **Assumptions and Dependencies:** List any assumptions or dependencies.
+
+    **3. System Features and Requirements:**
+       3.1. **Functional Requirements:**
+            ${functionalRequirements || 'Detail the functional requirements. These should be specific and measurable.'}
+
+       3.2. **Non-Functional Requirements:**
+            ${nonFunctionalRequirements || 'Detail the non-functional requirements, such as performance, security, reliability, and usability.'}
+
+    **4. External Interface Requirements:**
+       4.1. **User Interfaces:** Describe the user interface requirements.
+       4.2. **Hardware Interfaces:** Describe any hardware interfaces.
+       4.3. **Software Interfaces:** Describe any software interfaces.
+       4.4. **Communications Interfaces:** Describe any communications interfaces.
+
+    **5. Other Appendices:**
+       - Include any other relevant information, such as a glossary, analysis models, or issues list.
+
+    Please generate a comprehensive and well-structured SRS document based on this information. The output should be in Markdown format.
+  `;
+
   try {
-    // Manually construct the SRS document in HTML format with professional dark theme styling
-    const srsContent = `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #e0e0e0;
-            background-color: #1a1a1a;
-            margin: 0;
-            padding: 20px;
-          }
-          .srs-container {
-            max-width: 800px;
-            margin: auto;
-            background: #2c2c2c;
-            padding: 30px;
-            border: 1px solid #444;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-          }
-          h1, h2, h3 {
-            color: #5dade2;
-            border-bottom: 2px solid #555;
-            padding-bottom: 10px;
-            margin-top: 20px;
-          }
-          h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 0;
-          }
-          h2 {
-            text-align: center;
-            font-size: 1.5em;
-            margin-top: 0;
-            border-bottom: none;
-          }
-          p {
-            margin-bottom: 10px;
-          }
-          strong {
-            color: #5dade2;
-          }
-          div {
-            padding-left: 20px;
-            border-left: 3px solid #444;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="srs-container">
-          <h1>Software Requirements Specification (SRS)</h1>
-          <h2>for</h2>
-          <h1>${projectName}</h1>
-          <br/>
-          
-          <h3>1. Introduction</h3>
-          <p><strong>1.1 Purpose:</strong> The purpose of this document is to provide a detailed description of the requirements for the ${projectName}.</p>
-          <p><strong>1.2 Scope:</strong> The system will ${projectDescription}.</p>
-          <p><strong>1.3 Overview:</strong> This document outlines the functional and non-functional requirements for the project.</p>
-          
-          <h3>2. Overall Description</h3>
-          <p><strong>2.1 Product Perspective:</strong> To be defined.</p>
-          <p><strong>2.2 Product Functions:</strong> The system will allow users to perform the functions outlined in the functional requirements section.</p>
-          <p><strong>2.3 User Characteristics:</strong> The target audience for this system is ${targetAudience || 'Not specified'}.</p>
-          <p><strong>2.4 Constraints:</strong> To be defined.</p>
-          <p><strong>2.5 Assumptions and Dependencies:</strong> To be defined.</p>
-          
-          <h3>3. System Features</h3>
-          <p><strong>3.1 Functional Requirements:</strong></p>
-          <div>${functionalRequirements || 'No functional requirements specified.'}</div>
-          
-          <h3>4. External Interface Requirements</h3>
-          <p><strong>4.1 User Interfaces:</strong> To be defined.</p>
-          <p><strong>4.2 Hardware Interfaces:</strong> To be defined.</p>
-          <p><strong>4.3 Software Interfaces:</strong> To be defined.</p>
-          <p><strong>4.4 Communications Interfaces:</strong> To be defined.</p>
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+    });
 
-          <h3>5. Non-functional Requirements</h3>
-          <div>${nonFunctionalRequirements || 'No non-functional requirements specified.'}</div>
-        </div>
-      </body>
-    </html>
-    `;
-
-    res.json({ srs: srsContent });
-    
-  } catch (err) {
-    console.error('Error generating SRS:', err);
-    res.status(500).json({ message: 'An unexpected error occurred during SRS generation.' });
+    res.status(200).json({ srsContent: response.choices[0].message.content });
+  } catch (error) {
+    // Log the detailed error from OpenAI
+    console.error('Error generating SRS from OpenAI:', error);
+    res.status(500).json({ message: 'Failed to generate SRS', error: error.message });
   }
 });
 

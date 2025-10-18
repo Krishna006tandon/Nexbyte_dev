@@ -14,10 +14,12 @@ const SrsGenerator = () => {
         setLoading(true);
         setError('');
         try {
+          const token = localStorage.getItem('token');
           const response = await fetch('/api/generate-srs', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'x-auth-token': token,
             },
             body: JSON.stringify(srsFullData),
           });
