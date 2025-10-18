@@ -4,9 +4,11 @@ import './SrsGenerator.css';
 
 const SrsGenerator = () => {
   const { srsFullData } = useContext(SrsContext);
-  const [generatedSrs, setGeneratedSrs] = useState('');
+  const [srsContent, setSrsContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [editingMode, setEditingMode] = useState('view'); // 'view', 'manual', 'ai'
+  const [aiPrompt, setAiPrompt] = useState('');
 
   useEffect(() => {
     if (srsFullData) {
@@ -31,7 +33,7 @@ const SrsGenerator = () => {
           }
 
           const data = await response.json();
-          setGeneratedSrs(data.srsContent);
+          setSrsContent(data.srsContent);
         } catch (err) {
           setError(err.message);
         } finally {
@@ -45,6 +47,16 @@ const SrsGenerator = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSave = () => {
+    // TODO: Implement save functionality in Phase 3
+    alert('Save functionality will be implemented soon.');
+  };
+
+  const handleAiEdit = () => {
+    // TODO: Implement AI edit functionality in Phase 4
+    alert('AI edit functionality will be implemented soon.');
   };
 
   if (!srsFullData) {
@@ -89,9 +101,43 @@ const SrsGenerator = () => {
   return (
     <div className="srs-generator-container">
       <div className="srs-output">
-        <pre>{generatedSrs}</pre>
-        <div className="text-center mt-4">
-            <button onClick={handlePrint} className="btn btn-primary">Print SRS</button>
+        {editingMode === 'manual' ? (
+          <textarea
+            className="srs-textarea"
+            value={srsContent}
+            onChange={(e) => setSrsContent(e.target.value)}
+          />
+        ) : (
+          <pre>{srsContent}</pre>
+        )}
+
+        {editingMode === 'ai' && (
+          <div className="ai-prompt-container">
+            <input
+              type="text"
+              className="ai-prompt-input"
+              placeholder="Enter your editing instructions... (e.g., 'Make it more formal')"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+            />
+            <button onClick={handleAiEdit} className="btn btn-secondary">Generate with AI</button>
+          </div>
+        )}
+
+        <div className="text-center mt-4 action-buttons">
+          {editingMode === 'view' ? (
+            <>
+              <button onClick={handlePrint} className="btn btn-secondary">Print SRS</button>
+              <button onClick={() => setEditingMode('manual')} className="btn btn-primary">Edit Manually</button>
+              <button onClick={() => setEditingMode('ai')} className="btn btn-primary">Edit with AI</button>
+              <button onClick={handleSave} className="btn btn-success">Save</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setEditingMode('view')} className="btn btn-secondary">Back to View</button>
+              <button onClick={handleSave} className="btn btn-success">Save</button>
+            </>
+          )}
         </div>
       </div>
     </div>
