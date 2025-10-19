@@ -1,4 +1,5 @@
 const express = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -118,7 +119,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -480,44 +481,17 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
     Please generate a comprehensive and well-structured SRS document based on this information. The output should be in Markdown format. Do not include any conversational pleasantries, preambles, or apologies in your response. Respond only with the raw Markdown document content starting from the main title.
   `;
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  // Using the specific model and v1beta endpoint confirmed to work for the user's key
-  const modelName = 'gemini-2.5-pro';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-  const requestBody = {
-    contents: [{
-      parts: [{
-        text: promptText
-      }]
-    }]
-  };
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
 
   try {
-    console.log(`Attempting direct API call to model: ${modelName} using v1beta endpoint.`);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error response from direct API call:', errorData);
-      throw new Error(errorData.error.message || 'Request failed');
-    }
-
-    const data = await response.json();
-    // The response structure for v1beta might be different.
-    // Assuming it has candidates and content parts. This might need adjustment.
-    const srsContent = data.candidates[0].content.parts[0].text;
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const srsContent = response.text();
     res.status(200).json({ srsContent });
-
   } catch (error) {
-    console.error('Error making direct fetch call to Gemini:', error);
-    res.status(500).json({ message: 'Failed to generate SRS via direct API call.', error: error.message });
+    console.error('Error generating SRS with Gemini:', error);
+    res.status(500).json({ message: 'Failed to generate SRS with Gemini.', error: error.message });
   }
 });
 
@@ -547,8 +521,8 @@ app.post('/api/save-srs', auth, admin, async (req, res) => {
   }
 });
 
-// @route   POST api/edit-srs
-// @desc    Edit SRS document with AI
+// @route   POST api/send-srs-to-client
+// @desc    Send SRS to client
 // @access  Private (admin)
 app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
   const { clientId, srsContent } = req.body;
@@ -595,6 +569,11 @@ app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
     res.status(500).json({ message: 'Server error while sending SRS to client' });
   }
 });
+
+// @route   POST api/edit-srs
+// @desc    Edit SRS document with AI
+// @access  Private (admin)
+app.post('/api/edit-srs', auth, admin, async (req, res) => {
   const { srsContent, aiPrompt } = req.body;
 
   if (!srsContent || !aiPrompt) {
@@ -615,36 +594,13 @@ app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
     Return only the full, edited document with the changes applied. Do not include any conversational pleasantries, preambles, or apologies.
   `;
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  const modelName = 'gemini-2.5-pro'; // Using the same confirmed model
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-  const requestBody = {
-    contents: [{
-      parts: [{
-        text: promptText
-      }]
-    }]
-  };
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
 
   try {
-    console.log(`Attempting AI edit with model: ${modelName} using v1beta endpoint.`);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error response from AI edit call:', errorData);
-      throw new Error(errorData.error.message || 'Request failed');
-    }
-
-    const data = await response.json();
-    const editedSrs = data.candidates[0].content.parts[0].text;
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const editedSrs = response.text();
     res.status(200).json({ srsContent: editedSrs });
 
   } catch (error) {
