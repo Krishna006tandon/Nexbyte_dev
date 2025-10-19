@@ -6,6 +6,7 @@ import { SrsContext } from '../context/SrsContext';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
   const [clients, setClients] = useState([]);
   const [email, setEmail] = useState('');
@@ -57,6 +58,14 @@ const Admin = () => {
           const data = await res.json();
           if (res.ok) {
             setContacts(data);
+          } else {
+            console.error(data.message);
+          }
+        } else if (location.pathname === '/admin/messages') {
+          const res = await fetch('/api/messages', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setMessages(data);
           } else {
             console.error(data.message);
           }
@@ -289,6 +298,30 @@ const Admin = () => {
                       <td>{contact.mobile}</td>
                       <td>{contact.message}</td>
                       <td>{new Date(contact.date).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/messages' && (
+            <div>
+              <h2>Client Messages</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Message</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {messages.map((message) => (
+                    <tr key={message._id}>
+                      <td>{message.client?.clientName || 'N/A'}</td>
+                      <td>{message.message}</td>
+                      <td>{new Date(message.date).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

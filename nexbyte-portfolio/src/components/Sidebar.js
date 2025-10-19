@@ -8,6 +8,7 @@ const Sidebar = () => {
       <ul>
         <li><Link to="/admin">Dashboard</Link></li>
         <li><Link to="/admin/contacts">Contact Messages</Link></li>
+        <li><Link to="/admin/messages">Client Messages</Link></li>
         <li><Link to="/admin/members">Members</Link></li>
         <li><Link to="/admin/clients">Clients</Link></li>
         <li><Link to="/admin/srs-generator">SRS Generator</Link></li>

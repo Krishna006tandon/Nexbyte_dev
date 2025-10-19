@@ -412,6 +412,7 @@ app.get('/api/client/data', auth, client, async (req, res) => {
         project: client.projectName,
         status: 'In Progress',
         dueDate: client.projectDeadline,
+        srsDocument: client.srsDocument,
       },
     });
   } catch (err) {
@@ -549,7 +550,51 @@ app.post('/api/save-srs', auth, admin, async (req, res) => {
 // @route   POST api/edit-srs
 // @desc    Edit SRS document with AI
 // @access  Private (admin)
-app.post('/api/edit-srs', auth, admin, async (req, res) => {
+app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
+  const { clientId, srsContent } = req.body;
+
+  if (!clientId || !srsContent) {
+    return res.status(400).json({ message: 'Client ID and SRS content are required' });
+  }
+
+  try {
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    client.srsDocument = srsContent;
+    await client.save();
+
+    // Send email to client
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: client.email,
+      subject: `SRS for ${client.projectName} is Ready`,
+      html: `
+        <p>Dear ${client.clientName},</p>
+        <p>The Software Requirement Specification (SRS) for your project, <strong>${client.projectName}</strong>, is now ready for your review.</p>
+        <p>You can view the SRS by logging into your client panel.</p>
+        <p>Thank you,</p>
+        <p>The NexByte Team</p>
+      `,
+    };
+
+    try {
+      console.log('Attempting to send SRS email to client...');
+      const info = await transporter.sendMail(mailOptions);
+      console.log('SRS Email sent:', info.response);
+    } catch (error) {
+      console.error('Error sending SRS email:', error);
+      // We don't want to fail the whole request if the email fails
+    }
+
+    res.json({ message: 'SRS saved and email sent successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error while sending SRS to client' });
+  }
+});
   const { srsContent, aiPrompt } = req.body;
 
   if (!srsContent || !aiPrompt) {
@@ -605,6 +650,48 @@ app.post('/api/edit-srs', auth, admin, async (req, res) => {
   } catch (error) {
     console.error('Error making direct fetch call to Gemini for AI edit:', error);
     res.status(500).json({ message: 'Failed to edit SRS with AI.', error: error.message });
+  }
+});
+
+const Message = require('./models/Message');
+
+// @route   POST /api/client/message
+// @desc    Client send message
+// @access  Private (client)
+app.post('/api/client/message', auth, client, async (req, res) => {
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ message: 'Message is required' });
+  }
+
+  try {
+    const newMessage = new Message({
+      client: req.user.id,
+      message,
+    });
+
+    await newMessage.save();
+
+    res.json({ message: 'Message sent successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/messages
+// @desc    Get all messages
+// @access  Private (admin)
+app.get('/api/messages', auth, admin, async (req, res) => {
+  try {
+    const messages = await Message.find()
+      .populate('client', 'clientName')
+      .sort({ date: -1 });
+    res.json(messages);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

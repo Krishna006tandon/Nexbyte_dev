@@ -88,6 +88,39 @@ const SrsGenerator = () => {
     }
   };
 
+  const handleSendToClient = async () => {
+    setIsActionLoading(true);
+    setActionError('');
+    setActionSuccess('');
+    try {
+      const token = localStorage.getItem('token');
+      const clientId = srsFullData?.client?._id;
+      if (!clientId) {
+        throw new Error('Client ID not found. Cannot send.');
+      }
+
+      const response = await fetch('/api/send-srs-to-client', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ clientId, srsContent }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send SRS to client');
+      }
+
+      setActionSuccess('SRS sent to client successfully!');
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleAiEdit = async () => {
     if (!aiPrompt) {
       setActionError('Please enter an AI prompt.');
@@ -202,9 +235,11 @@ const SrsGenerator = () => {
             <>
               <button onClick={handlePrint} className="btn btn-secondary">Print SRS</button>
               <button onClick={() => setEditingMode('manual')} className="btn btn-primary">Edit Manually</button>
-              <button onClick={() => setEditingMode('ai')} className="btn btn-primary">Edit with AI</button>
               <button onClick={handleSave} className="btn btn-success" disabled={isActionLoading}>
                 {isActionLoading ? 'Saving...' : 'Save'}
+              </button>
+              <button onClick={handleSendToClient} className="btn btn-info" disabled={isActionLoading}>
+                {isActionLoading ? 'Sending...' : 'Send to Client'}
               </button>
             </>
           ) : (

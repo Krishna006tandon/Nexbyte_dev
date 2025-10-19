@@ -1,6 +1,38 @@
 .client-panel-container {
-    padding: 2rem;
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  .sidebar {
+    width: 250px;
+    background: #f4f4f4;
+    padding: 1rem;
+    border-right: 1px solid #ccc;
+  }
+  
+  .sidebar h2 {
     text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .sidebar ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .sidebar ul li {
+    padding: 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .sidebar ul li:hover, .sidebar ul li.active {
+    background: #e0e0e0;
+  }
+  
+  .main-content {
+    flex-grow: 1;
+    padding: 2rem;
   }
   
   .client-panel-error {
@@ -17,6 +49,49 @@
     border: 1px solid #ccc;
     padding: 1rem;
     border-radius: 5px;
-    display: inline-block;
   }
   
+  .srs-view {
+    margin-top: 2rem;
+  }
+  
+  .srs-content {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    border-radius: 5px;
+    white-space: pre-wrap; /* Ensures content wraps and respects formatting */
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  
+  .message-section {
+    margin-top: 2rem;
+    border-top: 1px solid #ccc;
+    padding-top: 1rem;
+  }
+  
+  .message-section h3 {
+    margin-bottom: 1rem;
+  }
+  
+  .message-section textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-bottom: 1rem;
+  }
+  
+  .message-section button {
+    padding: 0.5rem 1rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .message-section button:hover {
+    background: #0056b3;
+  }
