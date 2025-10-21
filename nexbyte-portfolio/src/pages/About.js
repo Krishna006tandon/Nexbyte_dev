@@ -65,7 +65,41 @@ const About = () => {
 
       <hr className="my-5" />
 
-      {/* Kajal Mantapurwar's Profile */}
+     
+
+      {/* Rudresh Vyas's Profile */}
+      <div className="text-center mb-5">
+        <h2 className="collaborator-name">Rudresh Vyas</h2>
+      </div>
+
+      <div className="row">
+        <div className="col-lg-8 mx-auto">
+          <h4>About Me</h4>
+          <p>
+            Currently pursuing Information Technology. Passionate about Web Development, AI, and C++. Exploring Flutter, Git, and Open-Source Contributions. I love playing Badminton and chilling with some TV shows & tech podcasts.
+          </p>
+
+          <h4 className="mt-4">Tech Stack</h4>
+          <p>C++, Python, HTML, CSS, JavaScript, Flutter, Git, Flask</p>
+
+          <h4 className="mt-4">Interests</h4>
+          <p>Web Apps, AI Projects, and Mobile Development</p>
+
+          <div className="mt-5 text-center">
+            <h4>Connect with Rudresh</h4>
+            <p>Email: <a href="mailto:vyasrudresh985@gmail.com">vyasrudresh985@gmail.com</a></p>
+            <div className="social-links">
+              <a href="https://github.com/Rudreshvyas07" target="_blank" rel="noopener noreferrer" className="btn btn-secondary m-2">
+                GitHub
+              </a>
+              <a href="https://www.linkedin.com/in/rudresh-vyas-9b85582b0/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary m-2">
+                LinkedIn
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+       {/* Kajal Mantapurwar's Profile */}
       <div className="text-center mb-5">
         <h2 className="collaborator-name">Kajal Mantapurwar</h2>
       </div>
@@ -109,40 +143,8 @@ const About = () => {
       </div>
 
       <hr className="my-5" />
-
-      {/* Rudresh Vyas's Profile */}
-      <div className="text-center mb-5">
-        <h2 className="collaborator-name">Rudresh Vyas</h2>
-      </div>
-
-      <div className="row">
-        <div className="col-lg-8 mx-auto">
-          <h4>About Me</h4>
-          <p>
-            Currently pursuing Information Technology. Passionate about Web Development, AI, and C++. Exploring Flutter, Git, and Open-Source Contributions. I love playing Badminton and chilling with some TV shows & tech podcasts.
-          </p>
-
-          <h4 className="mt-4">Tech Stack</h4>
-          <p>C++, Python, HTML, CSS, JavaScript, Flutter, Git, Flask</p>
-
-          <h4 className="mt-4">Interests</h4>
-          <p>Web Apps, AI Projects, and Mobile Development</p>
-
-          <div className="mt-5 text-center">
-            <h4>Connect with Rudresh</h4>
-            <p>Email: <a href="mailto:vyasrudresh985@gmail.com">vyasrudresh985@gmail.com</a></p>
-            <div className="social-links">
-              <a href="https://github.com/Rudreshvyas07" target="_blank" rel="noopener noreferrer" className="btn btn-secondary m-2">
-                GitHub
-              </a>
-              <a href="https://www.linkedin.com/in/rudresh-vyas-9b85582b0/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary m-2">
-                LinkedIn
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
+    
   );
 };
 
