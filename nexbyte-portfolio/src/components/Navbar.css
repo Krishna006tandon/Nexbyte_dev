@@ -1,24 +1,105 @@
-.navbar {
+.header {
+  background-color: var(--background-light);
+  padding: 1rem 2rem;
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-.navbar-brand {
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.nav-logo {
   font-size: 1.8rem;
-  color: var(--text-primary) !important;
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 .nav-link {
-  font-size: 1.1rem;
-  margin-left: 15px;
-  color: var(--text-secondary) !important;
-  transition: color 0.3s ease;
+  color: var(--secondary-text);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
 }
 
-.nav-link:hover {
-  color: var(--text-primary) !important;
+.nav-link:hover, .nav-link.active {
+  color: var(--primary-text);
+  border-bottom-color: var(--accent);
 }
 
-.nav-link.active {
-  font-weight: bold;
-  color: var(--text-primary) !important;
+.nav-link-button {
+  padding: 0.5rem 1.5rem;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  margin-left: 1rem;
+}
+
+.nav-link-button:hover {
+  background-color: var(--accent);
+  color: #000;
+  border-bottom-color: transparent;
+}
+
+.nav-link-button.btn-primary {
+    background-color: var(--accent);
+    color: #000;
+}
+
+.nav-link-button.btn-primary:hover {
+    background-color: var(--accent-hover);
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.nav-toggler {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.toggler-icon {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: var(--primary-text);
+  margin: 5px 0;
+  transition: all 0.3s ease;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .nav-menu {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    background-color: var(--background-dark);
+    border-top: 1px solid var(--border);
+    padding: 1rem 0;
+  }
+
+  .nav-menu.collapse.show {
+    display: flex;
+  }
+  
+  .nav-toggler {
+    display: block;
+  }
 }

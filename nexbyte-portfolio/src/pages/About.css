@@ -1,37 +1,76 @@
-.about-container {
-  background-color: var(--background);
-  padding: 40px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+.about-page .page-header {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--background-light);
+  color: white;
 }
 
-.about-container h1 {
+.about-page .page-title {
   font-size: 3rem;
-  font-weight: bold;
-  color: var(--text-primary);
+  font-weight: 700;
 }
 
-.about-container .lead {
-  font-size: 1.5rem;
-  color: var(--text-secondary);
+.about-page .page-subtitle {
+  font-size: 1.2rem;
+  color: var(--secondary-text);
+  max-width: 700px;
+  margin: 1rem auto 0;
 }
 
-.about-container h4 {
-  font-weight: bold;
-  color: var(--text-primary);
-  margin-top: 30px;
+.about-page .team-section {
+  padding: 4rem 2rem;
 }
 
-.about-container .social-links a {
-  transition: background-color 0.3s ease, transform 0.3s ease;
+.about-page .team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
 }
 
-.about-container .social-links a:hover {
+.team-member-card {
+  text-align: center;
+}
+
+.team-member-card .profile-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
   background-color: var(--surface);
-  transform: translateY(-3px);
+  border: 3px solid var(--accent);
+  object-fit: cover;
 }
 
-.collaborator-name {
-  font-size: 2.5rem;
-  font-weight: bold;
+.team-member-card h3 {
+  font-size: 1.5rem;
+  color: var(--primary-text);
+  margin-bottom: 0.5rem;
+}
+
+.team-member-card .role {
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.team-member-card p {
+  color: var(--secondary-text);
+  margin-bottom: 1.5rem;
+}
+
+.team-member-card .social-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.team-member-card .social-links a {
+  font-size: 1.5rem;
+  color: var(--secondary-text);
+  transition: color 0.3s ease;
+}
+
+.team-member-card .social-links a:hover {
+  color: var(--accent);
 }

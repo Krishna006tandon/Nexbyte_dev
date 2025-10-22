@@ -1,40 +1,38 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = () => {
+  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
+  const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
+
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-      <div className="container">
-        <NavLink className="navbar-brand font-weight-bold" to="/">Nexbyte</NavLink>
-        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ms-auto">
-            <li className="nav-item">
-              <NavLink className="nav-link" activeClassName="active" to="/">Home</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" activeClassName="active" to="/about">About</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" activeClassName="active" to="/projects">Projects</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" activeClassName="active" to="/srs-generator">SRS Generator</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" activeClassName="active" to="/contact">Contact</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" activeClassName="active" to="/login">Login</NavLink>
-            </li>
-          </ul>
+    <header className="header">
+      <nav className="navbar">
+        <NavLink className="nav-logo" to="/">Nexbyte</NavLink>
+        <div className={`nav-menu collapse ${!isNavCollapsed ? 'show' : ''}`}>
+          <NavLink className="nav-link" to="/" end>Home</NavLink>
+          <NavLink className="nav-link" to="/about">About</NavLink>
+          <NavLink className="nav-link" to="/services">Services</NavLink>
+          <NavLink className="nav-link" to="/contact">Contact</NavLink>
+          <NavLink className="nav-link" to="/dashboard">Dashboard</NavLink>
+          <NavLink className="nav-link" to="/profile">Profile</NavLink>
+          
+          {/* Spacing element */}
+          <div style={{ flexGrow: 1 }}></div>
+
+          {/* All buttons visible for review */}
+          <NavLink className="nav-link nav-link-button" to="/login">Login</NavLink>
+          <NavLink className="nav-link nav-link-button btn-primary" to="/signup">Sign Up</NavLink>
+          <NavLink className="nav-link nav-link-button" to="/">Logout</NavLink>
         </div>
-      </div>
-    </nav>
+        <button className="nav-toggler" type="button" onClick={handleNavCollapse}>
+          <span className="toggler-icon"></span>
+          <span className="toggler-icon"></span>
+          <span className="toggler-icon"></span>
+        </button>
+      </nav>
+    </header>
   );
 };
 

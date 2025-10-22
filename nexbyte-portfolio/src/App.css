@@ -1,31 +1,14 @@
-
-.hero-section {
-  background: linear-gradient(to right, var(--surface), var(--background));
-  padding: 100px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.icon-placeholder {
-  width: 80px;
-  height: 80px;
-  background-color: var(--border);
-  border-radius: 50%;
-  margin: 0 auto;
-}
-
-.card {
-  background-color: var(--surface) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border);
-}
-
-/* General body style to make sure footer is at the bottom */
-body, #root {
+.app-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background-color: var(--background-dark);
 }
 
-.App {
+.main-content {
   flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
+import '../components/Form.css';
 import './Contact.css';
 
 const Alert = ({ message, type }) => {
@@ -68,28 +70,53 @@ const Contact = () => {
   };
 
   return (
-    <div className="container mt-5">
-      <h1 className="text-center">Contact Us</h1>
-      <Alert message={alert.message} type={alert.type} />
-      <form className="contact-form" onSubmit={onSubmit}>
-        <div className="mb-3">
-          <label htmlFor="name" className="form-label">Name</label>
-          <input type="text" className="form-control dark-input" id="name" value={name} onChange={onChange} />
+    <div className="contact-page">
+      <header className="page-header">
+        <h1 className="page-title">Contact Us</h1>
+        <p className="page-subtitle">
+          Have a project in mind or just want to say hello? We'd love to hear from you. 
+          Fill out the form below or send us an email.
+        </p>
+      </header>
+
+      <div className="contact-content">
+        <div className="contact-info-wrapper">
+          <h3>Get in Touch</h3>
+          <p>We are available by email or phone.</p>
+          <div className="contact-info-item">
+            <div className="icon"><FaEnvelope /></div>
+            <span>nexbyte.dev@gmail.com</span>
+          </div>
+          <div className="contact-info-item">
+            <div className="icon"><FaPhone /></div>
+            <span>+91 9175603240</span>
+          </div>
         </div>
-        <div className="mb-3">
-          <label htmlFor="email" className="form-label">Email address</label>
-          <input type="email" className="form-control dark-input" id="email" value={email} onChange={onChange} />
+
+        <div className="contact-form-wrapper">
+          <h3>Send a Message</h3>
+          <Alert message={alert.message} type={alert.type} />
+          <form onSubmit={onSubmit}>
+            <div className="form-group">
+              <label htmlFor="name" className="form-label">Name</label>
+              <input type="text" className="form-control" id="name" value={name} onChange={onChange} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">Email</label>
+              <input type="email" className="form-control" id="email" value={email} onChange={onChange} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="mobile" className="form-label">Mobile</label>
+              <input type="text" className="form-control" id="mobile" value={mobile} onChange={onChange} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="message" className="form-label">Message</label>
+              <textarea className="form-control" id="message" value={message} onChange={onChange}></textarea>
+            </div>
+            <button type="submit" className="btn btn-primary">Submit</button>
+          </form>
         </div>
-        <div className="mb-3">
-          <label htmlFor="mobile" className="form-label">Mobile</label>
-          <input type="text" className="form-control dark-input" id="mobile" value={mobile} onChange={onChange} />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="message" className-="form-label">Message</label>
-          <textarea className="form-control dark-input" id="message" rows="3" value={message} onChange={onChange}></textarea>
-        </div>
-        <button type="submit" className="btn btn-primary">Submit</button>
-      </form>
+      </div>
     </div>
   );
 };

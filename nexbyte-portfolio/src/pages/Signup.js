@@ -3,42 +3,34 @@ import { useNavigate, Link } from 'react-router-dom';
 import '../components/Form.css';
 import './Auth.css';
 
-const Login = ({ setIsAdmin, setIsClient }) => {
+const Signup = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  
 
-  const handleLogin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
-                if (data.role === 'admin') {
-          setIsAdmin(true);
-          navigate('/admin');
-        } else if (data.role === 'client') {
-          setIsClient(true);
-          navigate('/client-panel');
-        } else {
-          navigate('/');
-        }  
+        navigate('/dashboard');
       } else {
-        setError(data.message || 'Login failed. Please check your credentials.');
+        setError(data.message || 'Signup failed. Please try again.');
       }
     } catch (err) {
       console.error(err);
@@ -51,8 +43,19 @@ const Login = ({ setIsAdmin, setIsClient }) => {
   return (
     <div className="auth-page">
       <div className="auth-container">
-        <h1>Login</h1>
-        <form onSubmit={handleLogin}>
+        <h1>Sign Up</h1>
+        <form onSubmit={handleSignup}>
+          <div className="form-group">
+            <label htmlFor="name" className="form-label">Name</label>
+            <input
+              type="text"
+              id="name"
+              className="form-control"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email</label>
             <input
@@ -77,12 +80,15 @@ const Login = ({ setIsAdmin, setIsClient }) => {
           </div>
           {error && <p className="error-message">{error}</p>}
           <button type="submit" className="btn btn-primary" style={{width: '100%'}} disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Signing up...' : 'Sign Up'}
           </button>
         </form>
+        <p className="switch-auth">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Signup;

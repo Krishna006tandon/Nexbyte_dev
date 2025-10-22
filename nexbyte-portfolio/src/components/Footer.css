@@ -1,11 +1,87 @@
+.footer {
+  background-color: var(--background-light);
+  color: var(--secondary-text);
+  padding: 3rem 2rem;
+  border-top: 1px solid var(--border);
+}
 
-.social-icon {
-  color: var(--text-primary);
-  margin: 0 10px;
+.footer-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-section h4 {
+  color: var(--primary-text);
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.footer-section h4::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 40px;
+  height: 2px;
+  background-color: var(--accent);
+}
+
+.footer-logo {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-text);
+  margin-bottom: 1rem;
+}
+
+.footer-section p {
+  margin-bottom: 1rem;
+  max-width: 300px;
+}
+
+.footer-section.links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-section.links ul li a {
+  display: block;
+  padding: 0.3rem 0;
+  color: var(--secondary-text);
+  transition: color 0.3s ease;
+}
+
+.footer-section.links ul li a:hover {
+  color: var(--accent);
+}
+
+.social-icons {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.social-icons a {
+  color: var(--secondary-text);
   font-size: 1.5rem;
   transition: color 0.3s ease;
 }
 
-.social-icon:hover {
-  color: var(--text-secondary);
+.social-icons a:hover {
+  color: var(--accent);
+}
+
+.contact-info p {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
 }

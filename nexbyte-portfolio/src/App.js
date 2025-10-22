@@ -1,81 +1,40 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
-import Projects from './pages/Projects';
+import Services from './pages/Services';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
-import Admin from './pages/Admin';
-import ClientPanel from './pages/ClientPanel';
-import { SrsProvider } from './context/SrsContext';
-
-import SrsGenerator from './pages/SrsGenerator';
+import Signup from './pages/Signup';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 
 import './App.css';
 
-const PrivateRoute = ({ isAdmin, children }) => {
-  return isAdmin ? children : <Navigate to="/login" />;
-};
-
-const ClientPrivateRoute = ({ isClient, children }) => {
-  return isClient ? children : <Navigate to="/login" />;
-};
-
 function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
   return (
-    // Define the main application structure with routing
-    <SrsProvider>
-      <Router>
-        <div className="App d-flex flex-column min-vh-100">
-          <Navbar />
-          <main className="flex-grow-1">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/contact" element={<Contact />} />
-
-              <Route path="/srs-generator" element={<SrsGenerator />} />
-              <Route path="/login" element={<Login setIsAdmin={setIsAdmin} setIsClient={setIsClient} />} />
-
-              <Route
-                path="/admin"
-                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-              />
-              <Route
-                path="/admin/contacts"
-                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-              />
-              <Route
-                path="/admin/members"
-                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-              />
-
-              <Route
-                path="/admin/clients"
-                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-              />
-              <Route
-                path="/admin/srs-generator"
-                element={<PrivateRoute isAdmin={isAdmin}><Admin /></PrivateRoute>}
-              />
-
-              <Route
-                path="/client-panel"
-                element={<ClientPrivateRoute isClient={isClient}><ClientPanel /></ClientPrivateRoute>}
-              />
-
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </SrsProvider>
+    <Router>
+      <div className="app-container">
+        <Navbar />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 
