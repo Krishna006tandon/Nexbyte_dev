@@ -5,15 +5,15 @@
   
   .sidebar {
     width: 250px;
-    background: #1a1a1a;
+    background: var(--background);
     padding: 1rem;
-    border-right: 1px solid #333;
+    border-right: 1px solid var(--border);
   }
   
   .sidebar h2 {
     text-align: center;
     margin-bottom: 2rem;
-    color: #ffffff;
+    color: var(--text-primary);
   }
   
   .sidebar ul {
@@ -24,21 +24,21 @@
   .sidebar ul li {
     padding: 1rem;
     cursor: pointer;
-    border-bottom: 1px solid #333;
-    color: #aaaaaa;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   
   .sidebar ul li:hover, .sidebar ul li.active {
-    background: #2c2c2c;
-    color: #ffffff;
+    background: var(--surface);
+    color: var(--text-primary);
   }
   
   .main-content {
     flex-grow: 1;
     padding: 2rem;
-    background-color: #121212;
-    color: #ffffff;
+    background-color: var(--background);
+    color: var(--text-primary);
   }
   
   .client-panel-error {
@@ -52,10 +52,10 @@
   
   .client-data {
     margin-top: 2rem;
-    border: 1px solid #333;
+    border: 1px solid var(--border);
     padding: 1rem;
     border-radius: 5px;
-    background-color: #1a1a1a;
+    background-color: var(--background);
   }
   
   .srs-view {
@@ -63,46 +63,46 @@
   }
   
   .srs-content {
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: var(--background);
+    border: 1px solid var(--border);
     padding: 1rem;
     border-radius: 5px;
     white-space: pre-wrap; /* Ensures content wraps and respects formatting */
     max-height: 500px;
     overflow-y: auto;
-    color: #ffffff;
+    color: var(--text-primary);
   }
   
   .message-section {
     margin-top: 2rem;
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--border);
     padding-top: 1rem;
   }
   
   .message-section h3 {
     margin-bottom: 1rem;
-    color: #ffffff;
+    color: var(--text-primary);
   }
   
   .message-section textarea {
     width: 100%;
     padding: 0.5rem;
     border-radius: 5px;
-    border: 1px solid #333;
+    border: 1px solid var(--border);
     margin-bottom: 1rem;
-    background-color: #1a1a1a;
-    color: #ffffff;
+    background-color: var(--background);
+    color: var(--text-primary);
   }
   
   .message-section button {
     padding: 0.5rem 1rem;
-    background: #3700B3;
-    color: #ffffff;
+    background: var(--primary-variant);
+    color: var(--on-primary);
     border: none;
     border-radius: 5px;
     cursor: pointer;
   }
   
   .message-section button:hover {
-    background: #6200EE;
+    background: var(--primary);
   }

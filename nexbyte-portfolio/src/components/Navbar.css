@@ -1,24 +1,24 @@
 .navbar {
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border);
 }
 
 .navbar-brand {
   font-size: 1.8rem;
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }
 
 .nav-link {
   font-size: 1.1rem;
   margin-left: 15px;
-  color: #aaaaaa !important;
+  color: var(--text-secondary) !important;
   transition: color 0.3s ease;
 }
 
 .nav-link:hover {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }
 
 .nav-link.active {
   font-weight: bold;
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }

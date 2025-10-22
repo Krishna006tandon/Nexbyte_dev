@@ -1,22 +1,22 @@
 
 .hero-section {
-  background: linear-gradient(to right, #2c2c2c, #1a1a1a);
+  background: linear-gradient(to right, var(--surface), var(--background));
   padding: 100px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border);
 }
 
 .icon-placeholder {
   width: 80px;
   height: 80px;
-  background-color: #333333;
+  background-color: var(--border);
   border-radius: 50%;
   margin: 0 auto;
 }
 
 .card {
-  background-color: #1e1e1e !important;
-  color: #ffffff !important;
-  border: 1px solid #333;
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border);
 }
 
 /* General body style to make sure footer is at the bottom */

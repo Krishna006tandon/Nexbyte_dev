@@ -6,30 +6,30 @@
 }
 
 .srs-output {
-  background-color: #2c2c2c;
+  background-color: var(--surface);
   padding: 2.5rem;
   border-radius: 12px;
-  border: 1px solid #333;
+  border: 1px solid var(--border);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .srs-output pre {
   white-space: pre-wrap;
   word-wrap: break-word;
-  background-color: #1a1a1a;
+  background-color: var(--background);
   padding: 2rem;
   border-radius: 8px;
-  border: 1px solid #444;
+  border: 1px solid var(--border);
   font-family: 'Fira Code', 'Courier New', Courier, monospace;
   font-size: 0.95rem;
   line-height: 1.7;
-  color: #abb2bf; /* Lighter text for dark background */
+  color: var(--text-secondary); /* Lighter text for dark background */
 }
 
 .btn-primary {
-    background-color: #3700B3;
-    border-color: #3700B3;
-    color: #ffffff;
+    background-color: var(--primary-variant);
+    border-color: var(--primary-variant);
+    color: var(--on-primary);
     font-weight: 500;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
@@ -38,8 +38,8 @@
 }
 
 .btn-primary:hover {
-    background-color: #6200EE;
-    border-color: #6200EE;
+    background-color: var(--primary);
+    border-color: var(--primary);
 }
 
 .btn {
@@ -65,9 +65,9 @@
 .srs-textarea {
   width: 100%;
   height: 600px;
-  background-color: #1a1a1a;
-  color: #abb2bf;
-  border: 1px solid #444;
+  background-color: var(--background);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 2rem;
   font-family: 'Fira Code', 'Courier New', Courier, monospace;
@@ -91,18 +91,18 @@
 
 .ai-prompt-input {
   flex-grow: 1;
-  background-color: #1a1a1a;
-  color: #abb2bf;
-  border: 1px solid #444;
+  background-color: var(--background);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   font-size: 1rem;
 }
 
 .btn-secondary {
-    background-color: #2c2c2c;
-    border-color: #ffffff;
-    color: #ffffff;
+    background-color: var(--surface);
+    border-color: var(--on-primary);
+    color: var(--on-primary);
     font-weight: 500;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
@@ -110,14 +110,14 @@
 }
 
 .btn-secondary:hover {
-    background-color: #3a3a3a;
-    border-color: #ffffff;
+    background-color: var(--surface-hover);
+    border-color: var(--on-primary);
 }
 
 .btn-success {
-    background-color: #03DAC6;
-    border-color: #03DAC6;
-    color: #000000;
+    background-color: var(--secondary);
+    border-color: var(--secondary);
+    color: var(--on-secondary);
     font-weight: 500;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
@@ -125,8 +125,8 @@
 }
 
 .btn-success:hover {
-    background-color: #018786;
-    border-color: #018786;
+    background-color: var(--secondary-variant);
+    border-color: var(--secondary-variant);
 }
 
 .action-feedback {
