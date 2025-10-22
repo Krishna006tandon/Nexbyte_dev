@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
-const Navbar = () => {
+const Navbar = ({ isAdmin, isClient, setIsAdmin, setIsClient }) => {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
+  const navigate = useNavigate();
   const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAdmin(false);
+    setIsClient(false);
+    navigate('/');
+  };
+
+  const loggedIn = isAdmin || isClient;
 
   return (
     <header className="header">
@@ -15,16 +25,22 @@ const Navbar = () => {
           <NavLink className="nav-link" to="/about">About</NavLink>
           <NavLink className="nav-link" to="/services">Services</NavLink>
           <NavLink className="nav-link" to="/contact">Contact</NavLink>
-          <NavLink className="nav-link" to="/dashboard">Dashboard</NavLink>
-          <NavLink className="nav-link" to="/profile">Profile</NavLink>
+          {isAdmin && <NavLink className="nav-link" to="/admin">Admin</NavLink>}
+          {isClient && <NavLink className="nav-link" to="/client-panel">Client Panel</NavLink>}
           
-          {/* Spacing element */}
           <div style={{ flexGrow: 1 }}></div>
 
-          {/* All buttons visible for review */}
-          <NavLink className="nav-link nav-link-button" to="/login">Login</NavLink>
-          <NavLink className="nav-link nav-link-button btn-primary" to="/signup">Sign Up</NavLink>
-          <NavLink className="nav-link nav-link-button" to="/">Logout</NavLink>
+          {loggedIn ? (
+            <>
+              <NavLink className="nav-link" to="/profile">Profile</NavLink>
+              <button className="nav-link nav-link-button" onClick={handleLogout}>Logout</button>
+            </>
+          ) : (
+            <>
+              <NavLink className="nav-link nav-link-button" to="/login">Login</NavLink>
+              <NavLink className="nav-link nav-link-button btn-primary" to="/signup">Sign Up</NavLink>
+            </>
+          )}
         </div>
         <button className="nav-toggler" type="button" onClick={handleNavCollapse}>
           <span className="toggler-icon"></span>

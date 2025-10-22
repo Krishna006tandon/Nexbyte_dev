@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -11,25 +11,32 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import Admin from './pages/Admin';
+import ClientPanel from './pages/ClientPanel';
 
 import './App.css';
 
 function App() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
   return (
     <Router>
       <div className="app-container">
-        <Navbar />
+        <Navbar isAdmin={isAdmin} isClient={isClient} setIsAdmin={setIsAdmin} setIsClient={setIsClient} />
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<Login setIsAdmin={setIsAdmin} setIsClient={setIsClient} />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/client-panel" element={<ClientPanel />} />
           </Routes>
         </main>
         <Footer />
