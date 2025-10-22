@@ -96,13 +96,13 @@
   
   .message-section button {
     padding: 0.5rem 1rem;
-    background: #007bff;
-    color: white;
+    background: #3700B3;
+    color: #ffffff;
     border: none;
     border-radius: 5px;
     cursor: pointer;
   }
   
   .message-section button:hover {
-    background: #0056b3;
+    background: #6200EE;
   }
