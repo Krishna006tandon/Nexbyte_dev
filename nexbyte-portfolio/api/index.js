@@ -501,6 +501,39 @@ app.put('/api/bills/:billId', auth, admin, async (req, res) => {
   }
 });
 
+// @route   PUT api/bills/:billId/confirm
+// @desc    Confirm a bill payment
+// @access  Private (client)
+app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
+  const { transactionId } = req.body;
+
+  if (!transactionId) {
+    return res.status(400).json({ message: 'Transaction ID is required' });
+  }
+
+  try {
+    const bill = await Bill.findById(req.params.billId);
+
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    // Check if the bill belongs to the authenticated client
+    if (bill.client.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    bill.status = 'Verification Pending';
+    bill.transactionId = transactionId;
+    await bill.save();
+
+    res.json({ message: 'Payment confirmation submitted successfully. You will be notified once the payment is verified.' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 // @route   POST api/generate-srs
 // @desc    Generate SRS document
