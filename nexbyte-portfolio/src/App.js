@@ -38,7 +38,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/*" element={<Admin />} />
               <Route path="/client-panel" element={<ClientPanel />} />
             </Routes>
           </SrsProvider>
