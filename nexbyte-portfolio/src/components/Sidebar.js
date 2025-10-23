@@ -12,6 +12,7 @@ const Sidebar = () => {
         <li><Link to="/admin/members">Members</Link></li>
         <li><Link to="/admin/clients">Clients</Link></li>
         <li><Link to="/admin/srs-generator">SRS Generator</Link></li>
+        <li><Link to="/admin/billing">Billing</Link></li>
       </ul>
     </div>
   );

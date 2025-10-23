@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const Bill = require('./models/Bill');
 
 
 const app = express();
@@ -410,6 +411,7 @@ app.get('/api/client/data', auth, client, async (req, res) => {
     res.json({
       message: `Welcome, ${client.clientName}`,
       clientData: {
+        id: client._id,
         project: client.projectName,
         status: 'In Progress',
         dueDate: client.projectDeadline,
@@ -426,6 +428,77 @@ app.get('/api/client/data', auth, client, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// @route   POST api/bills
+// @desc    Create a new bill
+// @access  Private (admin)
+app.post('/api/bills', auth, admin, async (req, res) => {
+  const { client, amount, dueDate, status } = req.body;
+
+  try {
+    const newBill = new Bill({
+      client,
+      amount,
+      dueDate,
+      status,
+    });
+
+    await newBill.save();
+    res.json(newBill);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/bills/client/:clientId
+// @desc    Get all bills for a client
+// @access  Private (client)
+app.get('/api/bills/client/:clientId', auth, client, async (req, res) => {
+  try {
+    const bills = await Bill.find({ client: req.params.clientId }).sort({ billDate: -1 });
+    res.json(bills);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/bills
+// @desc    Get all bills
+// @access  Private (admin)
+app.get('/api/bills', auth, admin, async (req, res) => {
+  try {
+    const bills = await Bill.find().populate('client', 'clientName').sort({ billDate: -1 });
+    res.json(bills);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/bills/:billId
+// @desc    Update a bill
+// @access  Private (admin)
+app.put('/api/bills/:billId', auth, admin, async (req, res) => {
+  const { status } = req.body;
+
+  try {
+    const bill = await Bill.findById(req.params.billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    bill.status = status;
+    await bill.save();
+
+    res.json(bill);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 // @route   POST api/generate-srs
 // @desc    Generate SRS document

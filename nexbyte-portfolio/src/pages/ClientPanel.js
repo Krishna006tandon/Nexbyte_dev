@@ -3,6 +3,7 @@ import './ClientPanel.css';
 
 const ClientPanel = () => {
   const [data, setData] = useState(null);
+  const [bills, setBills] = useState([]);
   const [error, setError] = useState(null);
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'srs'
   const [message, setMessage] = useState('');
@@ -36,6 +37,32 @@ const ClientPanel = () => {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchBills = async () => {
+      if (activeView === 'billing' && data) {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`/api/bills/client/${data.clientData.id}`, {
+            headers: {
+              'x-auth-token': token,
+            },
+          });
+
+          if (!res.ok) {
+            throw new Error('Failed to fetch bills');
+          }
+
+          const billsData = await res.json();
+          setBills(billsData);
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    };
+
+    fetchBills();
+  }, [activeView, data]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -80,34 +107,37 @@ const ClientPanel = () => {
     </div>
   );
 
-  const renderBilling = () => {
-    const { clientData } = data;
+  const renderBilling = () => (
+    <div className="billing-view">
+      <h2>Billing Information</h2>
+      <div className="bills-list">
+        {bills.map((bill) => {
+          const dueDate = new Date(bill.dueDate);
+          const now = new Date();
+          const status = bill.status === 'Paid' ? 'Paid' : dueDate < now ? 'Overdue' : 'Unpaid';
 
-    return (
-      <div className="billing-view">
-        <h2>Billing Information</h2>
-        <div className="bills-list">
-          <div className="bill-card unpaid">
-            <div className="bill-header">
-              <h3>{clientData.project}</h3>
-              <span>NEX-001</span>
+          return (
+            <div key={bill._id} className={`bill-card ${status.toLowerCase()}`}>
+              <div className="bill-header">
+                <h3>{data.clientData.project}</h3>
+                <span>{bill._id}</span>
+              </div>
+              <div className="bill-details">
+                <p><strong>Amount:</strong> ₹{bill.amount}</p>
+                <p><strong>Due Date:</strong> {new Date(bill.dueDate).toLocaleDateString()}</p>
+                <p><strong>Status:</strong> <span className={`status ${status.toLowerCase()}`}>{status}</span></p>
+              </div>
+              {status !== 'Paid' && (
+                <div className="bill-actions">
+                  <button className="pay-now-btn">Pay Now</button>
+                </div>
+              )}
             </div>
-            <div className="bill-details">
-              <p><strong>Amount:</strong> ₹{clientData.totalBudget}</p>
-              <p><strong>Billing Address:</strong> {clientData.billingAddress}</p>
-              <p><strong>GST Number:</strong> {clientData.gstNumber}</p>
-              <p><strong>Payment Terms:</strong> {clientData.paymentTerms}</p>
-              <p><strong>Payment Method:</strong> {clientData.paymentMethod}</p>
-              <p><strong>Status:</strong> <span className="status unpaid">Unpaid</span></p>
-            </div>
-            <div className="bill-actions">
-              <button className="pay-now-btn">Pay Now</button>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
-    );
-  };
+    </div>
+  );
 
   const renderSrs = () => (
     <div className="srs-view">

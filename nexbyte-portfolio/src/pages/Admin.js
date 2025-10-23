@@ -9,6 +9,7 @@ const Admin = () => {
   const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
   const [clients, setClients] = useState([]);
+  const [bills, setBills] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
@@ -36,6 +37,12 @@ const Admin = () => {
     webHostingLogin: '',
     logoAndBrandingFiles: '',
     content: '',
+  });
+
+  const [billData, setBillData] = useState({
+    client: '',
+    amount: '',
+    dueDate: '',
   });
 
   const [localSrsData, setLocalSrsData] = useState({
@@ -77,11 +84,21 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator') {
+        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator' || location.pathname === '/admin/billing') {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
             setClients(data);
+          } else {
+            console.error(data.message);
+          }
+        }
+
+        if (location.pathname === '/admin/billing') {
+          const res = await fetch('/api/bills', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setBills(data);
           } else {
             console.error(data.message);
           }
@@ -240,6 +257,75 @@ const Admin = () => {
 
   const handleClientChange = (e) => {
     setClientData({ ...clientData, [e.target.name]: e.target.value });
+  };
+
+  const handleBillChange = (e) => {
+    setBillData({ ...billData, [e.target.name]: e.target.value });
+  };
+
+  const handleAddBill = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/bills', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(billData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBills([...bills, data]);
+        setBillData({
+          client: '',
+          amount: '',
+          dueDate: '',
+        });
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAsPaid = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ status: 'Paid' }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleSrsChange = (e) => {
@@ -437,6 +523,54 @@ const Admin = () => {
                       </td>
                       <td>
                         <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/billing' && (
+            <div>
+              <h2>Manage Billing</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddBill}>
+                  <h3>Add New Bill</h3>
+                  <select name="client" onChange={handleBillChange} value={billData.client} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
+                  <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
+                  <button type="submit" className="btn btn-primary">Add Bill</button>
+                </form>
+              </div>
+
+              <h3>All Bills</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client Name</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bills.map((bill) => (
+                    <tr key={bill._id}>
+                      <td>{bill.client?.clientName || 'N/A'}</td>
+                      <td>{bill.amount}</td>
+                      <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                      <td>{bill.status}</td>
+                      <td>
+                        {bill.status === 'Unpaid' && (
+                          <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                        )}
                       </td>
                     </tr>
                   ))}
