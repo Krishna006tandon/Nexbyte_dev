@@ -470,7 +470,7 @@ const Admin = () => {
             </div>
           )}
 
-          {location.pathname === '/admin' && (
+          {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>
           )}
         </div>
