@@ -5,7 +5,7 @@
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }
 
 .data-table th, .data-table td {

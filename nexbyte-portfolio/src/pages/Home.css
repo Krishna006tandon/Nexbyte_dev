@@ -23,7 +23,7 @@
 
 .home-page .hero-subtitle {
   font-size: 1.2rem;
-  color: var(--secondary-text);
+  color: var(--primary-text);
   margin-bottom: 2rem;
   max-width: 600px;
   margin-left: auto;
@@ -65,5 +65,5 @@
 }
 
 .service-card p {
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }

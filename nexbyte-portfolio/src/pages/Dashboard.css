@@ -35,7 +35,7 @@
 }
 
 .stat-card .info p {
-  color: var(--secondary-text);
+  color: var(--primary-text);
   margin: 0;
 }
 

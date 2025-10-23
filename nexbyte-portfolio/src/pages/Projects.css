@@ -12,11 +12,11 @@
 .project-card .card-body ul {
   padding-left: 20px;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--secondary-text);
 }
 
 .project-card .card-body h6 {
   font-weight: bold;
   margin-top: 15px;
-  color: var(--text-primary);
+  color: var(--primary-text);
 }

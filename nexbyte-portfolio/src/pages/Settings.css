@@ -35,7 +35,7 @@
 
 .setting-item p {
   margin: 0;
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }
 
 /* Simple Toggle Switch CSS */

@@ -21,7 +21,7 @@
 .login-form h2 {
   margin-bottom: 1.5rem;
   text-align: center;
-  color: var(--text-primary);
+  color: var(--primary-text);
 }
 
 .input-group {
@@ -31,7 +31,7 @@
 .input-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--text-secondary);
+  color: var(--secondary-text);
 }
 
 .input-group input {
@@ -40,7 +40,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   background-color: var(--background);
-  color: var(--text-primary);
+  color: var(--primary-text);
 }
 
 .login-form button {

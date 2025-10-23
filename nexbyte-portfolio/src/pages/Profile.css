@@ -42,7 +42,7 @@
 }
 
 .profile-details p {
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }
 
 .profile-form .form-group {

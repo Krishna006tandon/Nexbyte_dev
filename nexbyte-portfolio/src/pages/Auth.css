@@ -32,7 +32,7 @@
 .auth-container .switch-auth {
   text-align: center;
   margin-top: 1.5rem;
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }
 
 .auth-container .switch-auth a {

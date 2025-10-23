@@ -13,7 +13,7 @@
   .sidebar h2 {
     text-align: center;
     margin-bottom: 2rem;
-    color: var(--text-primary);
+    color: var(--primary-text);
   }
   
   .sidebar ul {
@@ -25,20 +25,20 @@
     padding: 1rem;
     cursor: pointer;
     border-bottom: 1px solid var(--border);
-    color: var(--text-secondary);
+    color: var(--secondary-text);
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   
   .sidebar ul li:hover, .sidebar ul li.active {
     background: var(--surface);
-    color: var(--text-primary);
+    color: var(--primary-text);
   }
   
   .main-content {
     flex-grow: 1;
     padding: 2rem;
     background-color: var(--background);
-    color: var(--text-primary);
+    color: var(--primary-text);
   }
   
   .client-panel-error {
@@ -70,7 +70,7 @@
     white-space: pre-wrap; /* Ensures content wraps and respects formatting */
     max-height: 500px;
     overflow-y: auto;
-    color: var(--text-primary);
+    color: var(--primary-text);
   }
   
   .message-section {
@@ -81,7 +81,7 @@
   
   .message-section h3 {
     margin-bottom: 1rem;
-    color: var(--text-primary);
+    color: var(--primary-text);
   }
   
   .message-section textarea {
@@ -91,7 +91,7 @@
     border: 1px solid var(--border);
     margin-bottom: 1rem;
     background-color: var(--background);
-    color: var(--text-primary);
+    color: var(--primary-text);
   }
   
   .message-section button {

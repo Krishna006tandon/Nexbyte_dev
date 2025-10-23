@@ -5,7 +5,7 @@
 .form-label {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--secondary-text);
+  color: var(--primary-text);
   font-weight: 500;
 }
 
