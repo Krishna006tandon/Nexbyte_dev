@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
-import Worklist from '../components/Worklist';
 import { SrsContext } from '../context/SrsContext';
 
 const Admin = () => {
@@ -11,7 +10,6 @@ const Admin = () => {
   const [members, setMembers] = useState([]);
   const [clients, setClients] = useState([]);
   const [bills, setBills] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
@@ -103,24 +101,6 @@ const Admin = () => {
             setBills(data);
           } else {
             console.error(data.message);
-          }
-        }
-
-        if (location.pathname === '/admin/worklist') {
-          const tasksRes = await fetch('/api/tasks', { headers });
-          const tasksData = await tasksRes.json();
-          if (tasksRes.ok) {
-            setTasks(tasksData);
-          } else {
-            console.error(tasksData.message);
-          }
-
-          const membersRes = await fetch('/api/users', { headers });
-          const membersData = await membersRes.json();
-          if (membersRes.ok) {
-            setMembers(membersData);
-          } else {
-            console.error(membersData.message);
           }
         }
       } catch (err) {
