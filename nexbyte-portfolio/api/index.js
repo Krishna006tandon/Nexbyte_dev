@@ -119,7 +119,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -414,6 +414,11 @@ app.get('/api/client/data', auth, client, async (req, res) => {
         status: 'In Progress',
         dueDate: client.projectDeadline,
         srsDocument: client.srsDocument,
+        totalBudget: client.totalBudget,
+        billingAddress: client.billingAddress,
+        gstNumber: client.gstNumber,
+        paymentTerms: client.paymentTerms,
+        paymentMethod: client.paymentMethod,
       },
     });
   } catch (err) {

@@ -81,34 +81,29 @@ const ClientPanel = () => {
   );
 
   const renderBilling = () => {
-    const bills = [
-      { id: 'NEX-001', project: 'E-commerce Website', date: '2024-07-20', amount: '₹50,000', status: 'Paid' },
-      { id: 'NEX-002', project: 'Mobile App Development', date: '2024-08-15', amount: '₹80,000', status: 'Unpaid' },
-      { id: 'NEX-003', project: 'SEO Optimization', date: '2024-09-01', amount: '₹25,000', status: 'Unpaid' },
-    ];
+    const { clientData } = data;
 
     return (
       <div className="billing-view">
         <h2>Billing Information</h2>
         <div className="bills-list">
-          {bills.map((bill) => (
-            <div key={bill.id} className={`bill-card ${bill.status.toLowerCase()}`}>
-              <div className="bill-header">
-                <h3>{bill.project}</h3>
-                <span>{bill.id}</span>
-              </div>
-              <div className="bill-details">
-                <p><strong>Date:</strong> {bill.date}</p>
-                <p><strong>Amount:</strong> {bill.amount}</p>
-                <p><strong>Status:</strong> <span className={`status ${bill.status.toLowerCase()}`}>{bill.status}</span></p>
-              </div>
-              {bill.status === 'Unpaid' && (
-                <div className="bill-actions">
-                  <button className="pay-now-btn">Pay Now</button>
-                </div>
-              )}
+          <div className="bill-card unpaid">
+            <div className="bill-header">
+              <h3>{clientData.project}</h3>
+              <span>NEX-001</span>
             </div>
-          ))}
+            <div className="bill-details">
+              <p><strong>Amount:</strong> ₹{clientData.totalBudget}</p>
+              <p><strong>Billing Address:</strong> {clientData.billingAddress}</p>
+              <p><strong>GST Number:</strong> {clientData.gstNumber}</p>
+              <p><strong>Payment Terms:</strong> {clientData.paymentTerms}</p>
+              <p><strong>Payment Method:</strong> {clientData.paymentMethod}</p>
+              <p><strong>Status:</strong> <span className="status unpaid">Unpaid</span></p>
+            </div>
+            <div className="bill-actions">
+              <button className="pay-now-btn">Pay Now</button>
+            </div>
+          </div>
         </div>
       </div>
     );
