@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ClientPanel.css';
 import Modal from '../components/Modal';
-import { QRCode } from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 const ClientPanel = () => {
   const [data, setData] = useState(null);
@@ -186,7 +186,7 @@ const ClientPanel = () => {
             <h2>Manual Payment</h2>
             <p>Scan the QR code with your UPI app to pay.</p>
             <div className="qr-code-container">
-              <QRCode value={`upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project}`} />
+              <QRCodeSVG value={`upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project}`} />
             </div>
             <div className="transaction-id-input">
               <label htmlFor="transactionId">Transaction ID</label>
