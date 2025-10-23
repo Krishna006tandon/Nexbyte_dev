@@ -1,17 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
+import { SrsContext } from '../context/SrsContext';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
   const [clients, setClients] = useState([]);
+  const [bills, setBills] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
   const [clientPasswords, setClientPasswords] = useState({});
   const location = useLocation();
+  const navigate = useNavigate();
+  const { setSrsFullData } = useContext(SrsContext);
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -34,16 +39,20 @@ const Admin = () => {
     content: '',
   });
 
-  const [srsData, setSrsData] = useState({
+  const [billData, setBillData] = useState({
+    client: '',
+    amount: '',
+    dueDate: '',
+  });
+
+  const [localSrsData, setLocalSrsData] = useState({
     projectName: '',
     projectDescription: '',
     targetAudience: '',
     functionalRequirements: '',
     nonFunctionalRequirements: '',
   });
-  const [generatedSrs, setGeneratedSrs] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +68,14 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
+        } else if (location.pathname === '/admin/messages') {
+          const res = await fetch('/api/messages', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setMessages(data);
+          } else {
+            console.error(data.message);
+          }
         } else if (location.pathname === '/admin/members') {
           const res = await fetch('/api/users', { headers });
           const data = await res.json();
@@ -67,11 +84,21 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator') {
+        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator' || location.pathname === '/admin/billing') {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
             setClients(data);
+          } else {
+            console.error(data.message);
+          }
+        }
+
+        if (location.pathname === '/admin/billing') {
+          const res = await fetch('/api/bills', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setBills(data);
           } else {
             console.error(data.message);
           }
@@ -128,7 +155,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setMembers(members.filter((member) => member._id !== id));
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -198,7 +226,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClients(clients.filter((client) => client._id !== id));
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -217,7 +246,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClientPasswords({ ...clientPasswords, [id]: data.password });
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -229,40 +259,95 @@ const Admin = () => {
     setClientData({ ...clientData, [e.target.name]: e.target.value });
   };
 
-  const handleSrsChange = (e) => {
-    setSrsData({ ...srsData, [e.target.name]: e.target.value });
+  const handleBillChange = (e) => {
+    setBillData({ ...billData, [e.target.name]: e.target.value });
   };
 
-  const handleGenerateSrs = async (e) => {
+  const handleAddBill = async (e) => {
     e.preventDefault();
-    setLoading(true);
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch('/api/generate-srs', {
+      const res = await fetch('/api/bills', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify(srsData),
+        body: JSON.stringify(billData),
       });
       const data = await res.json();
       if (res.ok) {
-        setGeneratedSrs(data.srs);
+        setBills([...bills, data]);
+        setBillData({
+          client: '',
+          amount: '',
+          dueDate: '',
+        });
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
       } else {
         console.error(data.message);
       }
     } catch (err) {
       console.error(err);
     }
-    setLoading(false);
+  };
+
+  const handleMarkAsPaid = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ status: 'Paid' }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSrsChange = (e) => {
+    setLocalSrsData({ ...localSrsData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenerateSrs = (e) => {
+    e.preventDefault();
+    const selectedClient = clients.find(client => client._id === selectedClientId);
+    const fullSrsData = {
+      ...localSrsData,
+      client: selectedClient,
+    };
+    setSrsFullData(fullSrsData);
+    navigate('/srs-generator');
   };
 
   const handleClientSelect = (clientId) => {
     setSelectedClientId(clientId);
     const selectedClient = clients.find(client => client._id === clientId);
     if (selectedClient) {
-      setSrsData({
+      setLocalSrsData({
         projectName: selectedClient.projectName || '',
         projectDescription: selectedClient.projectRequirements || '',
         targetAudience: '',
@@ -299,6 +384,30 @@ const Admin = () => {
                       <td>{contact.mobile}</td>
                       <td>{contact.message}</td>
                       <td>{new Date(contact.date).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/messages' && (
+            <div>
+              <h2>Client Messages</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Message</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {messages.map((message) => (
+                    <tr key={message._id}>
+                      <td>{message.client?.clientName || 'N/A'}</td>
+                      <td>{message.message}</td>
+                      <td>{new Date(message.date).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -422,6 +531,54 @@ const Admin = () => {
             </div>
           )}
 
+          {location.pathname === '/admin/billing' && (
+            <div>
+              <h2>Manage Billing</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddBill}>
+                  <h3>Add New Bill</h3>
+                  <select name="client" onChange={handleBillChange} value={billData.client} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
+                  <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
+                  <button type="submit" className="btn btn-primary">Add Bill</button>
+                </form>
+              </div>
+
+              <h3>All Bills</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client Name</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bills.map((bill) => (
+                    <tr key={bill._id}>
+                      <td>{bill.client?.clientName || 'N/A'}</td>
+                      <td>{bill.amount}</td>
+                      <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                      <td>{bill.status}</td>
+                      <td>
+                        {bill.status === 'Unpaid' && (
+                          <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {location.pathname === '/admin/srs-generator' && (
             <div>
               <h2>SRS Generator</h2>
@@ -434,29 +591,20 @@ const Admin = () => {
                       <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
                     ))}
                   </select>
-                  <input type="text" name="projectName" placeholder="Project Name" value={srsData.projectName} onChange={handleSrsChange} required />
-                  <textarea name="projectDescription" placeholder="Project Description" value={srsData.projectDescription} onChange={handleSrsChange}></textarea>
-                  <textarea name="targetAudience" placeholder="Target Audience" value={srsData.targetAudience} onChange={handleSrsChange}></textarea>
-                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={srsData.functionalRequirements} onChange={handleSrsChange}></textarea>
-                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={srsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Generating...' : 'Generate SRS'}
+                  <input type="text" name="projectName" placeholder="Project Name" value={localSrsData.projectName} onChange={handleSrsChange} required />
+                  <textarea name="projectDescription" placeholder="Project Description" value={localSrsData.projectDescription} onChange={handleSrsChange}></textarea>
+                  <textarea name="targetAudience" placeholder="Target Audience" value={localSrsData.targetAudience} onChange={handleSrsChange}></textarea>
+                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={localSrsData.functionalRequirements} onChange={handleSrsChange}></textarea>
+                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={localSrsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
+                  <button type="submit" className="btn btn-primary">
+                    Generate SRS
                   </button>
                 </form>
               </div>
-
-              {loading && <p>Loading...</p>}
-
-              {generatedSrs && (
-                <div className="generated-srs">
-                  <h3>Generated SRS</h3>
-                  <div dangerouslySetInnerHTML={{ __html: generatedSrs }} />
-                </div>
-              )}
             </div>
           )}
 
-          {location.pathname === '/admin' && (
+          {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>
           )}
         </div>

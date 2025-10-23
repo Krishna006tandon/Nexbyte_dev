@@ -1,10 +1,48 @@
 .client-panel-container {
-    padding: 2rem;
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  .sidebar {
+    width: 250px;
+    background: var(--background);
+    padding: 1rem;
+    border-right: 1px solid var(--border);
+  }
+  
+  .sidebar h2 {
     text-align: center;
+    margin-bottom: 2rem;
+    color: var(--primary-text);
+  }
+  
+  .sidebar ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .sidebar ul li {
+    padding: 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    color: var(--secondary-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .sidebar ul li:hover, .sidebar ul li.active {
+    background: var(--surface);
+    color: var(--primary-text);
+  }
+  
+  .main-content {
+    flex-grow: 1;
+    padding: 2rem;
+    background-color: var(--background);
+    color: var(--primary-text);
   }
   
   .client-panel-error {
-    color: red;
+    color: #ff4d4d;
     font-size: 1.2rem;
   }
   
@@ -14,9 +52,134 @@
   
   .client-data {
     margin-top: 2rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
     padding: 1rem;
     border-radius: 5px;
-    display: inline-block;
+    background-color: var(--background);
   }
   
+  .srs-view {
+    margin-top: 2rem;
+  }
+  
+  .srs-content {
+    background: var(--background);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: 5px;
+    white-space: pre-wrap; /* Ensures content wraps and respects formatting */
+    max-height: 500px;
+    overflow-y: auto;
+    color: var(--primary-text);
+  }
+  
+  .message-section {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  
+  .message-section h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-text);
+  }
+  
+  .message-section textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    margin-bottom: 1rem;
+    background-color: var(--background);
+    color: var(--primary-text);
+  }
+  
+  .message-section button {
+    padding: 0.5rem 1rem;
+    background: var(--primary-variant);
+    color: var(--on-primary);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .message-section button:hover {
+    background: var(--primary);
+  }
+
+  .billing-view {
+    margin-top: 2rem;
+  }
+  
+  .bills-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .bill-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .bill-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .bill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .bill-header h3 {
+    margin: 0;
+    color: var(--primary-text);
+  }
+  
+  .bill-header span {
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+  }
+  
+  .bill-details p {
+    margin: 0.5rem 0;
+  }
+  
+  .bill-details .status {
+    font-weight: bold;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    color: #fff;
+  }
+  
+  .bill-details .status.paid {
+    background-color: #28a745;
+  }
+  
+  .bill-details .status.unpaid {
+    background-color: #dc3545;
+  }
+  
+  .bill-actions {
+    margin-top: 1rem;
+    text-align: right;
+  }
+  
+  .pay-now-btn {
+    padding: 0.6rem 1.2rem;
+    background: var(--primary-variant);
+    color: var(--on-primary);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .pay-now-btn:hover {
+    background: var(--primary);
+  }

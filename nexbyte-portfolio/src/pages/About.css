@@ -1,29 +1,76 @@
-.about-container h1 {
+.about-page .page-header {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--background-light);
+  color: white;
+}
+
+.about-page .page-title {
   font-size: 3rem;
-  font-weight: bold;
+  font-weight: 700;
 }
 
-.about-container .lead {
+.about-page .page-subtitle {
+  font-size: 1.2rem;
+  color: var(--primary-text);
+  max-width: 700px;
+  margin: 1rem auto 0;
+}
+
+.about-page .team-section {
+  padding: 4rem 2rem;
+}
+
+.about-page .team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.team-member-card {
+  text-align: center;
+}
+
+.team-member-card .profile-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+  background-color: var(--surface);
+  border: 3px solid var(--accent);
+  object-fit: cover;
+}
+
+.team-member-card h3 {
   font-size: 1.5rem;
-  color: #aaaaaa;
+  color: var(--primary-text);
+  margin-bottom: 0.5rem;
 }
 
-.about-container h4 {
-  font-weight: bold;
-  color: #00c6ff;
-  margin-top: 30px;
+.team-member-card .role {
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 1rem;
 }
 
-.about-container .social-links a {
-  transition: background-color 0.3s ease, transform 0.3s ease;
+.team-member-card p {
+  color: var(--primary-text);
+  margin-bottom: 1.5rem;
 }
 
-.about-container .social-links a:hover {
-  background-color: #007bff;
-  transform: translateY(-3px);
+.team-member-card .social-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
 }
 
-.collaborator-name {
-  font-size: 2.5rem;
-  font-weight: bold;
+.team-member-card .social-links a {
+  font-size: 1.5rem;
+  color: var(--primary-text);
+  transition: color 0.3s ease;
+}
+
+.team-member-card .social-links a:hover {
+  color: var(--accent);
 }

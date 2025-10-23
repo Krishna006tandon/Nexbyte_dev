@@ -1,7 +1,8 @@
 .sidebar {
   width: 200px;
-  background-color: #343a40;
+  background-color: var(--background);
   padding: 20px;
+  border-right: 1px solid var(--border);
 }
 
 .sidebar ul {
@@ -13,9 +14,11 @@
   display: block;
   padding: 10px;
   text-decoration: none;
-  color: #fff;
+  color: var(--secondary-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .sidebar li a:hover {
-  background-color: #495057;
+  background-color: var(--surface);
+  color: var(--primary-text);
 }

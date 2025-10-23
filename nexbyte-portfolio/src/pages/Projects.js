@@ -31,6 +31,23 @@ const projects = [
     liveLink: 'https://zen-space-nine.vercel.app/'
   },
   {
+    title: 'Dr. Ashish Homoeopathic Clinic Web Portal',
+    description: 'Developed a professional, patient-centric web portal to digitize clinic operations, enhance patient information access, and streamline consultation requests for specialized homeopathic treatments',
+    features: [
+      'Specialized Treatment Detail Pages (e.g., Thyroid, Liver, Migraines) for high SEO ranking',
+
+'Secure Online Consultation Request Form for lead capture and patient management',
+
+'Dynamic Patient Testimonial Management via a cloud database (Firestore)',
+
+'Responsive Clinic Hours and Multi-location Display with embedded mapping',
+
+'Optimized for SEO and Mobile-First Performance to maximize patient reach',
+    ],
+    techStack: 'EJS Templeting, Tailwind CSS, Node js ,Express.js',
+    liveLink: 'https://www.drashishhomeo.in/'
+  },
+  {
     title: 'Digital Product Mart',
     description: 'A full-featured e-commerce website for electronic products, offering a seamless and secure shopping experience.',
     features: [

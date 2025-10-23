@@ -1,9 +1,13 @@
 const express = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+
 const Task = require('./models/Task');
+const Bill = require('./models/Bill');
 
 
 const app = express();
@@ -28,9 +32,21 @@ app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    let user = await User.findOne({ email });
+    let role = 'user';
+    let userId = '';
+
+    if (user) {
+      role = user.role;
+      userId = user.id;
+    } else {
+      const client = await Client.findOne({ email });
+      if (!client) {
+        return res.status(400).json({ message: 'Invalid credentials' });
+      }
+      user = client;
+      role = 'client';
+      userId = client.id;
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -40,8 +56,8 @@ app.post('/api/login', async (req, res) => {
 
     const payload = {
       user: {
-        id: user.id,
-        role: user.role,
+        id: userId,
+        role: role,
       },
     };
 
@@ -54,7 +70,7 @@ app.post('/api/login', async (req, res) => {
           console.error(err);
           return res.status(500).json({ message: 'Error signing token' });
         }
-        res.json({ token, role: user.role });
+        res.json({ token, role: role });
       }
     );
   } catch (err) {
@@ -106,7 +122,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -387,13 +403,328 @@ app.delete('/api/clients/:id', auth, admin, async (req, res) => {
 // @route   GET api/clients/:id/password
 // @desc    Get client password
 // @access  Private (admin)
-app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
+app.get('/api/client/data', auth, client, async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id).select('password');
+    const client = await Client.findById(req.user.id).select('-password');
     if (!client) {
       return res.status(404).json({ message: 'Client not found' });
     }
-    res.json({ password: client.password });
+
+    res.json({
+      message: `Welcome, ${client.clientName}`,
+      clientData: {
+        id: client._id,
+        project: client.projectName,
+        status: 'In Progress',
+        dueDate: client.projectDeadline,
+        srsDocument: client.srsDocument,
+        totalBudget: client.totalBudget,
+        billingAddress: client.billingAddress,
+        gstNumber: client.gstNumber,
+        paymentTerms: client.paymentTerms,
+        paymentMethod: client.paymentMethod,
+      },
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/bills
+// @desc    Create a new bill
+// @access  Private (admin)
+app.post('/api/bills', auth, admin, async (req, res) => {
+  const { client, amount, dueDate, status } = req.body;
+
+  try {
+    const newBill = new Bill({
+      client,
+      amount,
+      dueDate,
+      status,
+    });
+
+    await newBill.save();
+    res.json(newBill);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/bills/client/:clientId
+// @desc    Get all bills for a client
+// @access  Private (client)
+app.get('/api/bills/client/:clientId', auth, client, async (req, res) => {
+  try {
+    const bills = await Bill.find({ client: req.params.clientId }).sort({ billDate: -1 });
+    res.json(bills);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/bills
+// @desc    Get all bills
+// @access  Private (admin)
+app.get('/api/bills', auth, admin, async (req, res) => {
+  try {
+    const bills = await Bill.find().populate('client', 'clientName').sort({ billDate: -1 });
+    res.json(bills);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/bills/:billId
+// @desc    Update a bill
+// @access  Private (admin)
+app.put('/api/bills/:billId', auth, admin, async (req, res) => {
+  const { status } = req.body;
+
+  try {
+    const bill = await Bill.findById(req.params.billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    bill.status = status;
+    await bill.save();
+
+    res.json(bill);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// @route   POST api/generate-srs
+// @desc    Generate SRS document
+// @access  Private (admin)
+app.post('/api/generate-srs', auth, admin, async (req, res) => {
+  // Log to check if the API key is loaded
+  console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
+
+  const {
+    projectName,
+    projectDescription,
+    targetAudience,
+    functionalRequirements,
+    nonFunctionalRequirements,
+    client,
+  } = req.body;
+
+  if (!projectName) {
+    return res.status(400).json({ message: 'Project name is required' });
+  }
+
+  const promptText = `
+    Generate a detailed Software Requirement Specification (SRS) document based on the following details:
+
+    **Project Name:** ${projectName}
+
+    **Client Information:**
+    - **Client Name:** ${client?.clientName || 'N/A'}
+    - **Contact Person:** ${client?.contactPerson || 'N/A'}
+    - **Email:** ${client?.email || 'N/A'}
+
+    **1. Introduction:**
+       1.1. **Project Overview:** ${projectDescription || 'Provide a detailed overview of the project.'}
+       1.2. **Scope:** Define the scope of the project based on the requirements.
+       1.3. **Target Audience:** ${targetAudience || 'Describe the target audience for this project.'}
+
+    **2. Overall Description:**
+       2.1. **Product Perspective:** Describe the product's relationship to other products or projects.
+       2.2. **User Characteristics:** Describe the intended users.
+       2.3. **Assumptions and Dependencies:** List any assumptions or dependencies.
+
+    **3. System Features and Requirements:**
+       3.1. **Functional Requirements:**
+            ${functionalRequirements || 'Detail the functional requirements. These should be specific and measurable.'}
+
+       3.2. **Non-Functional Requirements:**
+            ${nonFunctionalRequirements || 'Detail the non-functional requirements, such as performance, security, reliability, and usability.'}
+
+    **4. External Interface Requirements:**
+       4.1. **User Interfaces:** Describe the user interface requirements.
+       4.2. **Hardware Interfaces:** Describe any hardware interfaces.
+       4.3. **Software Interfaces:** Describe any software interfaces.
+       4.4. **Communications Interfaces:** Describe any communications interfaces.
+
+    **5. Other Appendices:**
+       - Include any other relevant information, such as a glossary, analysis models, or issues list.
+
+    Please generate a comprehensive and well-structured SRS document based on this information. The output should be in Markdown format. Do not include any conversational pleasantries, preambles, or apologies in your response. Respond only with the raw Markdown document content starting from the main title.
+  `;
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
+
+  try {
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const srsContent = response.text();
+    res.status(200).json({ srsContent });
+  } catch (error) {
+    console.error('Error generating SRS with Gemini:', error);
+    res.status(500).json({ message: 'Failed to generate SRS with Gemini.', error: error.message });
+  }
+});
+
+// @route   POST api/save-srs
+// @desc    Save SRS document to a client
+// @access  Private (admin)
+app.post('/api/save-srs', auth, admin, async (req, res) => {
+  const { clientId, srsContent } = req.body;
+
+  if (!clientId || !srsContent) {
+    return res.status(400).json({ message: 'Client ID and SRS content are required' });
+  }
+
+  try {
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    client.srsDocument = srsContent;
+    await client.save();
+
+    res.json({ message: 'SRS document saved successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error while saving SRS' });
+  }
+});
+
+// @route   POST api/send-srs-to-client
+// @desc    Send SRS to client
+// @access  Private (admin)
+app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
+  const { clientId, srsContent } = req.body;
+
+  if (!clientId || !srsContent) {
+    return res.status(400).json({ message: 'Client ID and SRS content are required' });
+  }
+
+  try {
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    client.srsDocument = srsContent;
+    await client.save();
+
+    // Send email to client
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: client.email,
+      subject: `SRS for ${client.projectName} is Ready`,
+      html: `
+        <p>Dear ${client.clientName},</p>
+        <p>The Software Requirement Specification (SRS) for your project, <strong>${client.projectName}</strong>, is now ready for your review.</p>
+        <p>You can view the SRS by logging into your client panel.</p>
+        <p>Thank you,</p>
+        <p>The NexByte Team</p>
+      `,
+    };
+
+    try {
+      console.log('Attempting to send SRS email to client...');
+      const info = await transporter.sendMail(mailOptions);
+      console.log('SRS Email sent:', info.response);
+    } catch (error) {
+      console.error('Error sending SRS email:', error);
+      // We don't want to fail the whole request if the email fails
+    }
+
+    res.json({ message: 'SRS saved and email sent successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error while sending SRS to client' });
+  }
+});
+
+// @route   POST api/edit-srs
+// @desc    Edit SRS document with AI
+// @access  Private (admin)
+app.post('/api/edit-srs', auth, admin, async (req, res) => {
+  const { srsContent, aiPrompt } = req.body;
+
+  if (!srsContent || !aiPrompt) {
+    return res.status(400).json({ message: 'SRS content and AI prompt are required' });
+  }
+
+  const promptText = `
+    Based on the following document, please perform the requested edit.
+
+    **Instruction:**
+    ${aiPrompt}
+
+    **Document:**
+    ---
+    ${srsContent}
+    ---
+
+    Return only the full, edited document with the changes applied. Do not include any conversational pleasantries, preambles, or apologies.
+  `;
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
+
+  try {
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const editedSrs = response.text();
+    res.status(200).json({ srsContent: editedSrs });
+
+  } catch (error) {
+    console.error('Error making direct fetch call to Gemini for AI edit:', error);
+    res.status(500).json({ message: 'Failed to edit SRS with AI.', error: error.message });
+  }
+});
+
+const Message = require('./models/Message');
+
+// @route   POST /api/client/message
+// @desc    Client send message
+// @access  Private (client)
+app.post('/api/client/message', auth, client, async (req, res) => {
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ message: 'Message is required' });
+  }
+
+  try {
+    const newMessage = new Message({
+      client: req.user.id,
+      message,
+    });
+
+    await newMessage.save();
+
+    res.json({ message: 'Message sent successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/messages
+// @desc    Get all messages
+// @access  Private (admin)
+app.get('/api/messages', auth, admin, async (req, res) => {
+  try {
+    const messages = await Message.find()
+      .populate('client', 'clientName')
+      .sort({ date: -1 });
+    res.json(messages);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
