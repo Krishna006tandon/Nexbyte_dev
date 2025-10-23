@@ -14,11 +14,11 @@
   display: block;
   padding: 10px;
   text-decoration: none;
-  color: var(--text-secondary);
+  color: var(--secondary-text);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .sidebar li a:hover {
   background-color: var(--surface);
-  color: var(--text-primary);
+  color: var(--primary-text);
 }
