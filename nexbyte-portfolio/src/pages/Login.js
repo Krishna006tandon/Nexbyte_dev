@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import '../components/Form.css';
 import './Auth.css';
 
-const Login = ({ setIsAdmin, setIsClient }) => {
+const Login = () => {
+  const { setIsAdmin, setIsClient } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

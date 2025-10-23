@@ -1,21 +1,38 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import './Sidebar.css';
 
 const Sidebar = () => {
+  const { isAdmin } = useContext(AuthContext);
+
+  const links = [
+    { to: "/admin/billing", text: "Billing" },
+    { to: "/admin/clients", text: "Clients" },
+    { to: "/admin/messages", text: "Client Messages" },
+    { to: "/admin/contacts", text: "Contact Messages" },
+    { to: "/admin", text: "Dashboard" },
+    { to: "/admin/members", text: "Members" },
+    { to: "/admin/srs-generator", text: "SRS Generator" },
+  ];
+
+  if (isAdmin) {
+    links.push({ to: "/admin/worklist", text: "Worklist" });
+  }
+
+  links.sort((a, b) => a.text.localeCompare(b.text));
+
   return (
     <div className="sidebar">
       <ul>
-        <li><Link to="/admin">Dashboard</Link></li>
-        <li><Link to="/admin/contacts">Contact Messages</Link></li>
-        <li><Link to="/admin/messages">Client Messages</Link></li>
-        <li><Link to="/admin/members">Members</Link></li>
-        <li><Link to="/admin/clients">Clients</Link></li>
-        <li><Link to="/admin/srs-generator">SRS Generator</Link></li>
-        <li><Link to="/admin/billing">Billing</Link></li>
+        {links.map(link => (
+          <li key={link.to}><Link to={link.to}>{link.text}</Link></li>
+        ))}
       </ul>
     </div>
   );
 };
 
 export default Sidebar;
+
+
