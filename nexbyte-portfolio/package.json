@@ -17,6 +17,7 @@
     "mongoose": "^8.19.1",
     "nodemailer": "^7.0.9",
     "openai": "^6.5.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",
