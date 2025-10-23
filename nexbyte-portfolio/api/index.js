@@ -764,6 +764,37 @@ app.get('/api/messages', auth, admin, async (req, res) => {
   }
 });
 
+// @route   GET /api/admin/contributions
+// @desc    Get admin contributions
+// @access  Private (admin)
+app.get('/api/admin/contributions', auth, admin, async (req, res) => {
+  try {
+    const tasks = await Task.aggregate([
+      {
+        $group: {
+          _id: '$assignedTo',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const users = await User.find({ role: 'admin' }).select('-password');
+
+    const contributions = users.map(user => {
+      const taskInfo = tasks.find(t => t._id.toString() === user._id.toString());
+      return {
+        email: user.email,
+        tasks: taskInfo ? taskInfo.count : 0,
+      };
+    });
+
+    res.json(contributions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import './About.css';
+import { AuthContext } from '../context/AuthContext';
 
 const teamMembers = [
   {
@@ -39,6 +40,30 @@ const teamMembers = [
 ];
 
 const About = () => {
+  const { user } = useContext(AuthContext);
+  const [contributions, setContributions] = useState([]);
+
+  useEffect(() => {
+    const fetchContributions = async () => {
+      if (user && user.role === 'admin') {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch('/api/admin/contributions', {
+            headers: {
+              'x-auth-token': token,
+            },
+          });
+          const data = await response.json();
+          setContributions(data);
+        } catch (error) {
+          console.error('Error fetching admin contributions:', error);
+        }
+      }
+    };
+
+    fetchContributions();
+  }, [user]);
+
   return (
     <div className="about-page">
       <header className="page-header">
@@ -65,6 +90,13 @@ const About = () => {
           ))}
         </div>
       </section>
+
+      {user && user.role === 'admin' && (
+        <section className="admin-contributions">
+          <h2 className="section-title">Admin Contributions</h2>
+          <pre>{JSON.stringify(contributions, null, 2)}</pre>
+        </section>
+      )}
 
       <section className="tech-stack-section">
         <h2 className="section-title">Our Tech Stack</h2>

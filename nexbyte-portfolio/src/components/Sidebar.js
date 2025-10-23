@@ -14,6 +14,8 @@ const Sidebar = () => {
     { to: "/admin", text: "Dashboard" },
     { to: "/admin/members", text: "Members" },
     { to: "/admin/srs-generator", text: "SRS Generator" },
+    { to: "/admin/task-list", text: "Task List" },
+    { to: "/admin/contributions", text: "Contributions" },
   ];
 
   if (isAdmin) {
