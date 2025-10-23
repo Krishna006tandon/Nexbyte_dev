@@ -16,8 +16,11 @@ const BillSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Paid', 'Unpaid', 'Overdue'],
+    enum: ['Paid', 'Unpaid', 'Overdue', 'Verification Pending'],
     default: 'Unpaid',
+  },
+  transactionId: {
+    type: String,
   },
   billDate: {
     type: Date,

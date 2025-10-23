@@ -1,185 +1,199 @@
 .client-panel-container {
-    display: flex;
-    min-height: 100vh;
-  }
-  
-  .sidebar {
-    width: 250px;
-    background: var(--background);
-    padding: 1rem;
-    border-right: 1px solid var(--border);
-  }
-  
-  .sidebar h2 {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: var(--primary-text);
-  }
-  
-  .sidebar ul {
-    list-style: none;
-    padding: 0;
-  }
-  
-  .sidebar ul li {
-    padding: 1rem;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-    color: var(--secondary-text);
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-  
-  .sidebar ul li:hover, .sidebar ul li.active {
-    background: var(--surface);
-    color: var(--primary-text);
-  }
-  
-  .main-content {
-    flex-grow: 1;
-    padding: 2rem;
-    background-color: var(--background);
-    color: var(--primary-text);
-  }
-  
-  .client-panel-error {
-    color: #ff4d4d;
-    font-size: 1.2rem;
-  }
-  
-  .client-panel-loading {
-    font-size: 1.2rem;
-  }
-  
-  .client-data {
-    margin-top: 2rem;
-    border: 1px solid var(--border);
-    padding: 1rem;
-    border-radius: 5px;
-    background-color: var(--background);
-  }
-  
-  .srs-view {
-    margin-top: 2rem;
-  }
-  
-  .srs-content {
-    background: var(--background);
-    border: 1px solid var(--border);
-    padding: 1rem;
-    border-radius: 5px;
-    white-space: pre-wrap; /* Ensures content wraps and respects formatting */
-    max-height: 500px;
-    overflow-y: auto;
-    color: var(--primary-text);
-  }
-  
-  .message-section {
-    margin-top: 2rem;
-    border-top: 1px solid var(--border);
-    padding-top: 1rem;
-  }
-  
-  .message-section h3 {
-    margin-bottom: 1rem;
-    color: var(--primary-text);
-  }
-  
-  .message-section textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border-radius: 5px;
-    border: 1px solid var(--border);
-    margin-bottom: 1rem;
-    background-color: var(--background);
-    color: var(--primary-text);
-  }
-  
-  .message-section button {
-    padding: 0.5rem 1rem;
-    background: var(--primary-variant);
-    color: var(--on-primary);
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .message-section button:hover {
-    background: var(--primary);
-  }
+  display: flex;
+}
 
-  .billing-view {
-    margin-top: 2rem;
-  }
-  
-  .bills-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-  
-  .bill-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.5rem;
-    transition: box-shadow 0.3s ease;
-  }
-  
-  .bill-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .bill-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  
-  .bill-header h3 {
-    margin: 0;
-    color: var(--primary-text);
-  }
-  
-  .bill-header span {
-    font-size: 0.9rem;
-    color: var(--secondary-text);
-  }
-  
-  .bill-details p {
-    margin: 0.5rem 0;
-  }
-  
-  .bill-details .status {
-    font-weight: bold;
-    padding: 0.2rem 0.5rem;
-    border-radius: 12px;
-    color: #fff;
-  }
-  
-  .bill-details .status.paid {
-    background-color: #28a745;
-  }
-  
-  .bill-details .status.unpaid {
-    background-color: #dc3545;
-  }
-  
-  .bill-actions {
-    margin-top: 1rem;
-    text-align: right;
-  }
-  
-  .pay-now-btn {
-    padding: 0.6rem 1.2rem;
-    background: var(--primary-variant);
-    color: var(--on-primary);
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .pay-now-btn:hover {
-    background: var(--primary);
-  }
+.sidebar {
+  width: 250px;
+  background-color: #f4f4f4;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  margin-top: 0;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.sidebar ul li.active {
+  background-color: #ddd;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+}
+
+.client-panel-error {
+  color: red;
+}
+
+.client-panel-loading {
+  font-style: italic;
+}
+
+.client-data h2, .srs-view h2, .billing-view h2 {
+  margin-top: 0;
+}
+
+.srs-content {
+  white-space: pre-wrap;
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.message-section {
+  margin-top: 20px;
+}
+
+.message-section textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.message-section button {
+  margin-top: 10px;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.bills-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.bill-card {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 15px;
+}
+
+.bill-card.paid {
+  background-color: #e6ffed;
+}
+
+.bill-card.overdue {
+  background-color: #ffe6e6;
+}
+
+.bill-card.unpaid {
+  background-color: #fff;
+}
+
+.bill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.bill-header h3 {
+  margin: 0;
+}
+
+.bill-header span {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.bill-details .status {
+  font-weight: bold;
+}
+
+.bill-details .status.paid {
+  color: green;
+}
+
+.bill-details .status.overdue {
+  color: red;
+}
+
+.bill-details .status.unpaid {
+  color: orange;
+}
+
+.bill-actions {
+  margin-top: 15px;
+}
+
+.pay-now-btn {
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.manual-payment-modal {
+  padding: 20px;
+  text-align: center;
+}
+
+.manual-payment-modal h2 {
+  margin-top: 0;
+}
+
+.qr-code-container {
+  margin: 20px 0;
+}
+
+.transaction-id-input {
+  margin-bottom: 20px;
+}
+
+.transaction-id-input label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.transaction-id-input input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+
+.manual-payment-modal .modal-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.manual-payment-modal .modal-actions button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.manual-payment-modal .modal-actions button:first-child {
+  background-color: #28a745;
+  color: white;
+}
+
+.manual-payment-modal .modal-actions button:last-child {
+  background-color: #ccc;
+}
+
+.manual-payment-modal .modal-actions button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}

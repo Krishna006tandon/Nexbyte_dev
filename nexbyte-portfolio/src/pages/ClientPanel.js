@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ClientPanel.css';
+import Modal from '../components/Modal';
+import { QRCode } from 'qrcode.react';
 
 const ClientPanel = () => {
   const [data, setData] = useState(null);
@@ -8,6 +10,20 @@ const ClientPanel = () => {
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'srs'
   const [message, setMessage] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [transactionId, setTransactionId] = useState('');
+
+  const handlePayNow = (bill) => {
+    setSelectedBill(bill);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedBill(null);
+    setTransactionId('');
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,6 +106,34 @@ const ClientPanel = () => {
     }
   };
 
+  const handleConfirmPayment = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/bills/${selectedBill._id}/confirm`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ transactionId }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to confirm payment');
+      }
+
+      const result = await res.json();
+      setMessageStatus(result.message);
+
+      // Update the bill status in the local state
+      setBills(bills.map(b => b._id === selectedBill._id ? { ...b, status: 'Verification Pending' } : b));
+
+      closeModal();
+    } catch (err) {
+      setMessageStatus(err.message);
+    }
+  };
+
   if (error) {
     return <div className="client-panel-error">{error}</div>;
   }
@@ -129,13 +173,38 @@ const ClientPanel = () => {
               </div>
               {status !== 'Paid' && (
                 <div className="bill-actions">
-                  <button className="pay-now-btn">Pay Now</button>
+                  <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
                 </div>
               )}
             </div>
           );
         })}
       </div>
+      {isModalOpen && selectedBill && (
+        <Modal onClose={closeModal}>
+          <div className="manual-payment-modal">
+            <h2>Manual Payment</h2>
+            <p>Scan the QR code with your UPI app to pay.</p>
+            <div className="qr-code-container">
+              <QRCode value={`upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project}`} />
+            </div>
+            <div className="transaction-id-input">
+              <label htmlFor="transactionId">Transaction ID</label>
+              <input
+                type="text"
+                id="transactionId"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                placeholder="Enter the transaction ID from your UPI app"
+              />
+            </div>
+            <div className="modal-actions">
+              <button onClick={handleConfirmPayment} disabled={!transactionId}>Confirm Payment</button>
+              <button onClick={closeModal}>Cancel</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 
