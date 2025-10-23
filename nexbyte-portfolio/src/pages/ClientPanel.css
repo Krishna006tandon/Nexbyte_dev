@@ -106,3 +106,80 @@
   .message-section button:hover {
     background: var(--primary);
   }
+
+  .billing-view {
+    margin-top: 2rem;
+  }
+  
+  .bills-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .bill-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .bill-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .bill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .bill-header h3 {
+    margin: 0;
+    color: var(--primary-text);
+  }
+  
+  .bill-header span {
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+  }
+  
+  .bill-details p {
+    margin: 0.5rem 0;
+  }
+  
+  .bill-details .status {
+    font-weight: bold;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    color: #fff;
+  }
+  
+  .bill-details .status.paid {
+    background-color: #28a745;
+  }
+  
+  .bill-details .status.unpaid {
+    background-color: #dc3545;
+  }
+  
+  .bill-actions {
+    margin-top: 1rem;
+    text-align: right;
+  }
+  
+  .pay-now-btn {
+    padding: 0.6rem 1.2rem;
+    background: var(--primary-variant);
+    color: var(--on-primary);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .pay-now-btn:hover {
+    background: var(--primary);
+  }

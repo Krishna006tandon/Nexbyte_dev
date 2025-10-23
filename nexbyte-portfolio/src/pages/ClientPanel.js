@@ -80,6 +80,40 @@ const ClientPanel = () => {
     </div>
   );
 
+  const renderBilling = () => {
+    const bills = [
+      { id: 'NEX-001', project: 'E-commerce Website', date: '2024-07-20', amount: '₹50,000', status: 'Paid' },
+      { id: 'NEX-002', project: 'Mobile App Development', date: '2024-08-15', amount: '₹80,000', status: 'Unpaid' },
+      { id: 'NEX-003', project: 'SEO Optimization', date: '2024-09-01', amount: '₹25,000', status: 'Unpaid' },
+    ];
+
+    return (
+      <div className="billing-view">
+        <h2>Billing Information</h2>
+        <div className="bills-list">
+          {bills.map((bill) => (
+            <div key={bill.id} className={`bill-card ${bill.status.toLowerCase()}`}>
+              <div className="bill-header">
+                <h3>{bill.project}</h3>
+                <span>{bill.id}</span>
+              </div>
+              <div className="bill-details">
+                <p><strong>Date:</strong> {bill.date}</p>
+                <p><strong>Amount:</strong> {bill.amount}</p>
+                <p><strong>Status:</strong> <span className={`status ${bill.status.toLowerCase()}`}>{bill.status}</span></p>
+              </div>
+              {bill.status === 'Unpaid' && (
+                <div className="bill-actions">
+                  <button className="pay-now-btn">Pay Now</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderSrs = () => (
     <div className="srs-view">
       <h2>Software Requirement Specification</h2>
@@ -118,11 +152,16 @@ const ClientPanel = () => {
           <li onClick={() => setActiveView('srs')} className={activeView === 'srs' ? 'active' : ''}>
             SRS Document
           </li>
+          <li onClick={() => setActiveView('billing')} className={activeView === 'billing' ? 'active' : ''}>
+            Billing
+          </li>
         </ul>
       </div>
       <div className="main-content">
         <h1>{data.message}</h1>
-        {activeView === 'dashboard' ? renderDashboard() : renderSrs()}
+        {activeView === 'dashboard' && renderDashboard()}
+        {activeView === 'srs' && renderSrs()}
+        {activeView === 'billing' && renderBilling()}
       </div>
     </div>
   );
