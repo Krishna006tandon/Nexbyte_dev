@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const Task = require('./models/Task');
 
 
 const app = express();
@@ -150,7 +151,7 @@ const transporter = nodemailer.createTransport({
   secure: false, // true for 465, false for other ports
   auth: {
     user: "nexbyte.dev@gmail.com",
-    pass: "huwt cbde ccev xxnu",
+    pass: process.env.EMAIL_PASSWORD,
   },
 });
 
@@ -396,111 +397,6 @@ app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   POST api/generate-srs
-// @desc    Generate SRS document
-// @access  Private (admin)
-app.post('/api/generate-srs', auth, admin, async (req, res) => {
-  const { projectName, projectDescription, targetAudience, functionalRequirements, nonFunctionalRequirements } = req.body;
-
-  if (!projectName || !projectDescription) {
-    return res.status(400).json({ message: 'Project name and description are required' });
-  }
-
-  try {
-    // Manually construct the SRS document in HTML format with professional dark theme styling
-    const srsContent = `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #e0e0e0;
-            background-color: #1a1a1a;
-            margin: 0;
-            padding: 20px;
-          }
-          .srs-container {
-            max-width: 800px;
-            margin: auto;
-            background: #2c2c2c;
-            padding: 30px;
-            border: 1px solid #444;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-          }
-          h1, h2, h3 {
-            color: #5dade2;
-            border-bottom: 2px solid #555;
-            padding-bottom: 10px;
-            margin-top: 20px;
-          }
-          h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 0;
-          }
-          h2 {
-            text-align: center;
-            font-size: 1.5em;
-            margin-top: 0;
-            border-bottom: none;
-          }
-          p {
-            margin-bottom: 10px;
-          }
-          strong {
-            color: #5dade2;
-          }
-          div {
-            padding-left: 20px;
-            border-left: 3px solid #444;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="srs-container">
-          <h1>Software Requirements Specification (SRS)</h1>
-          <h2>for</h2>
-          <h1>${projectName}</h1>
-          <br/>
-          
-          <h3>1. Introduction</h3>
-          <p><strong>1.1 Purpose:</strong> The purpose of this document is to provide a detailed description of the requirements for the ${projectName}.</p>
-          <p><strong>1.2 Scope:</strong> The system will ${projectDescription}.</p>
-          <p><strong>1.3 Overview:</strong> This document outlines the functional and non-functional requirements for the project.</p>
-          
-          <h3>2. Overall Description</h3>
-          <p><strong>2.1 Product Perspective:</strong> To be defined.</p>
-          <p><strong>2.2 Product Functions:</strong> The system will allow users to perform the functions outlined in the functional requirements section.</p>
-          <p><strong>2.3 User Characteristics:</strong> The target audience for this system is ${targetAudience || 'Not specified'}.</p>
-          <p><strong>2.4 Constraints:</strong> To be defined.</p>
-          <p><strong>2.5 Assumptions and Dependencies:</strong> To be defined.</p>
-          
-          <h3>3. System Features</h3>
-          <p><strong>3.1 Functional Requirements:</strong></p>
-          <div>${functionalRequirements || 'No functional requirements specified.'}</div>
-          
-          <h3>4. External Interface Requirements</h3>
-          <p><strong>4.1 User Interfaces:</strong> To be defined.</p>
-          <p><strong>4.2 Hardware Interfaces:</strong> To be defined.</p>
-          <p><strong>4.3 Software Interfaces:</strong> To be defined.</p>
-          <p><strong>4.4 Communications Interfaces:</strong> To be defined.</p>
-
-          <h3>5. Non-functional Requirements</h3>
-          <div>${nonFunctionalRequirements || 'No non-functional requirements specified.'}</div>
-        </div>
-      </body>
-    </html>
-    `;
-
-    res.json({ srs: srsContent });
-    
-  } catch (err) {
-    console.error('Error generating SRS:', err);
-    res.status(500).json({ message: 'An unexpected error occurred during SRS generation.' });
   }
 });
 
