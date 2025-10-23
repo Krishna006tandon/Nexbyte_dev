@@ -7,7 +7,7 @@
   flex-grow: 1;
   padding: 40px;
   background-color: var(--background);
-  color: var(--text-primary);
+  color: var(--primary-text);
 }
 
 .main-content .card {
@@ -19,7 +19,7 @@
 }
 
 h1, h2, h3 {
-  color: var(--text-primary);
+  color: var(--primary-text);
   font-weight: 600;
 }
 
@@ -42,13 +42,13 @@ h3 {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-.collapse: collapse;
   margin-top: 30px;
 }
 
 thead tr {
   background-color: var(--surface);
-  color: var(--text-primary);
+  color: var(--primary-text);
   text-align: left;
 }
 
@@ -76,7 +76,7 @@ tbody tr:hover {
     border-radius: 8px;
     font-size: 1rem;
     background-color: var(--background);
-    color: var(--text-primary);
+    color: var(--primary-text);
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
@@ -122,8 +122,8 @@ tbody tr:hover {
 
 .btn-secondary {
     background-color: var(--surface);
-    color: var(--text-primary);
-    border: 1px solid var(--text-primary);
+    color: var(--primary-text);
+    border: 1px solid var(--primary-text);
 }
 
 .btn-secondary:hover {
