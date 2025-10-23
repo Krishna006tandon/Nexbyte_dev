@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
 
-const Navbar = ({ isAdmin, isClient, setIsAdmin, setIsClient }) => {
+const Navbar = () => {
+  const { isAdmin, isClient, setIsAdmin, setIsClient } = useContext(AuthContext);
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const navigate = useNavigate();
   const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
