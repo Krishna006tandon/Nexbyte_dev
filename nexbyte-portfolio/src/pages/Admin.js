@@ -427,6 +427,7 @@ const Admin = () => {
     }
   };
 
+  console.log('Bills:', bills);
   return (
     <div className="admin-container">
       <Sidebar />
