@@ -179,37 +179,14 @@ const ClientPanel = () => {
             </div>
           );
         })}
+        {bills.length === 0 && (
+          <div className="no-bills">
+            <p>You have no outstanding bills. You can make an advance payment if you wish.</p>
+            <button className="pay-now-btn" onClick={() => handlePayNow({ amount: '0', _id: 'advance' })}>Pay Now</button>
+          </div>
+        )}
       </div>
-      {isModalOpen && selectedBill &&
-        renderPaymentModal()
-      }
     </div>
-  );
-
-  const renderPaymentModal = () => (
-    <Modal onClose={closeModal}>
-      <div className="manual-payment-modal">
-        <h2>Manual Payment</h2>
-        <p>Scan the QR code with your UPI app to pay.</p>
-        <div className="qr-code-container">
-          <QRCodeSVG value={`upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project}`} />
-        </div>
-        <div className="transaction-id-input">
-          <label htmlFor="transactionId">Transaction ID</label>
-          <input
-            type="text"
-            id="transactionId"
-            value={transactionId}
-            onChange={(e) => setTransactionId(e.target.value)}
-            placeholder="Enter the transaction ID from your UPI app"
-          />
-        </div>
-        <div className="modal-actions">
-          <button onClick={handleConfirmPayment} disabled={!transactionId}>Confirm Payment</button>
-          <button onClick={closeModal}>Cancel</button>
-        </div>
-      </div>
-    </Modal>
   );
 
   const renderSrs = () => (
@@ -260,6 +237,31 @@ const ClientPanel = () => {
         {activeView === 'dashboard' && renderDashboard()}
         {activeView === 'srs' && renderSrs()}
         {activeView === 'billing' && renderBilling()}
+        {isModalOpen && selectedBill && (
+          <Modal onClose={closeModal}>
+            <div className="manual-payment-modal">
+              <h2>Manual Payment</h2>
+              <p>Scan the QR code with your UPI app to pay.</p>
+              <div className="qr-code-container">
+                <QRCodeSVG value={`upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project}`} />
+              </div>
+              <div className="transaction-id-input">
+                <label htmlFor="transactionId">Transaction ID</label>
+                <input
+                  type="text"
+                  id="transactionId"
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value)}
+                  placeholder="Enter the transaction ID from your UPI app"
+                />
+              </div>
+              <div className="modal-actions">
+                <button onClick={handleConfirmPayment} disabled={!transactionId}>Confirm Payment</button>
+                <button onClick={closeModal}>Cancel</button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );
