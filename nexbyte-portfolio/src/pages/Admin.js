@@ -18,6 +18,13 @@ const Admin = () => {
   const navigate = useNavigate();
   const { setSrsFullData } = useContext(SrsContext);
 
+  // State for Task Generator
+  const [generatedTasks, setGeneratedTasks] = useState([]);
+  const [selectedClientIdForTasks, setSelectedClientIdForTasks] = useState('');
+  const [projectDescriptionForTasks, setProjectDescriptionForTasks] = useState('');
+  const [isTasksLoading, setIsTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState('');
+
   const [clientData, setClientData] = useState({
     clientName: '',
     contactPerson: '',
@@ -85,7 +92,7 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator' || location.pathname === '/admin/billing') {
+        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator' || location.pathname === '/admin/billing' || location.pathname === '/admin/task-generator') {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -427,6 +434,45 @@ const Admin = () => {
     }
   };
 
+  const handleGenerateTasks = async (e) => {
+    e.preventDefault();
+    setTasksError('');
+    setIsTasksLoading(true);
+
+    if (!selectedClientIdForTasks) {
+      setTasksError('Please select a client.');
+      setIsTasksLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/generate-tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          clientId: selectedClientIdForTasks,
+          description: projectDescriptionForTasks,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to generate tasks.');
+      }
+
+      setGeneratedTasks(data);
+    } catch (err) {
+      setTasksError(err.message);
+    } finally {
+      setIsTasksLoading(false);
+    }
+  };
+
   console.log('Bills:', bills);
   return (
     <div className="admin-container">
@@ -682,6 +728,55 @@ const Admin = () => {
                   </button>
                 </form>
               </div>
+            </div>
+          )}
+
+          {location.pathname === '/admin/task-generator' && (
+            <div>
+              <h2>Task Generator</h2>
+              <div className="form-container">
+                <form onSubmit={handleGenerateTasks}>
+                  <h3>Generate Project Tasks</h3>
+                  <select onChange={(e) => setSelectedClientIdForTasks(e.target.value)} value={selectedClientIdForTasks} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <textarea
+                    name="projectDescriptionForTasks"
+                    placeholder="Provide a high-level description of the project or specific instructions for the AI."
+                    value={projectDescriptionForTasks}
+                    onChange={(e) => setProjectDescriptionForTasks(e.target.value)}
+                  ></textarea>
+                  <button type="submit" className="btn btn-primary" disabled={isTasksLoading}>
+                    {isTasksLoading ? 'Generating...' : 'Generate Tasks'}
+                  </button>
+                  {tasksError && <p className="text-danger">{tasksError}</p>}
+                </form>
+              </div>
+
+              {generatedTasks.length > 0 && (
+                <div>
+                  <h3>Generated Tasks</h3>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedTasks.map((task, index) => (
+                        <tr key={index}>
+                          <td>{task.description}</td>
+                          <td>{task.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

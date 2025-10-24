@@ -122,7 +122,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -378,6 +378,22 @@ app.get('/api/clients', auth, admin, async (req, res) => {
   try {
     const clients = await Client.find().select('-password').sort({ date: -1 });
     res.json(clients);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/clients/:id/srs
+// @desc    Get SRS for a client
+// @access  Private (admin)
+app.get('/api/clients/:id/srs', auth, admin, async (req, res) => {
+  try {
+    const client = await Client.findById(req.params.id).select('srsDocument');
+    if (!client || !client.srsDocument) {
+      return res.status(404).json({ message: 'SRS not found for this client' });
+    }
+    res.json({ srsDocument: client.srsDocument });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
@@ -780,6 +796,80 @@ app.post('/api/edit-srs', auth, admin, async (req, res) => {
   } catch (error) {
     console.error('Error making direct fetch call to Gemini for AI edit:', error);
     res.status(500).json({ message: 'Failed to edit SRS with AI.', error: error.message });
+  }
+});
+
+// @route   POST api/generate-tasks
+// @desc    Generate tasks for a project
+// @access  Private (admin)
+app.post('/api/generate-tasks', auth, admin, async (req, res) => {
+  const { clientId, description } = req.body;
+
+  if (!clientId) {
+    return res.status(400).json({ message: 'Client ID is required' });
+  }
+
+  try {
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    const srs = client.srsDocument;
+    if (!srs) {
+      return res.status(404).json({ message: 'SRS document not found for this client. Please generate one first.' });
+    }
+
+    const promptText = `
+      Based on the following Software Requirement Specification (SRS) and project description, generate a list of development tasks.
+
+      **SRS Document:**
+      ---
+      ${srs}
+      ---
+
+      **High-Level Project Description/Instructions:**
+      ---
+      ${description || 'No additional description provided.'}
+      ---
+
+      Please generate a list of tasks required to complete this project.
+      The output MUST be a valid JSON array of objects. Each object in the array should represent a single task and have the following structure:
+      {
+        "description": "A clear and concise description of the task.",
+        "status": "To Do"
+      }
+
+      Do not include any conversational text, preambles, or apologies in your response. Only provide the raw JSON array.
+    `;
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro for potentially better JSON generation
+
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const text = response.text();
+
+    // Clean the text to ensure it's valid JSON
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    try {
+      const tasks = JSON.parse(cleanedText);
+      // Add createdBy/assignedTo fields before sending
+      const finalTasks = tasks.map(task => ({
+        ...task,
+        assignedTo: req.user.id,
+        createdBy: req.user.id,
+      }));
+      res.json(finalTasks);
+    } catch (e) {
+      console.error('Failed to parse AI response as JSON:', cleanedText);
+      res.status(500).json({ message: 'Failed to parse AI response. The AI did not return valid JSON.', rawResponse: cleanedText });
+    }
+
+  } catch (error) {
+    console.error('Error generating tasks with Gemini:', error);
+    res.status(500).json({ message: 'Failed to generate tasks with AI.', error: error.message });
   }
 });
 
