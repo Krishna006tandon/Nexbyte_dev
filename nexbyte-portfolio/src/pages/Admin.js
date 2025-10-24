@@ -23,6 +23,7 @@ const Admin = () => {
   const [selectedClientIdForTasks, setSelectedClientIdForTasks] = useState('');
   const [projectDescriptionForTasks, setProjectDescriptionForTasks] = useState('');
   const [isTasksLoading, setIsTasksLoading] = useState(false);
+  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
   const [tasksError, setTasksError] = useState('');
 
   const [clientData, setClientData] = useState({
@@ -434,6 +435,60 @@ const Admin = () => {
     }
   };
 
+  const handleClientSelectionForTasks = async (clientId) => {
+    setSelectedClientIdForTasks(clientId);
+    if (!clientId) {
+      setProjectDescriptionForTasks('');
+      setTasksError('');
+      return;
+    }
+
+    setIsDescriptionLoading(true);
+    setProjectDescriptionForTasks('');
+    setTasksError('');
+    const token = localStorage.getItem('token');
+
+    try {
+      // Step 1: Fetch the SRS document
+      const srsRes = await fetch(`/api/clients/${clientId}/srs`, {
+        headers: { 'x-auth-token': token },
+      });
+
+      if (!srsRes.ok) {
+        if (srsRes.status === 404) {
+          setTasksError('SRS not found for this client. Please enter a description manually.');
+          setIsDescriptionLoading(false);
+          return;
+        }
+        throw new Error('Failed to fetch SRS document.');
+      }
+
+      const { srsDocument } = await srsRes.json();
+
+      // Step 2: Summarize the SRS
+      const summaryRes = await fetch('/api/summarize-srs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ srsContent: srsDocument }),
+      });
+
+      if (!summaryRes.ok) {
+        throw new Error('Failed to generate SRS summary.');
+      }
+
+      const { summary } = await summaryRes.json();
+      setProjectDescriptionForTasks(summary);
+
+    } catch (err) {
+      setTasksError(err.message);
+    } finally {
+      setIsDescriptionLoading(false);
+    }
+  };
+
   const handleGenerateTasks = async (e) => {
     e.preventDefault();
     setTasksError('');
@@ -737,7 +792,7 @@ const Admin = () => {
               <div className="form-container">
                 <form onSubmit={handleGenerateTasks}>
                   <h3>Generate Project Tasks</h3>
-                  <select onChange={(e) => setSelectedClientIdForTasks(e.target.value)} value={selectedClientIdForTasks} required>
+                  <select onChange={(e) => handleClientSelectionForTasks(e.target.value)} value={selectedClientIdForTasks} required>
                     <option value="">Select a Client</option>
                     {clients.map(client => (
                       <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
@@ -745,9 +800,10 @@ const Admin = () => {
                   </select>
                   <textarea
                     name="projectDescriptionForTasks"
-                    placeholder="Provide a high-level description of the project or specific instructions for the AI."
+                    placeholder={isDescriptionLoading ? "Generating summary from SRS..." : "Provide a high-level description of the project or specific instructions for the AI."}
                     value={projectDescriptionForTasks}
                     onChange={(e) => setProjectDescriptionForTasks(e.target.value)}
+                    disabled={isDescriptionLoading}
                   ></textarea>
                   <button type="submit" className="btn btn-primary" disabled={isTasksLoading}>
                     {isTasksLoading ? 'Generating...' : 'Generate Tasks'}

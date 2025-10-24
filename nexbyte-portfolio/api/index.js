@@ -122,7 +122,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -870,6 +870,44 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
   } catch (error) {
     console.error('Error generating tasks with Gemini:', error);
     res.status(500).json({ message: 'Failed to generate tasks with AI.', error: error.message });
+  }
+});
+
+// @route   POST api/summarize-srs
+// @desc    Generate a summary for an SRS document
+// @access  Private (admin)
+app.post('/api/summarize-srs', auth, admin, async (req, res) => {
+  const { srsContent } = req.body;
+
+  if (!srsContent) {
+    return res.status(400).json({ message: 'SRS content is required' });
+  }
+
+  try {
+    const promptText = `
+      Please provide a concise, one-paragraph summary of the following Software Requirement Specification (SRS) document.
+      This summary will be used as a high-level project description.
+
+      **SRS Document:**
+      ---
+      ${srsContent}
+      ---
+
+      Generate only the summary paragraph. Do not include any conversational text, preambles, or titles.
+    `;
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const summary = response.text();
+
+    res.json({ summary });
+
+  } catch (error) {
+    console.error('Error summarizing SRS with Gemini:', error);
+    res.status(500).json({ message: 'Failed to summarize SRS with AI.', error: error.message });
   }
 });
 
