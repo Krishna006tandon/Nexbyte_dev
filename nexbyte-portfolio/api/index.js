@@ -844,7 +844,7 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
     `;
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro for potentially better JSON generation
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Using gemini-2.5-flash for potentially better JSON generation
 
     const result = await model.generateContent(promptText);
     const response = await result.response;
