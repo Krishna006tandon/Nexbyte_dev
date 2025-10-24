@@ -180,32 +180,36 @@ const ClientPanel = () => {
           );
         })}
       </div>
-      {isModalOpen && selectedBill && (
-        <Modal onClose={closeModal}>
-          <div className="manual-payment-modal">
-            <h2>Manual Payment</h2>
-            <p>Scan the QR code with your UPI app to pay.</p>
-            <div className="qr-code-container">
-              <QRCodeSVG value={`upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project}`} />
-            </div>
-            <div className="transaction-id-input">
-              <label htmlFor="transactionId">Transaction ID</label>
-              <input
-                type="text"
-                id="transactionId"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                placeholder="Enter the transaction ID from your UPI app"
-              />
-            </div>
-            <div className="modal-actions">
-              <button onClick={handleConfirmPayment} disabled={!transactionId}>Confirm Payment</button>
-              <button onClick={closeModal}>Cancel</button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {isModalOpen && selectedBill &&
+        renderPaymentModal()
+      }
     </div>
+  );
+
+  const renderPaymentModal = () => (
+    <Modal onClose={closeModal}>
+      <div className="manual-payment-modal">
+        <h2>Manual Payment</h2>
+        <p>Scan the QR code with your UPI app to pay.</p>
+        <div className="qr-code-container">
+          <QRCodeSVG value={`upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project}`} />
+        </div>
+        <div className="transaction-id-input">
+          <label htmlFor="transactionId">Transaction ID</label>
+          <input
+            type="text"
+            id="transactionId"
+            value={transactionId}
+            onChange={(e) => setTransactionId(e.target.value)}
+            placeholder="Enter the transaction ID from your UPI app"
+          />
+        </div>
+        <div className="modal-actions">
+          <button onClick={handleConfirmPayment} disabled={!transactionId}>Confirm Payment</button>
+          <button onClick={closeModal}>Cancel</button>
+        </div>
+      </div>
+    </Modal>
   );
 
   const renderSrs = () => (
