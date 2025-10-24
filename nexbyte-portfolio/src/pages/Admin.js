@@ -597,6 +597,7 @@ const Admin = () => {
                   <tr>
                     <th>Client Name</th>
                     <th>Amount</th>
+                    <th>Description</th>
                     <th>Due Date</th>
                     <th>Status</th>
                     <th>Action</th>
@@ -607,10 +608,11 @@ const Admin = () => {
                     <tr key={bill._id}>
                       <td>{bill.client?.clientName || 'N/A'}</td>
                       <td>{bill.amount}</td>
+                      <td>{bill.description}</td>
                       <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
                       <td>{bill.status}</td>
                       <td>
-                        {bill.status === 'Unpaid' && (
+                        {(bill.status === 'Unpaid' || bill.status === 'Verification Pending') && (
                           <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
                         )}
                       </td>
