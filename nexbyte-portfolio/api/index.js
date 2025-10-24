@@ -234,6 +234,19 @@ app.get('/api/users', auth, admin, async (req, res) => {
   }
 });
 
+// @route   GET api/profile
+// @desc    Get current user profile
+// @access  Private
+app.get('/api/profile', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   DELETE api/users/:id
 // @desc    Delete a user
 // @access  Private (admin)
@@ -1075,6 +1088,25 @@ app.delete('/api/tasks/:id', auth, admin, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
     res.json({ message: 'Task removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/tasks/bulk
+// @desc    Create multiple tasks at once
+// @access  Private (admin)
+app.post('/api/tasks/bulk', auth, admin, async (req, res) => {
+  const { tasks } = req.body;
+
+  if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+    return res.status(400).json({ message: 'Tasks array is required' });
+  }
+
+  try {
+    const createdTasks = await Task.insertMany(tasks);
+    res.json(createdTasks);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });

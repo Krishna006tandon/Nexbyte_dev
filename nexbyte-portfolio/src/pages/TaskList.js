@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import '../components/Worklist.css'; // Reusing the same CSS for now
+import { AuthContext } from '../context/AuthContext';
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
@@ -9,6 +10,7 @@ const TaskList = () => {
   const [assignedTo, setAssignedTo] = useState('');
   const [cost, setCost] = useState('');
   const [deadline, setDeadline] = useState('');
+  const { fetchUser } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,6 +53,9 @@ const TaskList = () => {
       const token = localStorage.getItem('token');
       const res = await axios.put(`/api/tasks/${id}`, updates, { headers: { 'x-auth-token': token } });
       setTasks(tasks.map(task => (task._id === id ? res.data : task)));
+      if (updates.status === 'Done') {
+        fetchUser();
+      }
     } catch (error) {
       console.error('Error updating task:', error);
     }

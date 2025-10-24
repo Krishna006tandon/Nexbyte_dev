@@ -528,6 +528,31 @@ const Admin = () => {
     }
   };
 
+  const handleSaveTasks = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/tasks/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ tasks: generatedTasks }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGeneratedTasks([]);
+        alert('Tasks saved successfully!');
+      } else {
+        console.error(data.message);
+        alert('Failed to save tasks.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save tasks.');
+    }
+  };
+
   console.log('Bills:', bills);
   return (
     <div className="admin-container">
@@ -831,6 +856,7 @@ const Admin = () => {
                       ))}
                     </tbody>
                   </table>
+                  <button onClick={handleSaveTasks} className="btn btn-success">Save Tasks</button>
                 </div>
               )}
             </div>

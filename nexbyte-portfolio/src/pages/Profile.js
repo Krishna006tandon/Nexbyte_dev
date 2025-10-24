@@ -1,8 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './Profile.css';
 import '../components/Form.css'; // Reusing form styles
 
 const Profile = () => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await axios.get('/api/profile', { headers: { 'x-auth-token': token } });
+        setUser(res.data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="profile-container">
       <div className="profile-header">
@@ -17,19 +38,15 @@ const Profile = () => {
             className="profile-avatar" 
           />
           <div className="profile-details">
-            <h2>Alex Doe</h2>
-            <p>alex.doe@example.com</p>
+            <h2>{user.email}</h2>
+            <p>Credits: {user.credits}</p>
           </div>
         </div>
 
         <form className="profile-form">
           <div className="form-group">
-            <label htmlFor="name">Full Name</label>
-            <input type="text" id="name" defaultValue="Alex Doe" />
-          </div>
-          <div className="form-group">
             <label htmlFor="email">Email Address</label>
-            <input type="email" id="email" defaultValue="alex.doe@example.com" />
+            <input type="email" id="email" defaultValue={user.email} />
           </div>
           <div className="form-group">
             <label htmlFor="password">New Password</label>

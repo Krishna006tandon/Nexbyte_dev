@@ -5,6 +5,25 @@
   border-right: 1px solid var(--border);
 }
 
+.sidebar-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.sidebar-profile img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+.sidebar-profile-info {
+  text-align: center;
+}
+
 .sidebar ul {
   list-style: none;
   padding: 0;

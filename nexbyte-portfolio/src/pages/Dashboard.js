@@ -105,6 +105,14 @@ const Dashboard = () => {
         />
       </div>
 
+      <div className="table-section">
+        <h2>User Credits</h2>
+        <DataTable 
+          columns={['Email', 'Credits']} 
+          data={users.map(user => ({ Email: user.email, Credits: user.credits || 0 }))} 
+        />
+      </div>
+
       <Modal isOpen={isModalOpen} onClose={closeModal}>
         <div className="modal-header">
           <h2>Add New Project</h2>
