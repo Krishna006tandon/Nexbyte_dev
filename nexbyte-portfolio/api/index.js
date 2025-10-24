@@ -474,7 +474,7 @@ app.post('/api/generate-bill-description', auth, admin, async (req, res) => {
   `;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash"});
 
   try {
     const result = await model.generateContent(promptText);
@@ -656,7 +656,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   `;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash"});
 
   try {
     const result = await model.generateContent(promptText);
@@ -769,7 +769,7 @@ app.post('/api/edit-srs', auth, admin, async (req, res) => {
   `;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash"});
 
   try {
     const result = await model.generateContent(promptText);
