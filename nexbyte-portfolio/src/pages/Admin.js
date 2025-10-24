@@ -368,6 +368,36 @@ const Admin = () => {
     }
   };
 
+  const handlePaymentNotDone = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ status: 'Unpaid' }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSrsChange = (e) => {
     setLocalSrsData({ ...localSrsData, [e.target.name]: e.target.value });
   };
@@ -612,8 +642,14 @@ const Admin = () => {
                       <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
                       <td>{bill.status}</td>
                       <td>
-                        {(bill.status === 'Unpaid' || bill.status === 'Verification Pending') && (
+                        {bill.status === 'Unpaid' && (
                           <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                        )}
+                        {bill.status === 'Verification Pending' && (
+                          <>
+                            <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Approve Payment</button>
+                            <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Payment Not Done</button>
+                          </>
                         )}
                       </td>
                     </tr>

@@ -122,7 +122,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -474,7 +474,7 @@ app.post('/api/generate-bill-description', auth, admin, async (req, res) => {
   `;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
+  const model = genAI.getGenerativeModel({ model: "gemini-pro"});
 
   try {
     const result = await model.generateContent(promptText);
@@ -656,7 +656,7 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   `;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
+  const model = genAI.getGenerativeModel({ model: "gemini-pro"});
 
   try {
     const result = await model.generateContent(promptText);
@@ -769,7 +769,7 @@ app.post('/api/edit-srs', auth, admin, async (req, res) => {
   `;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
+  const model = genAI.getGenerativeModel({ model: "gemini-pro"});
 
   try {
     const result = await model.generateContent(promptText);
