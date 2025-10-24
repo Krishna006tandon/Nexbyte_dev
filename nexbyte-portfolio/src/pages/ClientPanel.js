@@ -122,7 +122,6 @@ const ClientPanel = () => {
         throw new Error('Failed to confirm payment');
       }
 
-      const result = await res.json();
       setMessageStatus('Payment confirmation received. We will update your data shortly.');
 
       // Update the bill status in the local state
