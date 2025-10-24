@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import './ClientPanel.css';
-import Modal from '../components/Modal';
 import { QRCodeSVG } from 'qrcode.react';
+import Modal from '../components/Modal';
+import './ClientPanel.css';
 
 const ClientPanel = () => {
   const [data, setData] = useState(null);
