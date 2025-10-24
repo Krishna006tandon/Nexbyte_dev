@@ -43,6 +43,7 @@ const Admin = () => {
     client: '',
     amount: '',
     dueDate: '',
+    description: '',
   });
 
   const [localSrsData, setLocalSrsData] = useState({
@@ -261,6 +262,45 @@ const Admin = () => {
 
   const handleBillChange = (e) => {
     setBillData({ ...billData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenerateBillDescription = async () => {
+    if (!billData.client || !billData.amount) {
+      alert('Please select a client and enter an amount first.');
+      return;
+    }
+
+    const selectedClient = clients.find(c => c._id === billData.client);
+    if (!selectedClient) {
+      alert('Selected client not found.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/generate-bill-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          clientName: selectedClient.clientName,
+          projectName: selectedClient.projectName,
+          amount: billData.amount,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      const { description } = await res.json();
+      setBillData({ ...billData, description });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate description.');
+    }
   };
 
   const handleAddBill = async (e) => {
@@ -545,6 +585,8 @@ const Admin = () => {
                   </select>
                   <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
                   <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
+                  <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
+                  <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate with AI</button>
                   <button type="submit" className="btn btn-primary">Add Bill</button>
                 </form>
               </div>

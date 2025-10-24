@@ -122,7 +122,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ message: 'Please enter all fields' });
   }
 
-  const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()[\\]\\.,;:\s@\"]+(\.[^<>()[\\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\\. [0-9]{1,3}\])|(([a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: 'Invalid email format' });
   }
@@ -435,7 +435,7 @@ app.get('/api/client/data', auth, client, async (req, res) => {
 // @desc    Create a new bill
 // @access  Private (admin)
 app.post('/api/bills', auth, admin, async (req, res) => {
-  const { client, amount, dueDate, status } = req.body;
+  const { client, amount, dueDate, status, description } = req.body;
 
   try {
     const newBill = new Bill({
@@ -443,6 +443,7 @@ app.post('/api/bills', auth, admin, async (req, res) => {
       amount,
       dueDate,
       status,
+      description,
     });
 
     await newBill.save();
@@ -450,6 +451,39 @@ app.post('/api/bills', auth, admin, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/generate-bill-description
+// @desc    Generate a bill description using AI
+// @access  Private (admin)
+app.post('/api/generate-bill-description', auth, admin, async (req, res) => {
+  const { clientName, projectName, amount } = req.body;
+
+  if (!clientName || !projectName || !amount) {
+    return res.status(400).json({ message: 'Client name, project name, and amount are required' });
+  }
+
+  const promptText = `
+    Generate a concise, professional bill description for the following:
+    - Client: ${clientName}
+    - Project: ${projectName}
+    - Amount: ${amount}
+
+    The description should be a single sentence, suitable for a bill. For example: "Payment for the development of the ${projectName} project."
+  `;
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest"});
+
+  try {
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const description = response.text();
+    res.status(200).json({ description });
+  } catch (error) {
+    console.error('Error generating bill description with Gemini:', error);
+    res.status(500).json({ message: 'Failed to generate bill description with Gemini.', error: error.message });
   }
 });
 
@@ -526,6 +560,33 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
     bill.status = 'Verification Pending';
     bill.transactionId = transactionId;
     await bill.save();
+
+    // Find client to get email
+    const clientData = await Client.findById(bill.client);
+    if (clientData && clientData.email) {
+      // Send confirmation email
+      const mailOptions = {
+        from: '"NexByte" <nexbyte.dev@gmail.com>',
+        to: clientData.email,
+        subject: 'Payment Confirmation Received',
+        html: `
+          <p>Dear ${clientData.clientName},</p>
+          <p>We have received your payment confirmation for bill ID ${bill._id}.</p>
+          <p>We will update your payment status shortly after verification.</p>
+          <p>Thank you,</p>
+          <p>The NexByte Team</p>
+        `,
+      };
+
+      try {
+        console.log('Attempting to send payment confirmation email...');
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Payment confirmation email sent:', info.response);
+      } catch (error) {
+        console.error('Error sending payment confirmation email:', error);
+        // We don't want to fail the whole request if the email fails
+      }
+    }
 
     res.json({ message: 'Payment confirmation submitted successfully. You will be notified once the payment is verified.' });
   } catch (err) {

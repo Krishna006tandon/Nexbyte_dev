@@ -22,6 +22,9 @@ const BillSchema = new mongoose.Schema({
   transactionId: {
     type: String,
   },
+  description: {
+    type: String,
+  },
   billDate: {
     type: Date,
     default: Date.now,

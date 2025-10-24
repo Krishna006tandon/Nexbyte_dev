@@ -123,7 +123,7 @@ const ClientPanel = () => {
       }
 
       const result = await res.json();
-      setMessageStatus(result.message);
+      setMessageStatus('Payment confirmation received. We will update your data shortly.');
 
       // Update the bill status in the local state
       setBills(bills.map(b => b._id === selectedBill._id ? { ...b, status: 'Verification Pending' } : b));
@@ -244,7 +244,7 @@ const ClientPanel = () => {
               <div className="qr-code-container">
                 <QRCodeSVG
                   value={
-                    `upi://pay?pa=9175603240@upi&pn=Nexbyte&tn=Payment for ${data.clientData.project}&am=${selectedBill.amount}`
+                    `upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project} - Bill ${selectedBill._id}`
                   }
                 />
               </div>
