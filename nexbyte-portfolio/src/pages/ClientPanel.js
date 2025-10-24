@@ -155,9 +155,10 @@ const ClientPanel = () => {
       <h2>Billing Information</h2>
       <div className="bills-list">
         {bills.map((bill) => {
-          const dueDate = new Date(bill.dueDate);
-          const now = new Date();
-          const status = bill.status === 'Paid' ? 'Paid' : dueDate < now ? 'Overdue' : 'Unpaid';
+          let status = bill.status;
+          if (status === 'Unpaid' && new Date(bill.dueDate) < new Date()) {
+            status = 'Overdue';
+          }
 
           return (
             <div key={bill._id} className={`bill-card ${status.toLowerCase()}`}>
