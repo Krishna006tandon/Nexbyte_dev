@@ -7,17 +7,15 @@ const Sidebar = () => {
   const { isAdmin } = useContext(AuthContext);
 
   const links = [
+    { to: "/admin", text: "Dashboard" },
     { to: "/admin/billing", text: "Billing" },
     { to: "/admin/clients", text: "Clients" },
     { to: "/admin/messages", text: "Client Messages" },
     { to: "/admin/contacts", text: "Contact Messages" },
-    { to: "/admin", text: "Dashboard" },
     { to: "/admin/members", text: "Members" },
     { to: "/admin/srs-generator", text: "SRS Generator" },
     { to: "/admin/task-generator", text: "Task Generator" },
-    { to: "/admin/task-list", text: "Task List" },
-    { to: "/admin/contributions", text: "Contributions" },
-  ];
+    ];
 
   if (isAdmin) {
     links.push({ to: "/admin/worklist", text: "Worklist" });
