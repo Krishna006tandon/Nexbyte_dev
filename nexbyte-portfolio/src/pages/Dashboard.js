@@ -1,22 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiPlus, FiX, FiUsers, FiBriefcase, FiCheckCircle } from 'react-icons/fi';
 import './Dashboard.css';
-import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import Worklist from '../components/Worklist';
+import axios from 'axios';
 
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tasks, setTasks] = useState([]);
+  const [users, setUsers] = useState([]);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  const projectsData = [
-    { id: 1, name: 'Project Alpha', status: 'Completed', client: 'Client A' },
-    { id: 2, name: 'Project Beta', status: 'In Progress', client: 'Client B' },
-    { id: 3, name: 'Project Gamma', status: 'Pending', client: 'Client C' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const [tasksRes, usersRes] = await Promise.all([
+          axios.get('/api/tasks', { headers: { 'x-auth-token': token } }),
+          axios.get('/api/users', { headers: { 'x-auth-token': token } })
+        ]);
+        setTasks(tasksRes.data);
+        setUsers(usersRes.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const projectColumns = ['ID', 'Name', 'Status', 'Client'];
+  const handleAddTask = async (task) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post('/api/tasks', task, { headers: { 'x-auth-token': token } });
+      setTasks([res.data, ...tasks]);
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const handleUpdateTask = async (id, updates) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`/api/tasks/${id}`, updates, { headers: { 'x-auth-token': token } });
+      setTasks(tasks.map(task => (task._id === id ? res.data : task)));
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/tasks/${id}`, { headers: { 'x-auth-token': token } });
+      setTasks(tasks.filter(task => task._id !== id));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
 
   return (
     <div className="dashboard-container">
@@ -32,29 +75,34 @@ const Dashboard = () => {
         <div className="stat-card">
           <FiBriefcase className="stat-icon" />
           <div className="stat-info">
-            <h2>12</h2>
-            <p>Active Projects</p>
+            <h2>{tasks.filter(task => task.status !== 'Done').length}</h2>
+            <p>Active Tasks</p>
           </div>
         </div>
         <div className="stat-card">
           <FiUsers className="stat-icon" />
           <div className="stat-info">
-            <h2>5</h2>
-            <p>Clients</p>
+            <h2>{users.length}</h2>
+            <p>Users</p>
           </div>
         </div>
         <div className="stat-card">
           <FiCheckCircle className="stat-icon" />
           <div className="stat-info">
-            <h2>25</h2>
-            <p>Completed Projects</p>
+            <h2>{tasks.filter(task => task.status === 'Done').length}</h2>
+            <p>Completed Tasks</p>
           </div>
         </div>
       </div>
 
       <div className="table-section">
-        <h2>Recent Projects</h2>
-        <DataTable columns={projectColumns} data={projectsData} />
+        <Worklist 
+          tasks={tasks} 
+          members={users} 
+          onAddTask={handleAddTask} 
+          onUpdateTask={handleUpdateTask} 
+          onDeleteTask={handleDeleteTask} 
+        />
       </div>
 
       <Modal isOpen={isModalOpen} onClose={closeModal}>

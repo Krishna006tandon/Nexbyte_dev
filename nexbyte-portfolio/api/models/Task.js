@@ -7,6 +7,8 @@ const taskSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
   completedAt: { type: Date },
+  cost: { type: Number, default: 0 },
+  deadline: { type: Date },
 });
 
 const Task = mongoose.model('Task', taskSchema);

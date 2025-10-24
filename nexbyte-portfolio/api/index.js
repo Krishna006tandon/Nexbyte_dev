@@ -984,6 +984,103 @@ app.get('/api/admin/contributions', auth, admin, async (req, res) => {
   }
 });
 
+// @route   GET api/tasks
+// @desc    Get all tasks
+// @access  Private (admin)
+app.get('/api/tasks', auth, admin, async (req, res) => {
+  try {
+    const tasks = await Task.find()
+      .populate('assignedTo', 'email')
+      .populate('createdBy', 'email')
+      .sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/tasks
+// @desc    Create a new task
+// @access  Private (admin)
+app.post('/api/tasks', auth, admin, async (req, res) => {
+  const { description, assignedTo, cost, deadline } = req.body;
+
+  if (!description || !assignedTo) {
+    return res.status(400).json({ message: 'Description and assignedTo are required' });
+  }
+
+  try {
+    const newTask = new Task({
+      description,
+      assignedTo,
+      createdBy: req.user.id,
+      cost,
+      deadline,
+    });
+
+    await newTask.save();
+    const task = await Task.findById(newTask._id)
+      .populate('assignedTo', 'email')
+      .populate('createdBy', 'email');
+    res.json(task);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/tasks/:id
+// @desc    Update a task
+// @access  Private (admin)
+app.put('/api/tasks/:id', auth, admin, async (req, res) => {
+  const { status } = req.body;
+
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    if (status) {
+      task.status = status;
+      if (status === 'Done') {
+        task.completedAt = Date.now();
+        const user = await User.findById(task.assignedTo);
+        if (user) {
+          user.credits = (user.credits || 0) + (task.cost || 0);
+          await user.save();
+        }
+      }
+    }
+
+    await task.save();
+    const updatedTask = await Task.findById(task._id)
+      .populate('assignedTo', 'email')
+      .populate('createdBy', 'email');
+    res.json(updatedTask);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE api/tasks/:id
+// @desc    Delete a task
+// @access  Private (admin)
+app.delete('/api/tasks/:id', auth, admin, async (req, res) => {
+  try {
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    res.json({ message: 'Task removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
