@@ -105,15 +105,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteTask = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/tasks/${id}`, { headers: { 'x-auth-token': token } });
-      setTasks(tasks.filter(task => task._id !== id));
-    } catch (error) {
-      console.error('Error deleting task:', error);
-    }
-  };
+
 
   // Budget calculations
   const totalBudget = selectedProject?.totalBudget || 0;
@@ -199,7 +191,6 @@ const Dashboard = () => {
           members={users} 
           onAddTask={handleAddTask} 
           onUpdateTask={handleUpdateTask} 
-          onDeleteTask={handleDeleteTask} 
         />
       </div>
 
