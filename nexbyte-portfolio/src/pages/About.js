@@ -39,6 +39,20 @@ const teamMembers = [
   },
 ];
 
+const attendanceData = [
+  { name: 'Krishna Tandon', attendance: ['P', 'P', 'P', 'A', 'P', 'P', 'P'] },
+  { name: 'Rudresh Vyas', attendance: ['P', 'P', 'P', 'P', 'P', 'A', 'P'] },
+  { name: 'Kajal Mantapurwar', attendance: ['P', 'A', 'P', 'P', 'P', 'P', 'P'] },
+  { name: 'Abhishek Muthalkar', attendance: ['P', 'P', 'A', 'P', 'P', 'P', 'A'] },
+];
+
+const last7Days = [...Array(7).keys()].map(i => {
+  const d = new Date();
+  d.setDate(d.getDate() - i);
+  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+}).reverse();
+
+
 const About = () => {
   const { user } = useContext(AuthContext);
   const [contributions, setContributions] = useState([]);
@@ -111,6 +125,32 @@ const About = () => {
           <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" alt="Git" /><span>Git</span></div>
           <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" alt="GitHub" /><span>GitHub</span></div>
           <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vercel/vercel-original.svg" alt="Vercel" /><span>Vercel</span></div>
+        </div>
+      </section>
+
+      <section className="attendance-section">
+        <h2 className="section-title">Developer Attendance</h2>
+        <div className="attendance-table-container">
+          <table className="attendance-table">
+            <thead>
+              <tr>
+                <th>Developer</th>
+                {last7Days.map(day => <th key={day}>{day}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {attendanceData.map(dev => (
+                <tr key={dev.name}>
+                  <td>{dev.name}</td>
+                  {dev.attendance.map((status, i) => (
+                    <td key={i} className={`attendance-status ${status === 'P' ? 'present' : 'absent'}`}>
+                      {status}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
