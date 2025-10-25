@@ -26,10 +26,22 @@
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
   margin-top: 3rem;
+  perspective: 1000px;
 }
 
 .team-member-card {
   text-align: center;
+  background: var(--surface-light);
+  border-radius: 15px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.4s, box-shadow 0.4s;
+  transform-style: preserve-3d;
+}
+
+.team-member-card:hover {
+  transform: translateY(-10px) rotateY(5deg) scale(1.03);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
 }
 
 .team-member-card .profile-image {
@@ -92,4 +104,43 @@
 
 .team-member-card .social-links a:hover {
   color: var(--accent);
+}
+
+/* Attendance Section */
+.attendance-section {
+  padding: 4rem 2rem;
+  background: var(--background-dark);
+}
+
+.attendance-table-container {
+  overflow-x: auto;
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+  color: var(--primary-text);
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid var(--surface);
+}
+
+.attendance-table th {
+  background-color: var(--surface-light);
+  font-weight: 600;
+}
+
+.attendance-status.present {
+  color: #5cb85c; /* Green for Present */
+  font-weight: bold;
+}
+
+.attendance-status.absent {
+  color: #d9534f; /* Red for Absent */
+  font-weight: bold;
 }
