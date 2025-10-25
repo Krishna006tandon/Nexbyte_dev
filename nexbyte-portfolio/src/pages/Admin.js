@@ -1,17 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
+import { SrsContext } from '../context/SrsContext';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
   const [clients, setClients] = useState([]);
+  const [bills, setBills] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
   const [clientPasswords, setClientPasswords] = useState({});
   const location = useLocation();
+  const navigate = useNavigate();
+  const { setSrsFullData } = useContext(SrsContext);
+
+  // State for Task Generator
+  const [generatedTasks, setGeneratedTasks] = useState([]);
+  const [selectedClientIdForTasks, setSelectedClientIdForTasks] = useState('');
+  const [projectDescriptionForTasks, setProjectDescriptionForTasks] = useState('');
+  const [isTasksLoading, setIsTasksLoading] = useState(false);
+  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
+  const [tasksError, setTasksError] = useState('');
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -34,16 +47,21 @@ const Admin = () => {
     content: '',
   });
 
-  const [srsData, setSrsData] = useState({
+  const [billData, setBillData] = useState({
+    client: '',
+    amount: '',
+    dueDate: '',
+    description: '',
+  });
+
+  const [localSrsData, setLocalSrsData] = useState({
     projectName: '',
     projectDescription: '',
     targetAudience: '',
     functionalRequirements: '',
     nonFunctionalRequirements: '',
   });
-  const [generatedSrs, setGeneratedSrs] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +77,14 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
+        } else if (location.pathname === '/admin/messages') {
+          const res = await fetch('/api/messages', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setMessages(data);
+          } else {
+            console.error(data.message);
+          }
         } else if (location.pathname === '/admin/members') {
           const res = await fetch('/api/users', { headers });
           const data = await res.json();
@@ -67,11 +93,21 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator') {
+        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator' || location.pathname === '/admin/billing' || location.pathname === '/admin/task-generator') {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
             setClients(data);
+          } else {
+            console.error(data.message);
+          }
+        }
+
+        if (location.pathname === '/admin/billing') {
+          const res = await fetch('/api/bills', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setBills(data);
           } else {
             console.error(data.message);
           }
@@ -128,7 +164,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setMembers(members.filter((member) => member._id !== id));
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -198,7 +235,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClients(clients.filter((client) => client._id !== id));
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -217,7 +255,8 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClientPasswords({ ...clientPasswords, [id]: data.password });
-      } else {
+      }
+      else {
         console.error(data.message);
       }
     } catch (err) {
@@ -229,40 +268,164 @@ const Admin = () => {
     setClientData({ ...clientData, [e.target.name]: e.target.value });
   };
 
-  const handleSrsChange = (e) => {
-    setSrsData({ ...srsData, [e.target.name]: e.target.value });
+  const handleBillChange = (e) => {
+    setBillData({ ...billData, [e.target.name]: e.target.value });
   };
 
-  const handleGenerateSrs = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    const token = localStorage.getItem('token');
+  const handleGenerateBillDescription = async () => {
+    if (!billData.client || !billData.amount) {
+      alert('Please select a client and enter an amount first.');
+      return;
+    }
+
+    const selectedClient = clients.find(c => c._id === billData.client);
+    if (!selectedClient) {
+      alert('Selected client not found.');
+      return;
+    }
+
     try {
-      const res = await fetch('/api/generate-srs', {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/generate-bill-description', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify(srsData),
+        body: JSON.stringify({
+          clientName: selectedClient.clientName,
+          projectName: selectedClient.projectName,
+          amount: billData.amount,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      const { description } = await res.json();
+      setBillData({ ...billData, description });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate description.');
+    }
+  };
+
+  const handleAddBill = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/bills', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(billData),
       });
       const data = await res.json();
       if (res.ok) {
-        setGeneratedSrs(data.srs);
+        setBills([...bills, data]);
+        setBillData({
+          client: '',
+          amount: '',
+          dueDate: '',
+        });
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
       } else {
         console.error(data.message);
       }
     } catch (err) {
       console.error(err);
     }
-    setLoading(false);
+  };
+
+  const handleMarkAsPaid = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ status: 'Paid' }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePaymentNotDone = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ status: 'Unpaid' }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSrsChange = (e) => {
+    setLocalSrsData({ ...localSrsData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenerateSrs = (e) => {
+    e.preventDefault();
+    const selectedClient = clients.find(client => client._id === selectedClientId);
+    const fullSrsData = {
+      ...localSrsData,
+      client: selectedClient,
+    };
+    setSrsFullData(fullSrsData);
+    navigate('/srs-generator');
   };
 
   const handleClientSelect = (clientId) => {
     setSelectedClientId(clientId);
     const selectedClient = clients.find(client => client._id === clientId);
     if (selectedClient) {
-      setSrsData({
+      setLocalSrsData({
         projectName: selectedClient.projectName || '',
         projectDescription: selectedClient.projectRequirements || '',
         targetAudience: '',
@@ -272,6 +435,125 @@ const Admin = () => {
     }
   };
 
+  const handleClientSelectionForTasks = async (clientId) => {
+    setSelectedClientIdForTasks(clientId);
+    if (!clientId) {
+      setProjectDescriptionForTasks('');
+      setTasksError('');
+      return;
+    }
+
+    setIsDescriptionLoading(true);
+    setProjectDescriptionForTasks('');
+    setTasksError('');
+    const token = localStorage.getItem('token');
+
+    try {
+      // Step 1: Fetch the SRS document
+      const srsRes = await fetch(`/api/clients/${clientId}/srs`, {
+        headers: { 'x-auth-token': token },
+      });
+
+      if (!srsRes.ok) {
+        if (srsRes.status === 404) {
+          setTasksError('SRS not found for this client. Please enter a description manually.');
+          setIsDescriptionLoading(false);
+          return;
+        }
+        throw new Error('Failed to fetch SRS document.');
+      }
+
+      const { srsDocument } = await srsRes.json();
+
+      // Step 2: Summarize the SRS
+      const summaryRes = await fetch('/api/summarize-srs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ srsContent: srsDocument }),
+      });
+
+      if (!summaryRes.ok) {
+        throw new Error('Failed to generate SRS summary.');
+      }
+
+      const { summary } = await summaryRes.json();
+      setProjectDescriptionForTasks(summary);
+
+    } catch (err) {
+      setTasksError(err.message);
+    } finally {
+      setIsDescriptionLoading(false);
+    }
+  };
+
+  const handleGenerateTasks = async (e) => {
+    e.preventDefault();
+    setTasksError('');
+    setIsTasksLoading(true);
+
+    if (!selectedClientIdForTasks) {
+      setTasksError('Please select a client.');
+      setIsTasksLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/generate-tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          clientId: selectedClientIdForTasks,
+          description: projectDescriptionForTasks,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to generate tasks.');
+      }
+
+      setGeneratedTasks(data);
+    } catch (err) {
+      setTasksError(err.message);
+    } finally {
+      setIsTasksLoading(false);
+    }
+  };
+
+  const handleSaveTasks = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/tasks/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ tasks: generatedTasks }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGeneratedTasks([]);
+        alert('Tasks saved successfully!');
+      } else {
+        console.error(data.message);
+        alert('Failed to save tasks.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save tasks.');
+    }
+  };
+
+  console.log('Bills:', bills);
   return (
     <div className="admin-container">
       <Sidebar />
@@ -299,6 +581,30 @@ const Admin = () => {
                       <td>{contact.mobile}</td>
                       <td>{contact.message}</td>
                       <td>{new Date(contact.date).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/messages' && (
+            <div>
+              <h2>Client Messages</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Message</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {messages.map((message) => (
+                    <tr key={message._id}>
+                      <td>{message.client?.clientName || 'N/A'}</td>
+                      <td>{message.message}</td>
+                      <td>{new Date(message.date).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -422,6 +728,64 @@ const Admin = () => {
             </div>
           )}
 
+          {location.pathname === '/admin/billing' && (
+            <div>
+              <h2>Manage Billing</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddBill}>
+                  <h3>Add New Bill</h3>
+                  <select name="client" onChange={handleBillChange} value={billData.client} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
+                  <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
+                  <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
+                  <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate with AI</button>
+                  <button type="submit" className="btn btn-primary">Add Bill</button>
+                </form>
+              </div>
+
+              <h3>All Bills</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client Name</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bills.map((bill) => (
+                    <tr key={bill._id}>
+                      <td>{bill.client?.clientName || 'N/A'}</td>
+                      <td>{bill.amount}</td>
+                      <td>{bill.description}</td>
+                      <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                      <td>{bill.status}</td>
+                      <td>
+                        {bill.status === 'Unpaid' && (
+                          <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                        )}
+                        {bill.status === 'Verification Pending' && (
+                          <>
+                            <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Approve Payment</button>
+                            <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Payment Not Done</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {location.pathname === '/admin/srs-generator' && (
             <div>
               <h2>SRS Generator</h2>
@@ -434,29 +798,71 @@ const Admin = () => {
                       <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
                     ))}
                   </select>
-                  <input type="text" name="projectName" placeholder="Project Name" value={srsData.projectName} onChange={handleSrsChange} required />
-                  <textarea name="projectDescription" placeholder="Project Description" value={srsData.projectDescription} onChange={handleSrsChange}></textarea>
-                  <textarea name="targetAudience" placeholder="Target Audience" value={srsData.targetAudience} onChange={handleSrsChange}></textarea>
-                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={srsData.functionalRequirements} onChange={handleSrsChange}></textarea>
-                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={srsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Generating...' : 'Generate SRS'}
+                  <input type="text" name="projectName" placeholder="Project Name" value={localSrsData.projectName} onChange={handleSrsChange} required />
+                  <textarea name="projectDescription" placeholder="Project Description" value={localSrsData.projectDescription} onChange={handleSrsChange}></textarea>
+                  <textarea name="targetAudience" placeholder="Target Audience" value={localSrsData.targetAudience} onChange={handleSrsChange}></textarea>
+                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={localSrsData.functionalRequirements} onChange={handleSrsChange}></textarea>
+                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={localSrsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
+                  <button type="submit" className="btn btn-primary">
+                    Generate SRS
                   </button>
                 </form>
               </div>
+            </div>
+          )}
 
-              {loading && <p>Loading...</p>}
+          {location.pathname === '/admin/task-generator' && (
+            <div>
+              <h2>Task Generator</h2>
+              <div className="form-container">
+                <form onSubmit={handleGenerateTasks}>
+                  <h3>Generate Project Tasks</h3>
+                  <select onChange={(e) => handleClientSelectionForTasks(e.target.value)} value={selectedClientIdForTasks} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <textarea
+                    name="projectDescriptionForTasks"
+                    placeholder={isDescriptionLoading ? "Generating summary from SRS..." : "Provide a high-level description of the project or specific instructions for the AI."}
+                    value={projectDescriptionForTasks}
+                    onChange={(e) => setProjectDescriptionForTasks(e.target.value)}
+                    disabled={isDescriptionLoading}
+                  ></textarea>
+                  <button type="submit" className="btn btn-primary" disabled={isTasksLoading}>
+                    {isTasksLoading ? 'Generating...' : 'Generate Tasks'}
+                  </button>
+                  {tasksError && <p className="text-danger">{tasksError}</p>}
+                </form>
+              </div>
 
-              {generatedSrs && (
-                <div className="generated-srs">
-                  <h3>Generated SRS</h3>
-                  <div dangerouslySetInnerHTML={{ __html: generatedSrs }} />
+              {generatedTasks.length > 0 && (
+                <div>
+                  <h3>Generated Tasks</h3>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedTasks.map((task, index) => (
+                        <tr key={index}>
+                          <td>{task.description}</td>
+                          <td>{task.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <button onClick={handleSaveTasks} className="btn btn-success">Save Tasks</button>
                 </div>
               )}
             </div>
           )}
 
-          {location.pathname === '/admin' && (
+          {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>
           )}
         </div>

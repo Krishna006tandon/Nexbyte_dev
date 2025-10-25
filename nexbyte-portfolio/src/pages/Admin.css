@@ -6,19 +6,21 @@
 .main-content {
   flex-grow: 1;
   padding: 40px;
-  background-color: #f4f7f6;
-  color: #333;
+  background-color: var(--background);
+  color: var(--primary-text);
 }
 
 .main-content .card {
-  background-color: #ffffff;
+  background-color: var(--surface);
   border-radius: 15px;
   padding: 30px;
+  color: white;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
 }
 
 h1, h2, h3 {
-  color: #333;
+  color: white;
   font-weight: 600;
 }
 
@@ -30,7 +32,7 @@ h1 {
 h2 {
   font-size: 2rem;
   margin-bottom: 20px;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid var(--border);
   padding-bottom: 10px;
 }
 
@@ -41,24 +43,25 @@ h3 {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-.collapse: collapse;
   margin-top: 30px;
 }
 
 thead tr {
-  background-color: #f8f9fa;
-  color: #333;
+  background-color: var(--surface);
+  color: var(--primary-text);
   text-align: left;
 }
 
 th, td {
   padding: 20px;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  color: var(--primary-text);
 }
 
 tbody tr:hover {
-  background-color: #f1f3f5;
+  background-color: var(--surface-hover);
 }
 
 .form-container {
@@ -71,9 +74,11 @@ tbody tr:hover {
     width: 100%;
     padding: 15px;
     margin-bottom: 15px;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 1rem;
+    background-color: var(--background);
+    color: var(--primary-text);
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
@@ -85,9 +90,9 @@ tbody tr:hover {
 .form-container input:focus,
 .form-container select:focus,
 .form-container textarea:focus {
-    border-color: #80bdff;
+    border-color: #555;
     outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1);
 }
 
 .btn {
@@ -100,37 +105,38 @@ tbody tr:hover {
 }
 
 .btn-primary {
-    background-color: #007bff;
-    color: white;
+    background-color: var(--primary-variant);
+    color: var(--on-primary);
 }
 
 .btn-primary:hover {
-    background-color: #0056b3;
+    background-color: var(--primary);
 }
 
 .btn-danger {
-    background-color: #dc3545;
-    color: white;
+    background-color: #b00020;
+    color: #ffffff;
 }
 
 .btn-danger:hover {
-    background-color: #c82333;
+    background-color: #cf6679;
 }
 
 .btn-secondary {
-    background-color: #6c757d;
-    color: white;
+    background-color: var(--surface);
+    color: var(--primary-text);
+    border: 1px solid var(--primary-text);
 }
 
 .btn-secondary:hover {
-    background-color: #5a6268;
+    background-color: var(--surface-hover);
 }
 
 .generated-srs {
   margin-top: 30px;
   padding: 20px;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 

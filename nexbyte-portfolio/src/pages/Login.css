@@ -8,20 +8,20 @@
 
 .login-form {
   padding: 2rem;
-  background-color: #1e1e1e;
+  background-color: var(--surface);
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 400px;
   display: flex;
   flex-direction: column;
-  border: 1px solid #333;
+  border: 1px solid var(--border);
 }
 
 .login-form h2 {
   margin-bottom: 1.5rem;
   text-align: center;
-  color: #ffffff;
+  color: var(--primary-text);
 }
 
 .input-group {
@@ -31,23 +31,23 @@
 .input-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #adb5bd;
+  color: var(--secondary-text);
 }
 
 .input-group input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #333;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background-color: #2c2c2c;
-  color: #ffffff;
+  background-color: var(--background);
+  color: var(--primary-text);
 }
 
 .login-form button {
   width: 100%;
   padding: 0.75rem;
-  background-color: #007bff;
-  color: white;
+  background-color: var(--primary-variant);
+  color: var(--on-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -56,5 +56,5 @@
 }
 
 .login-form button:hover {
-  background-color: #0056b3;
+  background-color: var(--primary);
 }

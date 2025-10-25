@@ -1,22 +1,251 @@
 .client-panel-container {
-    padding: 2rem;
-    text-align: center;
-  }
-  
-  .client-panel-error {
-    color: red;
-    font-size: 1.2rem;
-  }
-  
-  .client-panel-loading {
-    font-size: 1.2rem;
-  }
-  
-  .client-data {
-    margin-top: 2rem;
-    border: 1px solid #ccc;
-    padding: 1rem;
-    border-radius: 5px;
-    display: inline-block;
-  }
-  
+  display: flex;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: var(--surface);
+  padding: 20px;
+  border-right: 1px solid var(--border);
+}
+
+.sidebar h2 {
+  margin-top: 0;
+  color: var(--primary-text);
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  padding: 10px;
+  cursor: pointer;
+  color: var(--secondary-text);
+  border-radius: 5px;
+  margin-bottom: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar ul li:hover {
+  background-color: var(--surface-hover);
+}
+
+.sidebar ul li.active {
+  background-color: var(--accent);
+  color: #000;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  background-color: var(--background-dark);
+  color: var(--primary-text);
+}
+
+.client-panel-error {
+  color: #ff4d4d; /* Brighter red for dark background */
+}
+
+.client-panel-loading {
+  font-style: italic;
+  color: var(--secondary-text);
+}
+
+.client-data h2, .srs-view h2, .billing-view h2 {
+  margin-top: 0;
+  color: var(--primary-text);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.srs-content {
+  white-space: pre-wrap;
+  background-color: var(--surface);
+  padding: 15px;
+  border-radius: 5px;
+  color: var(--primary-text);
+  border: 1px solid var(--border);
+}
+
+.message-section {
+  margin-top: 20px;
+}
+
+.message-section textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--primary-text);
+}
+
+.message-section button {
+  margin-top: 10px;
+  padding: 10px 15px;
+  background-color: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.bills-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.bill-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 15px;
+  background-color: var(--surface);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bill-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 255, 255, 0.1);
+}
+
+.bill-card.paid {
+  background-color: rgba(0, 255, 127, 0.1); /* Darker green with opacity */
+  border-left: 5px solid #00ff7f;
+}
+
+.bill-card.overdue {
+  background-color: rgba(255, 77, 77, 0.1); /* Darker red with opacity */
+  border-left: 5px solid #ff4d4d;
+}
+
+.bill-card.unpaid {
+  background-color: var(--surface);
+  border-left: 5px solid #ffae42; /* Amber */
+}
+
+.bill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.bill-header h3 {
+  margin: 0;
+  color: var(--primary-text);
+}
+
+.bill-header span {
+  font-size: 0.9em;
+  color: var(--secondary-text);
+}
+
+.bill-details .status {
+  font-weight: bold;
+}
+
+.bill-details .status.paid {
+  color: #00ff7f; /* Spring Green */
+}
+
+.bill-details .status.overdue {
+  color: #ff4d4d; /* Bright Red */
+}
+
+.bill-details .status.unpaid {
+  color: #ffae42; /* Amber */
+}
+
+.bill-actions {
+  margin-top: 15px;
+}
+
+.pay-now-btn {
+  padding: 10px 15px;
+  background-color: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.pay-now-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.manual-payment-modal {
+  padding: 20px;
+  text-align: center;
+  color: var(--primary-text);
+}
+
+.manual-payment-modal h2 {
+  margin-top: 0;
+  color: var(--primary-text);
+}
+
+.qr-code-container {
+  margin: 20px 0;
+  padding: 10px;
+  background-color: white; /* QR code needs a white background to be scannable */
+  display: inline-block;
+  border-radius: 5px;
+}
+
+.transaction-id-input {
+  margin-bottom: 20px;
+}
+
+.transaction-id-input label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--secondary-text);
+}
+
+.transaction-id-input input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background-color: var(--surface);
+  color: var(--primary-text);
+}
+
+
+.manual-payment-modal .modal-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.manual-payment-modal .modal-actions button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.manual-payment-modal .modal-actions button:first-child {
+  background-color: var(--accent);
+  color: #000;
+}
+
+.manual-payment-modal .modal-actions button:last-child {
+  background-color: var(--surface-hover);
+  color: var(--primary-text);
+}
+
+.manual-payment-modal .modal-actions button:disabled {
+  background-color: var(--disabled-text);
+  color: var(--background-dark);
+  cursor: not-allowed;
+}
