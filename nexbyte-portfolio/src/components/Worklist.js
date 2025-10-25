@@ -6,6 +6,7 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
   const [assignedTo, setAssignedTo] = useState('');
   const [cost, setCost] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [pendingChanges, setPendingChanges] = useState({});
 
   const handleAddTask = (e) => {
     e.preventDefault();
@@ -17,6 +18,34 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
     setAssignedTo('');
     setCost('');
     setDeadline('');
+  };
+
+  const handleStatusChange = (taskId, newStatus) => {
+    setPendingChanges({
+      ...pendingChanges,
+      [taskId]: {
+        ...pendingChanges[taskId],
+        status: newStatus,
+      },
+    });
+  };
+
+  const handleAssignedToChange = (taskId, newAssignedTo) => {
+    setPendingChanges({
+      ...pendingChanges,
+      [taskId]: {
+        ...pendingChanges[taskId],
+        assignedTo: newAssignedTo,
+      },
+    });
+  };
+
+  const handleSave = (taskId) => {
+    onUpdateTask(taskId, pendingChanges[taskId]);
+    setPendingChanges({
+      ...pendingChanges,
+      [taskId]: undefined,
+    });
   };
 
   const workSummary = members.map(member => {
@@ -103,11 +132,17 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
           {tasks.map((task) => (
             <tr key={task._id}>
               <td>{task.description}</td>
-              <td>{task.assignedTo.email}</td>
+              <td>
+                <select value={pendingChanges[task._id]?.assignedTo || task.assignedTo._id} onChange={(e) => handleAssignedToChange(task._id, e.target.value)}>
+                  {members.map(member => (
+                    <option key={member._id} value={member._id}>{member.email}</option>
+                  ))}
+                </select>
+              </td>
               <td>{task.cost}</td>
               <td>{new Date(task.deadline).toLocaleDateString()}</td>
               <td>
-                <select value={task.status} onChange={(e) => onUpdateTask(task._id, { status: e.target.value })}>
+                <select value={pendingChanges[task._id]?.status || task.status} onChange={(e) => handleStatusChange(task._id, e.target.value)}>
                   <option value="To Do">To Do</option>
                   <option value="In Progress">In Progress</option>
                   <option value="Done">Done</option>
@@ -115,8 +150,8 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
               </td>
               <td>{new Date(task.createdAt).toLocaleString()}</td>
               <td>
-                <button onClick={() => onUpdateTask(task._id, { status: 'Done' })} className="btn btn-success" style={{ marginRight: '5px' }}>Mark as Done</button>
-                <button onClick={() => onDeleteTask(task._id)} className="btn btn-danger">Delete</button>
+                <button onClick={() => handleSave(task._id)} className="btn btn-primary" disabled={!pendingChanges[task._id]}>Save</button>
+                <button onClick={() => onDeleteTask(task._id)} className="btn btn-danger" style={{ marginLeft: '5px' }}>Delete</button>
               </td>
             </tr>
           ))}

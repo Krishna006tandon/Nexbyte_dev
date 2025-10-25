@@ -241,6 +241,7 @@ const SrsGenerator = () => {
               <button onClick={handleSendToClient} className="btn btn-info" disabled={isActionLoading}>
                 {isActionLoading ? 'Sending...' : 'Send to Client'}
               </button>
+              <button onClick={() => setEditingMode('ai')} className="btn btn-warning">Edit with AI</button>
             </>
           ) : (
             <>

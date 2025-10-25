@@ -17,25 +17,33 @@ const Dashboard = () => {
   const closeModal = () => setIsModalOpen(false);
 
   // Fetch projects (clients) and users on component mount
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const usersRes = await axios.get('/api/users', { headers: { 'x-auth-token': token } });
+      setUsers(usersRes.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchProjects = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const [projectsRes, usersRes] = await Promise.all([
-          axios.get('/api/clients', { headers: { 'x-auth-token': token } }),
-          axios.get('/api/users', { headers: { 'x-auth-token': token } })
-        ]);
+        const projectsRes = await axios.get('/api/clients', { headers: { 'x-auth-token': token } });
         setProjects(projectsRes.data);
-        setUsers(usersRes.data);
         if (projectsRes.data.length > 0) {
           setSelectedProject(projectsRes.data[0]);
         }
       } catch (error) {
-        console.error('Error fetching initial data:', error);
+        console.error('Error fetching projects:', error);
       }
     };
-    fetchData();
+    fetchProjects();
+    fetchUsers();
   }, []);
 
   // Fetch tasks when a project is selected
@@ -83,6 +91,9 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       const res = await axios.put(`/api/tasks/${id}`, updates, { headers: { 'x-auth-token': token } });
       setTasks(tasks.map(task => (task._id === id ? res.data : task)));
+      if (updates.status === 'Done') {
+        fetchUsers();
+      }
     } catch (error) {
       console.error('Error updating task:', error);
     }

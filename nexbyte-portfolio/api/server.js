@@ -870,7 +870,7 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
       Please generate a list of tasks required to complete this project.
       The output MUST be a valid JSON array of objects. Each object in the array should represent a single task and have the following structure:
       {
-        "description": "A clear and concise description of the task.",
+        "description": "A detailed description of the task, including the goal of the task and the expected outcome.",
         "status": "To Do"
       }
 
