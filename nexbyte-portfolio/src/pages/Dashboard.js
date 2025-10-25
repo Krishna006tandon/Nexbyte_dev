@@ -87,10 +87,16 @@ const Dashboard = () => {
   };
 
   const handleUpdateTask = async (id, updates) => {
+    console.log('Updating task:', id, updates);
     try {
       const token = localStorage.getItem('token');
       const res = await axios.put(`/api/tasks/${id}`, updates, { headers: { 'x-auth-token': token } });
-      setTasks(tasks.map(task => (task._id === id ? res.data : task)));
+      console.log('Task updated, response:', res.data);
+      setTasks(prevTasks => {
+        const newTasks = prevTasks.map(task => (task._id === id ? res.data : task));
+        console.log('New tasks state:', newTasks);
+        return newTasks;
+      });
       if (updates.status === 'Done') {
         fetchUsers();
       }
