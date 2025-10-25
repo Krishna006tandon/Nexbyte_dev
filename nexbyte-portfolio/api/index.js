@@ -871,6 +871,7 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
       // Add createdBy/assignedTo fields before sending
       const finalTasks = tasks.map(task => ({
         ...task,
+        projectId: clientId,
         assignedTo: req.user.id,
         createdBy: req.user.id,
       }));
@@ -1002,7 +1003,10 @@ app.get('/api/admin/contributions', auth, admin, async (req, res) => {
 // @access  Private (admin)
 app.get('/api/tasks', auth, admin, async (req, res) => {
   try {
-    const tasks = await Task.find()
+    const { projectId } = req.query;
+    const filter = projectId ? { projectId } : {};
+
+    const tasks = await Task.find(filter)
       .populate('assignedTo', 'email')
       .populate('createdBy', 'email')
       .sort({ createdAt: -1 });
@@ -1017,14 +1021,15 @@ app.get('/api/tasks', auth, admin, async (req, res) => {
 // @desc    Create a new task
 // @access  Private (admin)
 app.post('/api/tasks', auth, admin, async (req, res) => {
-  const { description, assignedTo, cost, deadline } = req.body;
+  const { description, assignedTo, cost, deadline, projectId } = req.body;
 
-  if (!description || !assignedTo) {
-    return res.status(400).json({ message: 'Description and assignedTo are required' });
+  if (!description || !assignedTo || !projectId) {
+    return res.status(400).json({ message: 'Description, assignedTo, and projectId are required' });
   }
 
   try {
     const newTask = new Task({
+      projectId,
       description,
       assignedTo,
       createdBy: req.user.id,

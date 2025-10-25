@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiX, FiUsers, FiBriefcase, FiCheckCircle } from 'react-icons/fi';
+import { FiPlus, FiX, FiUsers, FiBriefcase, FiCheckCircle, FiDollarSign, FiTrendingDown, FiTrendingUp } from 'react-icons/fi';
 import './Dashboard.css';
 import Modal from '../components/Modal';
 import Worklist from '../components/Worklist';
@@ -10,32 +10,68 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
+  // Fetch projects (clients) and users on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const [tasksRes, usersRes] = await Promise.all([
-          axios.get('/api/tasks', { headers: { 'x-auth-token': token } }),
+        const [projectsRes, usersRes] = await Promise.all([
+          axios.get('/api/clients', { headers: { 'x-auth-token': token } }),
           axios.get('/api/users', { headers: { 'x-auth-token': token } })
         ]);
-        setTasks(tasksRes.data);
+        setProjects(projectsRes.data);
         setUsers(usersRes.data);
+        if (projectsRes.data.length > 0) {
+          setSelectedProject(projectsRes.data[0]);
+        }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching initial data:', error);
       }
     };
     fetchData();
   }, []);
 
+  // Fetch tasks when a project is selected
+  useEffect(() => {
+    if (!selectedProject) {
+      setTasks([]);
+      return;
+    }
+    const fetchTasks = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const tasksRes = await axios.get(`/api/tasks?projectId=${selectedProject._id}`, { headers: { 'x-auth-token': token } });
+        setTasks(tasksRes.data);
+      } catch (error) {
+        console.error(`Error fetching tasks for project ${selectedProject._id}:`, error);
+      }
+    };
+    fetchTasks();
+  }, [selectedProject]);
+
+  const handleProjectChange = (e) => {
+    const projectId = e.target.value;
+    const project = projects.find(p => p._id === projectId);
+    setSelectedProject(project);
+  };
+
   const handleAddTask = async (task) => {
+    if (!selectedProject) {
+      console.error('Cannot add task without a selected project.');
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('/api/tasks', task, { headers: { 'x-auth-token': token } });
+      const taskWithProjectId = { ...task, projectId: selectedProject._id };
+      const res = await axios.post('/api/tasks', taskWithProjectId, { headers: { 'x-auth-token': token } });
       setTasks([res.data, ...tasks]);
     } catch (error) {
       console.error('Error adding task:', error);
@@ -62,47 +98,104 @@ const Dashboard = () => {
     }
   };
 
+  // Budget calculations
+  const totalBudget = selectedProject?.totalBudget || 0;
+  const availableBudget = totalBudget * 0.7;
+  const spentBudget = tasks.reduce((acc, task) => acc + (task.cost || 0), 0);
+  const remainingBudget = availableBudget - spentBudget;
+
+  // Task filtering
+  const activeTasks = tasks.filter(task => task.status !== 'Done');
+  const completedTasks = tasks.filter(task => task.status === 'Done');
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>Dashboard</h1>
-        <button className="add-project-btn" onClick={openModal}>
-          <FiPlus />
-          Add New Project
-        </button>
+        <div className="header-actions">
+          <select className="project-selector" onChange={handleProjectChange} value={selectedProject?._id || ''}>
+            <option value="" disabled>Select a Project</option>
+            {projects.map(p => (
+              <option key={p._id} value={p._id}>{p.projectName}</option>
+            ))}
+          </select>
+          <button className="add-project-btn" onClick={openModal}>
+            <FiPlus />
+            Add New Project
+          </button>
+        </div>
       </header>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <FiBriefcase className="stat-icon" />
-          <div className="stat-info">
-            <h2>{tasks.filter(task => task.status !== 'Done').length}</h2>
-            <p>Active Tasks</p>
+      {selectedProject && (
+        <div className="stats-grid">
+          {/* Budget Stats */}
+          <div className="stat-card">
+            <FiDollarSign className="stat-icon" />
+            <div className="stat-info">
+              <h2>${totalBudget.toLocaleString()}</h2>
+              <p>Total Budget</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <FiTrendingDown className="stat-icon" />
+            <div className="stat-info">
+              <h2 className="spent">${spentBudget.toLocaleString()}</h2>
+              <p>Spent (from 70% available)</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <FiTrendingUp className="stat-icon" />
+            <div className="stat-info">
+              <h2 className="remaining">${remainingBudget.toLocaleString()}</h2>
+              <p>Remaining</p>
+            </div>
+          </div>
+          {/* Task Stats */}
+          <div className="stat-card">
+            <FiBriefcase className="stat-icon" />
+            <div className="stat-info">
+              <h2>{activeTasks.length}</h2>
+              <p>Active Tasks</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <FiCheckCircle className="stat-icon" />
+            <div className="stat-info">
+              <h2>{completedTasks.length}</h2>
+              <p>Completed Tasks</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <FiUsers className="stat-icon" />
+            <div className="stat-info">
+              <h2>{users.length}</h2>
+              <p>Team Users</p>
+            </div>
           </div>
         </div>
-        <div className="stat-card">
-          <FiUsers className="stat-icon" />
-          <div className="stat-info">
-            <h2>{users.length}</h2>
-            <p>Users</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <FiCheckCircle className="stat-icon" />
-          <div className="stat-info">
-            <h2>{tasks.filter(task => task.status === 'Done').length}</h2>
-            <p>Completed Tasks</p>
-          </div>
-        </div>
-      </div>
+      )}
 
       <div className="table-section">
+        <h2>Active Tasks</h2>
         <Worklist 
-          tasks={tasks} 
+          tasks={activeTasks} 
           members={users} 
           onAddTask={handleAddTask} 
           onUpdateTask={handleUpdateTask} 
           onDeleteTask={handleDeleteTask} 
+        />
+      </div>
+
+      <div className="table-section">
+        <h2>Completed Tasks</h2>
+        <DataTable 
+          columns={['Description', 'Assigned To', 'Completed At', 'Cost']}
+          data={completedTasks.map(task => ({
+            Description: task.description,
+            'Assigned To': task.assignedTo?.email || 'N/A',
+            'Completed At': new Date(task.completedAt).toLocaleDateString(),
+            Cost: `${task.cost || 0}`
+          }))} 
         />
       </div>
 
