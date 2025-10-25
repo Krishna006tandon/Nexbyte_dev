@@ -84,15 +84,10 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
             <tr key={task._id}>
               <td>{task.description}</td>
               <td>{task.assignedTo.email}</td>
-              <td>
-                <select value={task.status} onChange={(e) => onUpdateTask(task._id, { status: e.target.value })}>
-                  <option value="To Do">To Do</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Done">Done</option>
-                </select>
-              </td>
+              <td>{task.status}</td>
               <td>{new Date(task.createdAt).toLocaleString()}</td>
               <td>
+                <button onClick={() => onUpdateTask(task._id, { status: 'Done' })} className="btn btn-success" style={{ marginRight: '5px' }}>Mark as Done</button>
                 <button onClick={() => onDeleteTask(task._id)} className="btn btn-danger">Delete</button>
               </td>
             </tr>
