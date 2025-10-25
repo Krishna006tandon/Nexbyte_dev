@@ -2,7 +2,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const envPath = path.resolve(__dirname, 'nexbyte-portfolio', '.env');
+const envPath = path.resolve(__dirname, 'nexbyte-portfolio', 'api', '.env');
 const envConfig = fs.readFileSync(envPath, 'utf8');
 const env = {};
 envConfig.split('\n').forEach(line => {

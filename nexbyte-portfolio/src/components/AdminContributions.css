@@ -1,0 +1,10 @@
+.admin-contributions-sidebar {
+  width: 300px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-left: 1px solid #dee2e6;
+}
+
+.chart-container {
+  margin-bottom: 20px;
+}

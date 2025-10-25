@@ -27,3 +27,15 @@
   font-size: 2.5rem;
   font-weight: bold;
 }
+
+.about-container {
+  display: flex;
+}
+
+.main-content {
+  flex-grow: 1;
+}
+
+.main-content.with-sidebar {
+  margin-right: 320px; /* width of sidebar + some margin */
+}

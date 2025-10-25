@@ -504,6 +504,19 @@ app.post('/api/generate-srs', auth, admin, async (req, res) => {
   }
 });
 
+
+const Contribution = require('./models/Contribution');
+
+app.get('/api/contributions', auth, admin, async (req, res) => {
+  try {
+    const contributions = await Contribution.find().populate('adminId', 'email');
+    res.json(contributions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
