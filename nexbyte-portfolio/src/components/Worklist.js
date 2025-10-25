@@ -4,15 +4,19 @@ import './Worklist.css';
 const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => {
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
+  const [cost, setCost] = useState('');
+  const [deadline, setDeadline] = useState('');
 
   const handleAddTask = (e) => {
     e.preventDefault();
-    if (!description || !assignedTo) {
+    if (!description || !assignedTo || !cost || !deadline) {
       return;
     }
-    onAddTask({ description, assignedTo });
+    onAddTask({ description, assignedTo, cost, deadline });
     setDescription('');
     setAssignedTo('');
+    setCost('');
+    setDeadline('');
   };
 
   const workSummary = members.map(member => {
@@ -58,6 +62,20 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
             onChange={(e) => setDescription(e.target.value)}
             required
           />
+          <input
+            type="number"
+            placeholder="Cost"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            required
+          />
+          <input
+            type="date"
+            placeholder="Deadline"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            required
+          />
           <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} required>
             <option value="">Assign to...</option>
             {members.map(member => (
@@ -74,6 +92,8 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
           <tr>
             <th>Description</th>
             <th>Assigned To</th>
+            <th>Cost</th>
+            <th>Deadline</th>
             <th>Status</th>
             <th>Created At</th>
             <th>Action</th>
@@ -84,7 +104,15 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
             <tr key={task._id}>
               <td>{task.description}</td>
               <td>{task.assignedTo.email}</td>
-              <td>{task.status}</td>
+              <td>{task.cost}</td>
+              <td>{new Date(task.deadline).toLocaleDateString()}</td>
+              <td>
+                <select value={task.status} onChange={(e) => onUpdateTask(task._id, { status: e.target.value })}>
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
+              </td>
               <td>{new Date(task.createdAt).toLocaleString()}</td>
               <td>
                 <button onClick={() => onUpdateTask(task._id, { status: 'Done' })} className="btn btn-success" style={{ marginRight: '5px' }}>Mark as Done</button>
