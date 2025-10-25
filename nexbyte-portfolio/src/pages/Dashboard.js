@@ -86,6 +86,16 @@ const Dashboard = () => {
     }
   };
 
+  const handleDeleteTask = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/tasks/${id}`, { headers: { 'x-auth-token': token } });
+      setTasks(tasks.filter(task => task._id !== id));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
   const handleUpdateTask = async (id, updates) => {
     console.log('Updating task:', id, updates);
     try {
@@ -191,6 +201,7 @@ const Dashboard = () => {
           members={users} 
           onAddTask={handleAddTask} 
           onUpdateTask={handleUpdateTask} 
+          onDeleteTask={handleDeleteTask} 
         />
       </div>
 
