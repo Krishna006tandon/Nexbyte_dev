@@ -3,6 +3,7 @@ import { FiPlus, FiX, FiUsers, FiBriefcase, FiCheckCircle } from 'react-icons/fi
 import './Dashboard.css';
 import Modal from '../components/Modal';
 import Worklist from '../components/Worklist';
+import DataTable from '../components/DataTable';
 import axios from 'axios';
 
 const Dashboard = () => {
