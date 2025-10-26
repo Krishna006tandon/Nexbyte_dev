@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import '../components/Worklist.css'; // Reusing the same CSS for now
 import { AuthContext } from '../context/AuthContext';
+import Table from '../components/Table';
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
@@ -71,6 +72,21 @@ const TaskList = () => {
     }
   };
 
+  const taskHeaders = ['Description', 'Assigned To', 'Cost', 'Deadline', 'Status', 'Created At', 'Action'];
+  const taskData = tasks.map(task => ({
+    'description': task.description,
+    'assignedTo': task.assignedTo?.email,
+    'cost': task.cost,
+    'deadline': new Date(task.deadline).toLocaleDateString(),
+    'status': <select value={task.status} onChange={(e) => handleUpdateTask(task._id, { status: e.target.value })}>
+        <option value="To Do">To Do</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Done">Done</option>
+    </select>,
+    'createdAt': new Date(task.createdAt).toLocaleString(),
+    'action': <button onClick={() => handleDeleteTask(task._id)} className="btn btn-danger">Delete</button>
+  }));
+
   return (
     <div className="worklist-container">
       <div className="form-container">
@@ -108,40 +124,7 @@ const TaskList = () => {
       </div>
 
       <h3>All Tasks</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Assigned To</th>
-            <th>Cost</th>
-            <th>Deadline</th>
-            <th>Status</th>
-            <th>Created At</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((task) => (
-            <tr key={task._id}>
-              <td>{task.description}</td>
-              <td>{task.assignedTo?.email}</td>
-              <td>{task.cost}</td>
-              <td>{new Date(task.deadline).toLocaleDateString()}</td>
-              <td>
-                <select value={task.status} onChange={(e) => handleUpdateTask(task._id, { status: e.target.value })}>
-                  <option value="To Do">To Do</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Done">Done</option>
-                </select>
-              </td>
-              <td>{new Date(task.createdAt).toLocaleString()}</td>
-              <td>
-                <button onClick={() => handleDeleteTask(task._id)} className="btn btn-danger">Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Table headers={taskHeaders} data={taskData} />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './Worklist.css';
+import Table from './Table';
 
 const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => {
   const [description, setDescription] = useState('');
@@ -24,28 +25,26 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
     };
   });
 
+  const summaryHeaders = ['Member', 'Total Tasks', 'Tasks Done'];
+  const summaryData = workSummary.map(summary => ({'email': summary.email, 'total': summary.total, 'done': summary.done}));
+
+  const taskHeaders = ['Description', 'Assigned To', 'Status', 'Created At', 'Action'];
+  const taskData = tasks.map(task => ({
+    'description': task.description,
+    'assignedTo': task.assignedTo.email,
+    'status': task.status,
+    'createdAt': new Date(task.createdAt).toLocaleString(),
+    'action': <>
+        <button onClick={() => onUpdateTask(task._id, { status: 'Done' })} className="btn btn-success" style={{ marginRight: '5px' }}>Mark as Done</button>
+        <button onClick={() => onDeleteTask(task._id)} className="btn btn-danger">Delete</button>
+    </>
+  }));
+
   return (
     <div className="worklist-container">
       <div className="worklist-summary">
         <h3>Work Summary</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Member</th>
-              <th>Total Tasks</th>
-              <th>Tasks Done</th>
-            </tr>
-          </thead>
-          <tbody>
-            {workSummary.map(summary => (
-              <tr key={summary._id}>
-                <td>{summary.email}</td>
-                <td>{summary.total}</td>
-                <td>{summary.done}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table headers={summaryHeaders} data={summaryData} />
       </div>
 
       <div className="form-container">
@@ -69,31 +68,7 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
       </div>
 
       <h3>All Tasks</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Assigned To</th>
-            <th>Status</th>
-            <th>Created At</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((task) => (
-            <tr key={task._id}>
-              <td>{task.description}</td>
-              <td>{task.assignedTo.email}</td>
-              <td>{task.status}</td>
-              <td>{new Date(task.createdAt).toLocaleString()}</td>
-              <td>
-                <button onClick={() => onUpdateTask(task._id, { status: 'Done' })} className="btn btn-success" style={{ marginRight: '5px' }}>Mark as Done</button>
-                <button onClick={() => onDeleteTask(task._id)} className="btn btn-danger">Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Table headers={taskHeaders} data={taskData} />
     </div>
   );
 };

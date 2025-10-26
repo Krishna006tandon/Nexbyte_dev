@@ -144,3 +144,12 @@
   color: #d9534f; /* Red for Absent */
   font-weight: bold;
 }
+
+.three-d-section {
+    margin-bottom: 40px;
+}
+
+.three-d-section canvas {
+    width: 100%;
+    height: 400px;
+}
