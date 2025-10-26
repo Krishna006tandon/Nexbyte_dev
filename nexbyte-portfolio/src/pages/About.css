@@ -136,20 +136,22 @@
 }
 
 .attendance-status.present {
-  color: #5cb85c; /* Green for Present */
+  color: #5cb85c;
+  /* Green for Present */
   font-weight: bold;
 }
 
 .attendance-status.absent {
-  color: #d9534f; /* Red for Absent */
+  color: #862b29;
+  /* Red for Absent */
   font-weight: bold;
 }
 
 .three-d-section {
-    margin-bottom: 40px;
+  margin-bottom: 40px;
 }
 
 .three-d-section canvas {
-    width: 100%;
-    height: 400px;
+  width: 100%;
+  height: 400px;
 }
