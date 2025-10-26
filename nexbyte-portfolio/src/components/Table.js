@@ -33,22 +33,25 @@ const Table = ({ headers, data }) => {
 
           {/* Create table rows */}
           {data.map((row, rowIndex) => (
-            <group key={rowIndex} position={[0, -(rowIndex + 1) * 1, 0]}>
-              {Object.values(row).map((cell, cellIndex) => (
-                <mesh key={cellIndex} position={[cellIndex * 4, 0, 0]}>
-                  <boxBufferGeometry args={[3, 0.5, 1]} />
-                  <meshStandardMaterial color="lightblue" />
-                  <text
-                    position={[0, 0, 0.6]}
-                    fontSize={0.2}
-                    color="black"
-                    anchorX="center"
-                    anchorY="middle"
-                  >
-                    {cell}
-                  </text>
-                </mesh>
-              ))}
+            <group key={rowIndex} position={[0, -(rowIndex + 1) * 1, 0]} onClick={row.onClick}>
+              {Object.values(row).map((cell, cellIndex) => {
+                if (typeof cell === 'function') return null;
+                return (
+                    <mesh key={cellIndex} position={[cellIndex * 4, 0, 0]}>
+                    <boxBufferGeometry args={[3, 0.5, 1]} />
+                    <meshStandardMaterial color="lightblue" />
+                    <text
+                        position={[0, 0, 0.6]}
+                        fontSize={0.2}
+                        color="black"
+                        anchorX="center"
+                        anchorY="middle"
+                    >
+                        {cell}
+                    </text>
+                    </mesh>
+                );
+              })}
             </group>
           ))}
         </group>

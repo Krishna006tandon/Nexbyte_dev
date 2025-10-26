@@ -1,19 +1,39 @@
 import React, { useState } from 'react';
 import './Worklist.css';
 import Table from './Table';
+import Modal from './Modal';
 
 const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => {
+  console.log('Members in Worklist:', members);
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
+  const [cost, setCost] = useState('');
+  const [deadline, setDeadline] = useState('');
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
 
   const handleAddTask = (e) => {
     e.preventDefault();
-    if (!description || !assignedTo) {
+    if (!description || !assignedTo || !cost || !deadline) {
       return;
     }
-    onAddTask({ description, assignedTo });
+    onAddTask({ description, assignedTo, cost, deadline });
     setDescription('');
     setAssignedTo('');
+    setCost('');
+    setDeadline('');
+  };
+
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setEditingTask({ ...task });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
   };
 
   const workSummary = members.map(member => {
@@ -28,16 +48,15 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
   const summaryHeaders = ['Member', 'Total Tasks', 'Tasks Done'];
   const summaryData = workSummary.map(summary => ({'email': summary.email, 'total': summary.total, 'done': summary.done}));
 
-  const taskHeaders = ['Description', 'Assigned To', 'Status', 'Created At', 'Action'];
+  const taskHeaders = ['Description', 'Assigned To', 'Cost', 'Deadline', 'Status', 'Created At'];
   const taskData = tasks.map(task => ({
     'description': task.description,
     'assignedTo': task.assignedTo.email,
+    'cost': task.cost,
+    'deadline': new Date(task.deadline).toLocaleDateString(),
     'status': task.status,
     'createdAt': new Date(task.createdAt).toLocaleString(),
-    'action': <>
-        <button onClick={() => onUpdateTask(task._id, { status: 'Done' })} className="btn btn-success" style={{ marginRight: '5px' }}>Mark as Done</button>
-        <button onClick={() => onDeleteTask(task._id)} className="btn btn-danger">Delete</button>
-    </>
+    onClick: () => handleTaskClick(task)
   }));
 
   return (
@@ -57,6 +76,20 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
             onChange={(e) => setDescription(e.target.value)}
             required
           />
+          <input
+            type="number"
+            placeholder="Cost"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            required
+          />
+          <input
+            type="date"
+            placeholder="Deadline"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            required
+          />
           <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} required>
             <option value="">Assign to...</option>
             {members.map(member => (
@@ -69,6 +102,64 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
 
       <h3>All Tasks</h3>
       <Table headers={taskHeaders} data={taskData} />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal}>
+        {selectedTask && editingTask && (
+          <div>
+            <h2>Edit Task</h2>
+            <form>
+              <div className="form-group">
+                <label>Description</label>
+                <input
+                  type="text"
+                  value={editingTask.description}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Assigned To</label>
+                <select
+                  value={editingTask.assignedTo._id}
+                  onChange={(e) => setEditingTask({ ...editingTask, assignedTo: e.target.value })}
+                >
+                  {members.map(member => (
+                    <option key={member._id} value={member._id}>{member.email}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  value={editingTask.status}
+                  onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
+                >
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Cost</label>
+                <input
+                  type="number"
+                  value={editingTask.cost}
+                  onChange={(e) => setEditingTask({ ...editingTask, cost: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Deadline</label>
+                <input
+                  type="date"
+                  value={new Date(editingTask.deadline).toISOString().split('T')[0]}
+                  onChange={(e) => setEditingTask({ ...editingTask, deadline: e.target.value })}
+                />
+              </div>
+              <button type="button" onClick={() => onUpdateTask(selectedTask._id, editingTask)} className="btn btn-primary">Save</button>
+              <button type="button" onClick={() => onDeleteTask(selectedTask._id)} className="btn btn-danger">Delete</button>
+            </form>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
