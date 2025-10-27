@@ -11,26 +11,26 @@ const TaskDetailPage = () => {
     const [error, setError] = useState(null);
     const [newComment, setNewComment] = useState('');
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const taskRes = await fetch(`/api/tasks/${taskId}`);
-            if (!taskRes.ok) throw new Error('Failed to fetch task details');
-            const taskData = await taskRes.json();
-            setTask(taskData);
-
-            const usersRes = await fetch('/api/users');
-            if (!usersRes.ok) throw new Error('Failed to fetch users');
-            const usersData = await usersRes.json();
-            setUsers(usersData);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const taskRes = await fetch(`/api/tasks/${taskId}`);
+                if (!taskRes.ok) throw new Error('Failed to fetch task details');
+                const taskData = await taskRes.json();
+                setTask(taskData);
+
+                const usersRes = await fetch('/api/users');
+                if (!usersRes.ok) throw new Error('Failed to fetch users');
+                const usersData = await usersRes.json();
+                setUsers(usersData);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchData();
     }, [taskId]);
 

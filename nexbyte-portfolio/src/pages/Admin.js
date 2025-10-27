@@ -707,6 +707,8 @@ const Admin = () => {
                 onTasksSaved={handleTasksSaved}
               />
               <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
+            </div>
+          )}
 
           {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>
