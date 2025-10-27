@@ -84,6 +84,22 @@ const TaskDetailPage = () => {
         }
     };
 
+    const handleMarkAsDone = async () => {
+        try {
+            const response = await fetch(`/api/tasks/${task._id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'Done' }),
+                });
+            if (!response.ok) throw new Error('Failed to update status');
+            const updatedTask = await response.json();
+            setTask(updatedTask);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     if (loading) return <p>Loading...</p>;
     if (error) return <p className="error-message">{error}</p>;
     if (!task) return <p>No task found.</p>;
@@ -117,6 +133,12 @@ const TaskDetailPage = () => {
                         ))}
                     </select>
                 </div>
+            </div>
+
+            <div className="task-main-actions">
+                <button onClick={handleMarkAsDone} disabled={task.status === 'Done'} className="complete-btn">
+                    {task.status === 'Done' ? 'Task Completed' : 'Mark as Complete'}
+                </button>
             </div>
 
             <div className="comments-section">

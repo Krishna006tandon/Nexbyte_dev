@@ -63,6 +63,34 @@
     border-radius: 4px;
 }
 
+.task-main-actions {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 2rem;
+}
+
+.complete-btn {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.complete-btn:hover:not(:disabled) {
+    background-color: #218838;
+}
+
+.complete-btn:disabled {
+    background-color: #5a5a5a;
+    cursor: not-allowed;
+}
+
 .comments-section {
     margin-top: 2rem;
     border-top: 1px solid var(--border);
