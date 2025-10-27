@@ -1235,7 +1235,7 @@ app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
         newMilestone = 'Completed';
       } else if (taskStatuses.some(status => status === 'Needs Review' || status === 'Defect')) {
         newMilestone = 'Testing';
-      } else if (taskStatuses.some(status => status === 'In Progress')) {
+      } else if (taskStatuses.some(status => status === 'In Progress' || status === 'Done')) {
         newMilestone = 'Development';
       } else if (taskStatuses.every(status => status === 'To Do')) {
         newMilestone = 'Planning';
