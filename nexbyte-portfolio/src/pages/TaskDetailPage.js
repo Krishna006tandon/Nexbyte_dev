@@ -138,6 +138,8 @@ const TaskDetailPage = () => {
     if (error) return <p className="error-message">{error}</p>;
     if (!task) return <p>No task found.</p>;
 
+    console.log('Current User Object:', user);
+
     return (
         <div className="task-detail-page-container">
             <button onClick={() => navigate(-1)} className="back-button">&larr; Back</button>
