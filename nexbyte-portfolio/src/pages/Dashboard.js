@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiX, FiUsers, FiBriefcase, FiCheckCircle, FiDollarSign, FiTrendingDown, FiTrendingUp } from 'react-icons/fi';
+import { FiPlus, FiX, FiUsers, FiDollarSign, FiTrendingDown, FiTrendingUp } from 'react-icons/fi';
 import './Dashboard.css';
 import Modal from '../components/Modal';
 
