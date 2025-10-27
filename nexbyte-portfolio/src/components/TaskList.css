@@ -1,14 +1,13 @@
 .task-list-container {
     margin-top: 2rem;
     padding: 2rem;
-    background-color: #ffffff;
+    background-color: var(--surface);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .task-list-container h3 {
     margin-top: 0;
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid var(--border);
     padding-bottom: 1rem;
     margin-bottom: 1rem;
 }
@@ -22,22 +21,22 @@
 .tasks-table td {
     padding: 0.75rem;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--border);
 }
 
 .tasks-table th {
-    background-color: #f7f7f7;
+    background-color: var(--surface-hover);
     font-weight: bold;
 }
 
 .tasks-table tbody tr:hover {
-    background-color: #f1f1f1;
+    background-color: var(--border);
 }
 
 .success-message {
     color: #28a745;
-    background-color: #e9f7ef;
-    border: 1px solid #a1deb2;
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.5);
     padding: 1rem;
     border-radius: 4px;
     text-align: center;
@@ -46,9 +45,11 @@
 
 .save-tasks-btn {
     margin-top: 1rem;
-    background-color: #28a745 !important; /* Override general button styles */
+    background-color: var(--accent) !important;
+    color: #000 !important;
+    font-weight: 600;
 }
 
 .save-tasks-btn:hover:not(:disabled) {
-    background-color: #218838 !important;
+    background-color: var(--accent-hover) !important;
 }

@@ -1,16 +1,16 @@
 .task-generator-container {
     margin: 2rem auto;
     padding: 2rem;
-    background-color: #f9f9f9;
+    background-color: var(--surface);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
     max-width: 800px;
 }
 
 .task-generator-container h2 {
     text-align: center;
     margin-bottom: 1.5rem;
-    color: #333;
+    color: var(--primary-text);
 }
 
 .task-generator-form .form-group {
@@ -21,7 +21,7 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: bold;
-    color: #555;
+    color: var(--secondary-text);
 }
 
 .label-with-button {
@@ -36,9 +36,17 @@
 }
 
 .label-with-button button {
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
     width: auto;
+    background-color: var(--surface-hover);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.label-with-button button:hover {
+    background-color: var(--border);
 }
 
 .task-generator-form input,
@@ -46,9 +54,11 @@
 .task-generator-form textarea {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
     border-radius: 4px;
     font-size: 1rem;
+    background-color: var(--background-light);
+    color: var(--primary-text);
 }
 
 .task-generator-form textarea {
@@ -59,11 +69,12 @@
 .task-generator-form button {
     width: 100%;
     padding: 0.75rem;
-    background-color: #007bff;
-    color: white;
+    background-color: var(--accent);
+    color: #000;
     border: none;
     border-radius: 4px;
     font-size: 1.1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
@@ -74,7 +85,7 @@
 }
 
 .task-generator-form button:hover:not(:disabled) {
-    background-color: #0056b3;
+    background-color: var(--accent-hover);
 }
 
 .error-message {
@@ -85,10 +96,12 @@
 
 .generated-tasks-container {
     margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 2rem;
 }
 
 .generated-tasks-container h3 {
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid var(--border);
     padding-bottom: 0.5rem;
     margin-bottom: 1rem;
 }
@@ -99,8 +112,8 @@
 }
 
 .task-item {
-    background-color: #fff;
-    border: 1px solid #ddd;
+    background-color: var(--background-light);
+    border: 1px solid var(--border);
     border-radius: 4px;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -108,5 +121,5 @@
 
 .task-item h4 {
     margin-top: 0;
-    color: #007bff;
+    color: var(--accent);
 }
