@@ -104,7 +104,7 @@ const TaskGenerator = () => {
                 </div>
                 <div className="form-group">
                     <label htmlFor="fixedCosts">Fixed Costs (INR)</label>
-                    <input type="number" id="fixedCosts" value={fixedCosts} onChange={(e) => setFixedCosts(e.target.value)} required.
+                    <input type="number" id="fixedCosts" value={fixedCosts} onChange={(e) => setFixedCosts(e.target.value)} required />
                 </div>
                 <button type="submit" disabled={isLoading}>{isLoading ? 'Generating...' : 'Generate Tasks'}</button>
             </form>
