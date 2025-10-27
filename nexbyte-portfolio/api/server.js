@@ -938,29 +938,28 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
         projectName,
         projectGoal,
         total_budget_in_INR,
-        fixed_costs_in_INR,
-        number_of_tasks_to_generate
+        fixed_costs_in_INR
     } = req.body;
 
-    if (!clientId || !projectName || !projectGoal || !total_budget_in_INR || !fixed_costs_in_INR || !number_of_tasks_to_generate) {
+    if (!clientId || !projectName || !projectGoal || !total_budget_in_INR || !fixed_costs_in_INR) {
         return res.status(400).json({ message: 'Please provide all required fields for task generation.' });
     }
 
     const promptText = `
-        You are an AI project planner. Your goal is to generate practical, clear, and budget-aware tasks for a given project.
+        You are an expert AI project planner specializing in software development. Your goal is to generate a detailed, practical, and budget-aware task list for a given project.
 
         INPUT:
-        - project_name: "${projectName}"
-        - project_goal: "${projectGoal}"
-        - number_of_tasks_to_generate: ${number_of_tasks_to_generate}
+        - Project Name: "${projectName}"
+        - Project Goal & Requirements: "${projectGoal}"
 
         WHAT TO DO:
-        1. Understand the project and divide it into ${number_of_tasks_to_generate} clear, actionable tasks.
+        1. Analyze the project goal and requirements to create a comprehensive task list for the entire software development lifecycle. This includes planning, UI/UX design, frontend development, backend development, database management, testing, and deployment.
         2. Each task must have:
-           - task_title (short and action-oriented, max 8 words)
-           - task_description (2-4 meaningful sentences)
-           - estimated_effort_hours (numeric, roughly how much time it takes)
-        3. Output tasks in valid JSON only.
+           - task_title (short, action-oriented, max 8 words, e.g., "Develop User Login API")
+           - task_description (2-4 meaningful sentences explaining the task)
+           - estimated_effort_hours (a numeric estimate of hours required)
+        3. The tasks should be broken down into logical, manageable chunks.
+        4. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
 
         OUTPUT FORMAT:
         [

@@ -8,7 +8,6 @@ const TaskGenerator = () => {
     const [projectGoal, setProjectGoal] = useState('');
     const [totalBudget, setTotalBudget] = useState('');
     const [fixedCosts, setFixedCosts] = useState('');
-    const [numTasks, setNumTasks] = useState(5);
     const [generatedTasks, setGeneratedTasks] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -61,7 +60,6 @@ const TaskGenerator = () => {
                     projectGoal,
                     total_budget_in_INR: parseInt(totalBudget),
                     fixed_costs_in_INR: parseInt(fixedCosts),
-                    number_of_tasks_to_generate: parseInt(numTasks),
                 }),
             });
 
@@ -106,11 +104,7 @@ const TaskGenerator = () => {
                 </div>
                 <div className="form-group">
                     <label htmlFor="fixedCosts">Fixed Costs (INR)</label>
-                    <input type="number" id="fixedCosts" value={fixedCosts} onChange={(e) => setFixedCosts(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="numTasks">Number of Tasks to Generate</label>
-                    <input type="number" id="numTasks" value={numTasks} onChange={(e) => setNumTasks(e.target.value)} min="1" max="10" required />
+                    <input type="number" id="fixedCosts" value={fixedCosts} onChange={(e) => setFixedCosts(e.target.value)} required.
                 </div>
                 <button type="submit" disabled={isLoading}>{isLoading ? 'Generating...' : 'Generate Tasks'}</button>
             </form>
