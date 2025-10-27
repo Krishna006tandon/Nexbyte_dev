@@ -54,3 +54,31 @@
 .save-tasks-btn:hover:not(:disabled) {
     background-color: var(--accent-hover) !important;
 }
+
+.task-section h4 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: var(--secondary-text);
+}
+
+.completed-tasks {
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.completed-tasks .tasks-table td {
+    color: var(--secondary-text);
+    text-decoration: line-through;
+}
+
+.defect-tasks {
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.defect-tasks h4 {
+    color: #b00020; /* Red for defects */
+}
