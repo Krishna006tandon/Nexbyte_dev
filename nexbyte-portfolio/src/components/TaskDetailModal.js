@@ -66,7 +66,7 @@ const TaskDetailModal = ({ taskId, isOpen, onClose, onUpdate }) => {
                     body: JSON.stringify({ userId }),
                 });
             if (!response.ok) throw new Error('Failed to assign user');
-            const updatedTask = await response.json();
+            await response.json();
             // Re-fetch to populate the user
             const populatedTask = await fetch(`/api/tasks/${task._id}`).then(res => res.json());
             setTask(populatedTask);

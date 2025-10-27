@@ -135,6 +135,8 @@ const Admin = () => {
     setIsTaskModalOpen(false);
     setSelectedTaskId(null);
   };
+
+  const handleAddMember = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
