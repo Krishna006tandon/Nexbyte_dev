@@ -3,6 +3,28 @@ import './ProjectTracker.css';
 
 const milestones = ['Planning', 'Design', 'Development', 'Testing', 'Deployment', 'Completed'];
 
+const getMilestoneIcon = (milestone, status) => {
+  if (status === 'completed') {
+    return '✅';
+  }
+  switch (milestone) {
+    case 'Planning':
+      return '🗓️';
+    case 'Design':
+      return '🎨';
+    case 'Development':
+      return '💻';
+    case 'Testing':
+      return '🔬';
+    case 'Deployment':
+      return '🚀';
+    case 'Completed':
+      return '🏁';
+    default:
+      return '●';
+  }
+};
+
 const ProjectTracker = ({ currentMilestone }) => {
   const currentMilestoneIndex = milestones.indexOf(currentMilestone);
 
@@ -20,7 +42,7 @@ const ProjectTracker = ({ currentMilestone }) => {
           return (
             <div key={milestone} className={`milestone ${status}`}>
               <div className="milestone-icon">
-                {status === 'completed' ? '✓' : '●'}
+                {getMilestoneIcon(milestone, status)}
               </div>
               <div className="milestone-name">{milestone}</div>
             </div>
