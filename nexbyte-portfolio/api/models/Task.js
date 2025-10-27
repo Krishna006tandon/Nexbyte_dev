@@ -26,6 +26,17 @@ const TaskSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Client'
   },
+  assignedTo: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  comments: [
+    {
+      body: { type: String, required: true },
+      user: { type: Schema.Types.ObjectId, ref: 'User' },
+      date: { type: Date, default: Date.now }
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now

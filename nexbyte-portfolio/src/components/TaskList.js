@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './TaskList.css';
 
-const TaskList = ({ clientId, refreshTrigger }) => {
+const TaskList = ({ clientId, refreshTrigger, onTaskSelect }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -61,7 +61,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                     </thead>
                     <tbody>
                         {tasks.map(task => (
-                            <tr key={task._id}>
+                            <tr key={task._id} onClick={() => onTaskSelect(task._id)} className="clickable-row">
                                 <td>{task.task_title}</td>
                                 <td>{task.task_description}</td>
                                 <td>{task.estimated_effort_hours}</td>

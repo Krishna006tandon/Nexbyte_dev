@@ -29,8 +29,9 @@
     font-weight: bold;
 }
 
-.tasks-table tbody tr:hover {
+.clickable-row:hover {
     background-color: var(--border);
+    cursor: pointer;
 }
 
 .success-message {
