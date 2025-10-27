@@ -14,7 +14,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import ClientPanel from './pages/ClientPanel';
-import TaskList from './pages/TaskList';
+
 import { SrsProvider } from './context/SrsContext';
 import { AuthProvider } from './context/AuthContext';
 
@@ -41,7 +41,7 @@ function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/admin/*" element={<Admin />} />
                 <Route path="/client-panel" element={<ClientPanel />} />
-                <Route path="/tasks" element={<TaskList />} />
+                
               </Routes>
             </SrsProvider>
           </main>

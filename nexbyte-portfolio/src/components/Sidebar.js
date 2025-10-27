@@ -14,13 +14,11 @@ const Sidebar = () => {
     { to: "/admin/contacts", text: "Contact Messages" },
     { to: "/admin/members", text: "Members" },
     { to: "/admin/srs-generator", text: "SRS Generator" },
-    { to: "/admin/task-generator", text: "Task Generator" },
-    { to: "/tasks", text: "Task List" },
+    
+    
     ];
 
-  if (isAdmin) {
-    links.push({ to: "/admin/worklist", text: "Worklist" });
-  }
+  
 
   links.sort((a, b) => a.text.localeCompare(b.text));
 
