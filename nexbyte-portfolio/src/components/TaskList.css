@@ -1,0 +1,54 @@
+.task-list-container {
+    margin-top: 2rem;
+    padding: 2rem;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.task-list-container h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tasks-table th,
+.tasks-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.tasks-table th {
+    background-color: #f7f7f7;
+    font-weight: bold;
+}
+
+.tasks-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+.success-message {
+    color: #28a745;
+    background-color: #e9f7ef;
+    border: 1px solid #a1deb2;
+    padding: 1rem;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.save-tasks-btn {
+    margin-top: 1rem;
+    background-color: #28a745 !important; /* Override general button styles */
+}
+
+.save-tasks-btn:hover:not(:disabled) {
+    background-color: #218838 !important;
+}

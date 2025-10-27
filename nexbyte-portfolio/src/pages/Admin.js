@@ -4,6 +4,7 @@ import './Admin.css';
 import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
 import TaskGenerator from '../components/TaskGenerator';
+import TaskList from '../components/TaskList';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -18,6 +19,10 @@ const Admin = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { setSrsFullData } = useContext(SrsContext);
+
+  // State for Task Manager Page
+  const [taskPageClientId, setTaskPageClientId] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   
 
@@ -88,7 +93,7 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator' || location.pathname === '/admin/billing') {
+        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks'].includes(location.pathname)) {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -114,6 +119,10 @@ const Admin = () => {
 
     fetchData();
   }, [location.pathname]);
+
+  const handleTasksSaved = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const handleAddMember = async (e) => {
     e.preventDefault();
@@ -690,7 +699,17 @@ const Admin = () => {
             </div>
           )}
 
-          {location.pathname === '/admin/tasks' && <TaskGenerator />}
+                    {location.pathname === '/admin/tasks' && (
+            <div>
+              <TaskGenerator 
+                clients={clients} 
+                clientId={taskPageClientId} 
+                onClientChange={setTaskPageClientId}
+                onTasksSaved={handleTasksSaved}
+              />
+              <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
+            </div>
+          )}
 
           {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>

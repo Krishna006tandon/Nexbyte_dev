@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './TaskGenerator.css';
 
-const TaskGenerator = () => {
-    const [clients, setClients] = useState([]);
-    const [selectedClient, setSelectedClient] = useState('');
+const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
     const [projectName, setProjectName] = useState('');
     const [projectGoal, setProjectGoal] = useState('');
     const [totalBudget, setTotalBudget] = useState('');
@@ -11,36 +9,20 @@ const TaskGenerator = () => {
     const [generatedTasks, setGeneratedTasks] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState('');
 
     useEffect(() => {
-        // Fetch clients to populate the dropdown
-        const fetchClients = async () => {
-            try {
-                const response = await fetch('/api/clients');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch clients');
-                }
-                const data = await response.json();
-                setClients(data);
-            } catch (err) {
-                setError(err.message);
-            }
-        };
-        fetchClients();
-    }, []);
-
-    const handleClientChange = (e) => {
-        const clientId = e.target.value;
-        setSelectedClient(clientId);
-
         const client = clients.find(c => c._id === clientId);
         if (client) {
             setProjectName(client.projectName || '');
             setTotalBudget(client.totalBudget || '');
             setProjectGoal(client.projectRequirements || '');
         }
-    };
+        setGeneratedTasks([]);
+        setSuccessMessage('');
+    }, [clientId, clients]);
 
     const handleGenerateDescription = async () => {
         if (!projectName && !projectGoal) {
@@ -52,20 +34,13 @@ const TaskGenerator = () => {
         try {
             const response = await fetch('/api/generate-project-description', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    projectName: projectName,
-                    projectRequirements: projectGoal, // Using the goal/requirements field as input
-                }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectName, projectRequirements: projectGoal }),
             });
-
             if (!response.ok) {
                 const errData = await response.json();
                 throw new Error(errData.message || 'Failed to generate description');
             }
-
             const { description } = await response.json();
             setProjectGoal(description);
         } catch (err) {
@@ -75,32 +50,28 @@ const TaskGenerator = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handlePreview = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
+        setSuccessMessage('');
         setGeneratedTasks([]);
-
         try {
-            const response = await fetch('/api/generate-tasks', {
+            const response = await fetch('/api/preview-tasks', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    clientId: selectedClient,
+                    clientId: clientId,
                     projectName,
                     projectGoal,
                     total_budget_in_INR: parseInt(totalBudget),
                     fixed_costs_in_INR: parseInt(fixedCosts),
                 }),
             });
-
             if (!response.ok) {
                 const errData = await response.json();
                 throw new Error(errData.message || 'Failed to generate tasks');
             }
-
             const tasks = await response.json();
             setGeneratedTasks(tasks);
         } catch (err) {
@@ -110,13 +81,37 @@ const TaskGenerator = () => {
         }
     };
 
+    const handleSaveTasks = async () => {
+        setIsSaving(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/save-tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tasks: generatedTasks }),
+            });
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to save tasks');
+            }
+            setSuccessMessage('Tasks saved successfully!');
+            setGeneratedTasks([]); // Clear tasks after saving
+            if(onTasksSaved) onTasksSaved(); // Trigger refresh in parent
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="task-generator-container">
             <h2>AI Project Task Generator</h2>
-            <form onSubmit={handleSubmit} className="task-generator-form">
+            {successMessage && <p className="success-message">{successMessage}</p>}
+            <form onSubmit={handlePreview} className="task-generator-form">
                 <div className="form-group">
                     <label htmlFor="client">Select Client</label>
-                    <select id="client" value={selectedClient} onChange={handleClientChange} required>
+                    <select id="client" value={clientId} onChange={(e) => onClientChange(e.target.value)} required>
                         <option value="" disabled>-- Select a Client --</option>
                         {clients.map(client => (
                             <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
@@ -144,14 +139,14 @@ const TaskGenerator = () => {
                     <label htmlFor="fixedCosts">Fixed Costs (INR)</label>
                     <input type="number" id="fixedCosts" value={fixedCosts} onChange={(e) => setFixedCosts(e.target.value)} required />
                 </div>
-                <button type="submit" disabled={isLoading}>{isLoading ? 'Generating Tasks...' : 'Generate Tasks'}</button>
+                <button type="submit" disabled={isLoading}>{isLoading ? 'Generate Task Preview' : 'Generate Task Preview'}</button>
             </form>
 
             {error && <p className="error-message">{error}</p>}
 
             {generatedTasks.length > 0 && (
                 <div className="generated-tasks-container">
-                    <h3>Generated Tasks</h3>
+                    <h3>Preview of Generated Tasks</h3>
                     <ul className="tasks-list">
                         {generatedTasks.map((task, index) => (
                             <li key={index} className="task-item">
@@ -162,6 +157,9 @@ const TaskGenerator = () => {
                             </li>
                         ))}
                     </ul>
+                    <button onClick={handleSaveTasks} disabled={isSaving} className="save-tasks-btn">
+                        {isSaving ? 'Saving...' : 'Save Tasks to Project'}
+                    </button>
                 </div>
             )}
         </div>

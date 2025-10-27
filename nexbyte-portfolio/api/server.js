@@ -963,10 +963,10 @@ app.post('/api/generate-project-description', auth, admin, async (req, res) => {
 });
 
 
-// @route   POST api/generate-tasks
-// @desc    Generate tasks for a project using AI
+// @route   POST api/preview-tasks
+// @desc    Generate a preview of tasks for a project using AI
 // @access  Private (admin)
-app.post('/api/generate-tasks', auth, admin, async (req, res) => {
+app.post('/api/preview-tasks', auth, admin, async (req, res) => {
     const {
         clientId,
         projectName,
@@ -1033,8 +1033,8 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
 
         const tasksWithRewards = generatedTasks.map(task => {
             const proportionalReward = (task.estimated_effort_hours / total_effort) * remaining_budget;
-            let reward = Math.max(300, proportionalReward); // Ensure minimum reward
-            reward = Math.round(reward / 50) * 50; // Round to nearest 50
+            let reward = Math.max(300, proportionalReward);
+            reward = Math.round(reward / 50) * 50;
 
             return {
                 ...task,
@@ -1043,18 +1043,31 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
                 status: 'To Do'
             };
         });
-
-        const totalAllocated = tasksWithRewards.reduce((sum, task) => sum + task.reward_amount_in_INR, 0);
-        if (totalAllocated > remaining_budget) {
-            console.warn("Warning: Total allocated rewards exceed the remaining budget.");
-        }
-
-        await Task.insertMany(tasksWithRewards);
-        res.status(201).json(tasksWithRewards);
+        
+        res.status(200).json(tasksWithRewards);
 
     } catch (error) {
-        console.error('Error generating or saving tasks with Gemini:', error);
-        res.status(500).json({ message: 'Failed to generate or save tasks.', error: error.message });
+        console.error('Error generating task preview with Gemini:', error);
+        res.status(500).json({ message: 'Failed to generate task preview.', error: error.message });
+    }
+});
+
+// @route   POST api/save-tasks
+// @desc    Save generated tasks to the database
+// @access  Private (admin)
+app.post('/api/save-tasks', auth, admin, async (req, res) => {
+    const { tasks } = req.body;
+
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+        return res.status(400).json({ message: 'A non-empty array of tasks is required.' });
+    }
+
+    try {
+        await Task.insertMany(tasks);
+        res.status(201).json({ message: 'Tasks saved successfully.' });
+    } catch (error) {
+        console.error('Error saving tasks:', error);
+        res.status(500).json({ message: 'Failed to save tasks.', error: error.message });
     }
 });
 
