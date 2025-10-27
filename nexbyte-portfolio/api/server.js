@@ -927,6 +927,146 @@ app.get('/api/messages', auth, admin, async (req, res) => {
 
 
 
+const Task = require('./models/Task');
+
+// @route   POST api/generate-tasks
+// @desc    Generate tasks for a project using AI
+// @access  Private (admin)
+app.post('/api/generate-tasks', auth, admin, async (req, res) => {
+    const {
+        clientId,
+        projectName,
+        projectGoal,
+        total_budget_in_INR,
+        fixed_costs_in_INR,
+        number_of_tasks_to_generate
+    } = req.body;
+
+    if (!clientId || !projectName || !projectGoal || !total_budget_in_INR || !fixed_costs_in_INR || !number_of_tasks_to_generate) {
+        return res.status(400).json({ message: 'Please provide all required fields for task generation.' });
+    }
+
+    const promptText = `
+        You are an AI project planner. Your goal is to generate practical, clear, and budget-aware tasks for a given project.
+
+        INPUT:
+        - project_name: "${projectName}"
+        - project_goal: "${projectGoal}"
+        - number_of_tasks_to_generate: ${number_of_tasks_to_generate}
+
+        WHAT TO DO:
+        1. Understand the project and divide it into ${number_of_tasks_to_generate} clear, actionable tasks.
+        2. Each task must have:
+           - task_title (short and action-oriented, max 8 words)
+           - task_description (2-4 meaningful sentences)
+           - estimated_effort_hours (numeric, roughly how much time it takes)
+        3. Output tasks in valid JSON only.
+
+        OUTPUT FORMAT:
+        [
+          {
+            "task_title": "string",
+            "task_description": "string",
+            "estimated_effort_hours": number
+          }
+        ]
+    `;
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    try {
+        const result = await model.generateContent(promptText);
+        const response = await result.response;
+        const tasksJson = response.text().replace(/```json|```/g, '').trim();
+        let generatedTasks = JSON.parse(tasksJson);
+
+        const remaining_budget = total_budget_in_INR - fixed_costs_in_INR;
+        const total_effort = generatedTasks.reduce((sum, task) => sum + task.estimated_effort_hours, 0);
+
+        if (total_effort === 0) {
+            return res.status(400).json({ message: 'Total estimated effort is zero, cannot allocate budget.' });
+        }
+
+        const tasksWithRewards = generatedTasks.map(task => {
+            const proportionalReward = (task.estimated_effort_hours / total_effort) * remaining_budget;
+            let reward = Math.max(300, proportionalReward); // Ensure minimum reward
+            reward = Math.round(reward / 50) * 50; // Round to nearest 50
+
+            return {
+                ...task,
+                reward_amount_in_INR: reward,
+                client: clientId,
+                status: 'To Do'
+            };
+        });
+
+        const totalAllocated = tasksWithRewards.reduce((sum, task) => sum + task.reward_amount_in_INR, 0);
+        if (totalAllocated > remaining_budget) {
+            // Handle overallocation if necessary, for now, we'll just log it
+            console.warn("Warning: Total allocated rewards exceed the remaining budget.");
+        }
+
+        await Task.insertMany(tasksWithRewards);
+        res.status(201).json(tasksWithRewards);
+
+    } catch (error) {
+        console.error('Error generating or saving tasks with Gemini:', error);
+        res.status(500).json({ message: 'Failed to generate or save tasks.', error: error.message });
+    }
+});
+
+// @route   GET api/tasks
+// @desc    Get all tasks for a client
+// @access  Private (client or admin)
+app.get('/api/tasks', auth, async (req, res) => {
+    try {
+        let tasks;
+        if (req.user.role === 'admin') {
+            // Admin can see all tasks, or filter by clientId if provided
+            const { clientId } = req.query;
+            if (clientId) {
+                tasks = await Task.find({ client: clientId }).sort({ createdAt: -1 });
+            } else {
+                tasks = await Task.find().sort({ createdAt: -1 });
+            }
+        } else {
+            // A client can only see their own tasks
+            tasks = await Task.find({ client: req.user.id }).sort({ createdAt: -1 });
+        }
+        res.json(tasks);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   PUT api/tasks/:id
+// @desc    Update a task's status
+// @access  Private (admin)
+app.put('/api/tasks/:id', auth, admin, async (req, res) => {
+    const { status } = req.body;
+
+    if (!status) {
+        return res.status(400).json({ message: 'Status is required' });
+    }
+
+    try {
+        const task = await Task.findById(req.params.id);
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+        task.status = status;
+        await task.save();
+
+        res.json(task);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {

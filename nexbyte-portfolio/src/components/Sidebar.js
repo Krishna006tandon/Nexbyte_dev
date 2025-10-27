@@ -14,6 +14,7 @@ const Sidebar = () => {
     { to: "/admin/contacts", text: "Contact Messages" },
     { to: "/admin/members", text: "Members" },
     { to: "/admin/srs-generator", text: "SRS Generator" },
+    { to: "/admin/tasks", text: "Task Manager" },
     
     
     ];

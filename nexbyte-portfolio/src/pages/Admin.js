@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
+import TaskGenerator from '../components/TaskGenerator';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -689,7 +690,7 @@ const Admin = () => {
             </div>
           )}
 
-          
+          {location.pathname === '/admin/tasks' && <TaskGenerator />}
 
           {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>
