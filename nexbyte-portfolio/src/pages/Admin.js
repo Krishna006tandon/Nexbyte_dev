@@ -5,6 +5,8 @@ import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
 import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
+import ProjectTracker from '../components/ProjectTracker';
+import Modal from '../components/Modal';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -23,6 +25,10 @@ const Admin = () => {
   // State for Task Manager Page
   const [taskPageClientId, setTaskPageClientId] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
+  const [milestone, setMilestone] = useState(null);
+  const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
 
 
   const [clientData, setClientData] = useState({
@@ -438,6 +444,27 @@ const Admin = () => {
     }
   };
 
+  const handleShowTracker = async (client) => {
+    setSelectedClientForTracker(client);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/clients/${client._id}/milestone`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      if (res.ok) {
+        const clientWithMilestone = await res.json();
+        setMilestone(clientWithMilestone.milestone);
+        setIsTrackerModalOpen(true);
+      } else {
+        console.error("Failed to fetch milestone");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   
 
   console.log('Bills:', bills);
@@ -607,6 +634,7 @@ const Admin = () => {
                       </td>
                       <td>
                         <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
+                        <button onClick={() => handleShowTracker(client)} className="btn btn-info">Show Tracker</button>
                       </td>
                     </tr>
                   ))}
@@ -714,6 +742,16 @@ const Admin = () => {
             <p>Welcome to the admin dashboard!</p>
           )}
         </div>
+
+        {isTrackerModalOpen && selectedClientForTracker && milestone && (
+          <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
+            <div className="project-tracker-modal">
+              <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
+              <ProjectTracker currentMilestone={milestone} />
+            </div>
+          </Modal>
+        )}
+
       </div>
     </div>
   );

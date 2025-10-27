@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { QRCodeSVG } from 'qrcode.react';import Modal from '../components/Modal';
+import { QRCodeSVG } from 'qrcode.react';
+import Modal from '../components/Modal';
+import ProjectTracker from '../components/ProjectTracker'; // Import ProjectTracker
 import './ClientPanel.css';
 
 const ClientPanel = () => {
@@ -12,6 +14,7 @@ const ClientPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [transactionId, setTransactionId] = useState('');
+  const [milestone, setMilestone] = useState(null); // Add state for milestone
 
   const handlePayNow = (bill) => {
     setSelectedBill(bill);
@@ -52,6 +55,34 @@ const ClientPanel = () => {
 
     fetchData();
   }, []);
+
+  // Fetch milestone data
+  useEffect(() => {
+    const fetchMilestone = async () => {
+      if (data && data.clientData) {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`/api/clients/${data.clientData.id}/milestone`, {
+            headers: {
+              'x-auth-token': token,
+            },
+          });
+
+          if (!res.ok) {
+            throw new Error('Failed to fetch milestone');
+          }
+
+          const clientWithMilestone = await res.json();
+          setMilestone(clientWithMilestone.milestone);
+        } catch (err) {
+          // Don't block the UI for this, just log the error
+          console.error("Error fetching milestone:", err.message);
+        }
+      }
+    };
+
+    fetchMilestone();
+  }, [data]);
 
   useEffect(() => {
     const fetchBills = async () => {
@@ -143,6 +174,7 @@ const ClientPanel = () => {
 
   const renderDashboard = () => (
     <div className="client-data">
+      {milestone && <ProjectTracker currentMilestone={milestone} />}
       <h2>Project Details</h2>
       <p><strong>Project:</strong> {data.clientData.project}</p>
       <p><strong>Status:</strong> {data.clientData.status}</p>

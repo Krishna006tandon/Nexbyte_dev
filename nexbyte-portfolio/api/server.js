@@ -1211,6 +1211,50 @@ app.post('/api/tasks/:id/comments', auth, async (req, res) => {
     }
 });
 
+
+// @route   GET api/clients/:clientId/milestone
+// @desc    Get and update client project milestone
+// @access  Private (admin or client)
+app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const client = await Client.findById(clientId);
+
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    const tasks = await Task.find({ client: clientId });
+
+    let newMilestone = 'Planning'; // Default milestone
+
+    if (tasks.length > 0) {
+      const taskStatuses = tasks.map(task => task.status);
+
+      if (taskStatuses.every(status => status === 'Done')) {
+        newMilestone = 'Completed';
+      } else if (taskStatuses.some(status => status === 'Needs Review' || status === 'Defect')) {
+        newMilestone = 'Testing';
+      } else if (taskStatuses.some(status => status === 'In Progress')) {
+        newMilestone = 'Development';
+      } else if (taskStatuses.every(status => status === 'To Do')) {
+        newMilestone = 'Planning';
+      }
+    }
+
+    if (client.milestone !== newMilestone) {
+      client.milestone = newMilestone;
+      client.milestoneHistory.push({ milestone: newMilestone, date: new Date() });
+      await client.save();
+    }
+
+    res.json(client);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {

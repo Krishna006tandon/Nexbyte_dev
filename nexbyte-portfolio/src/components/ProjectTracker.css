@@ -1,0 +1,79 @@
+.project-tracker-container {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.project-tracker {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+
+.project-tracker::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: #e0e0e0;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.milestone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.milestone-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.milestone-name {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Status-specific styles */
+.milestone.completed .milestone-icon {
+  background-color: #4CAF50; /* Green */
+}
+
+.milestone.current .milestone-icon {
+  background-color: #2196F3; /* Blue */
+  animation: pulse 1.5s infinite;
+}
+
+.milestone.pending .milestone-icon {
+  background-color: #bdbdbd; /* Grey */
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}

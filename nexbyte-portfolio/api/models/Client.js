@@ -15,6 +15,17 @@ const ClientSchema = new mongoose.Schema({
   projectDeadline: { type: Date },
   totalBudget: { type: Number },
 
+  // Project Tracking
+  milestone: {
+    type: String,
+    enum: ['Planning', 'Design', 'Development', 'Testing', 'Deployment', 'Completed'],
+    default: 'Planning'
+  },
+  milestoneHistory: [{
+    milestone: String,
+    date: { type: Date, default: Date.now }
+  }],
+
   // Billing and Payment Information
   billingAddress: { type: String },
   gstNumber: { type: String },
