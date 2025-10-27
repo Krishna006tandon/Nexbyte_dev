@@ -996,13 +996,15 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
             ---
 
             WHAT TO DO:
-            1. Analyze all provided documents (Description, Requirements, and SRS) to create a comprehensive task list for the entire software development lifecycle. This includes planning, UI/UX design, frontend development, backend development, database management, testing, and deployment.
-            2. Each task must have:
+            1. Analyze all provided documents to create a comprehensive task list for the entire software development lifecycle.
+            2. IMPORTANT: The tasks must be strictly technical development tasks. DO NOT include project management, client communication, meetings, or any other non-technical administrative tasks. Focus only on the work required to build and deploy the software.
+            3. This includes planning, UI/UX design, frontend development, backend development, database management, testing, and deployment.
+            4. Each task must have:
                - task_title (short, action-oriented, max 8 words, e.g., "Develop User Login API")
                - task_description (2-4 meaningful sentences explaining the task)
                - estimated_effort_hours (a numeric estimate of hours required)
-            3. The tasks should be broken down into logical, manageable chunks.
-            4. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
+            5. The tasks should be broken down into logical, manageable chunks.
+            6. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
 
             OUTPUT FORMAT:
             [
