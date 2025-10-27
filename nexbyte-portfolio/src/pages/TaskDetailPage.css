@@ -91,6 +91,41 @@
     cursor: not-allowed;
 }
 
+.defect-btn, .review-btn {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.defect-btn {
+    background-color: #b00020; /* Red for defect */
+}
+
+.defect-btn:hover {
+    background-color: #cf6679;
+}
+
+.review-btn {
+    background-color: #007bff; /* Blue for review */
+}
+
+.review-btn:hover {
+    background-color: #0056b3;
+}
+
+.task-completed-message {
+    text-align: center;
+    font-weight: 600;
+    color: #28a745;
+    margin-top: 1rem;
+}
+
 .comments-section {
     margin-top: 2rem;
     border-top: 1px solid var(--border);
