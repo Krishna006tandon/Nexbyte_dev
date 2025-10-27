@@ -4,39 +4,60 @@
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   color: var(--primary-text);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
 }
 
 .data-table th, .data-table td {
-  padding: 1rem;
+  padding: 1.2rem 1.5rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
 .data-table thead th {
-  background-color: var(--surface);
-  color: var(--primary-text);
-  font-weight: 600;
-  font-size: 0.9rem;
+  background: linear-gradient(to right, #434343, #000000);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .data-table tbody tr {
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
+  background-color: var(--surface);
 }
 
 .data-table tbody tr:hover {
   background-color: var(--surface-hover);
+  transform: scale(1.02);
+  box-shadow: 0 5px 15px rgba(0, 255, 255, 0.1);
+}
+
+.data-table tbody td {
+    border-color: var(--border);
 }
 
 .data-table .actions a {
-  margin-right: 10px;
+  margin-right: 15px;
   color: var(--accent);
+  transition: color 0.3s ease;
+}
+
+.data-table .actions a:hover {
+  color: var(--accent-hover);
 }
 
 @media (max-width: 768px) {
+  .data-table {
+    border-radius: 0;
+    box-shadow: none;
+  }
   .data-table thead {
     display: none;
   }
@@ -47,10 +68,11 @@
   }
 
   .data-table tr {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 15px;
     overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
   }
 
   .data-table td {
@@ -69,11 +91,12 @@
   .data-table td::before {
     content: attr(data-label);
     position: absolute;
-    left: 1rem;
-    width: calc(50% - 2rem);
+    left: 1.5rem;
+    width: calc(50% - 3rem);
     padding-right: 10px;
     white-space: nowrap;
-    font-weight: 600;
-    color: var(--primary-text);
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
   }
 }

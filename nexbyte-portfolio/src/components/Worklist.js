@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './Worklist.css';
+import Table from './Table';
 import Modal from './Modal';
 
 const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => {
@@ -44,28 +45,25 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
     };
   });
 
+  const summaryHeaders = ['Member', 'Total Tasks', 'Tasks Done'];
+  const summaryData = workSummary.map(summary => ({'email': summary.email, 'total': summary.total, 'done': summary.done}));
+
+  const taskHeaders = ['Description', 'Assigned To', 'Cost', 'Deadline', 'Status', 'Created At'];
+  const taskData = tasks.map(task => ({
+    'description': task.description,
+    'assignedTo': task.assignedTo.email,
+    'cost': task.cost,
+    'deadline': new Date(task.deadline).toLocaleDateString(),
+    'status': task.status,
+    'createdAt': new Date(task.createdAt).toLocaleString(),
+    onClick: () => handleTaskClick(task)
+  }));
+
   return (
     <div className="worklist-container">
       <div className="worklist-summary">
         <h3>Work Summary</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Member</th>
-              <th>Total Tasks</th>
-              <th>Tasks Done</th>
-            </tr>
-          </thead>
-          <tbody>
-            {workSummary.map(summary => (
-              <tr key={summary._id}>
-                <td>{summary.email}</td>
-                <td>{summary.total}</td>
-                <td>{summary.done}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table headers={summaryHeaders} data={summaryData} />
       </div>
 
       <div className="form-container">
@@ -103,31 +101,7 @@ const Worklist = ({ tasks, members, onAddTask, onUpdateTask, onDeleteTask }) => 
       </div>
 
       <h3>All Tasks</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Assigned To</th>
-            <th>Cost</th>
-            <th>Deadline</th>
-            <th>Status</th>
-            <th>Created At</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((task) => (
-            <tr key={task._id} onClick={() => handleTaskClick(task)} className="clickable-row">
-              <td>{task.description}</td>
-              <td>{task.assignedTo.email}</td>
-              <td>{task.cost}</td>
-              <td>{new Date(task.deadline).toLocaleDateString()}</td>
-              <td>{task.status}</td>
-              <td>{new Date(task.createdAt).toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Table headers={taskHeaders} data={taskData} />
 
       <Modal isOpen={isModalOpen} onClose={closeModal}>
         {selectedTask && editingTask && (

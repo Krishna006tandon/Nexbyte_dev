@@ -3,6 +3,8 @@ import Card from '../components/Card';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import './About.css';
 import { AuthContext } from '../context/AuthContext';
+import { Canvas } from '@react-three/fiber';
+import { Box } from '@react-three/drei';
 
 const teamMembers = [
   {
@@ -103,6 +105,15 @@ const About = () => {
             </Card>
           ))}
         </div>
+      </section>
+
+      <section className="three-d-section">
+        <h2 className="section-title">3D Model</h2>
+        <Canvas style={{ height: '400px' }}>
+            <ambientLight />
+            <pointLight position={[10, 10, 10]} />
+            <Box position={[0, 0, 0]} />
+        </Canvas>
       </section>
 
       {user && user.role === 'admin' && (
