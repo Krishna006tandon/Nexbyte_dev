@@ -30,6 +30,19 @@ const TaskGenerator = () => {
         fetchClients();
     }, []);
 
+    const handleClientChange = (e) => {
+        const clientId = e.target.value;
+        setSelectedClient(clientId);
+
+        const client = clients.find(c => c._id === clientId);
+        if (client) {
+            setProjectName(client.projectName || '');
+            setTotalBudget(client.totalBudget || '');
+            // Optionally, you can also pre-fill the project goal from project requirements
+            setProjectGoal(client.projectRequirements || '');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
@@ -72,10 +85,10 @@ const TaskGenerator = () => {
             <form onSubmit={handleSubmit} className="task-generator-form">
                 <div className="form-group">
                     <label htmlFor="client">Select Client</label>
-                    <select id="client" value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} required>
+                    <select id="client" value={selectedClient} onChange={handleClientChange} required>
                         <option value="" disabled>-- Select a Client --</option>
                         {clients.map(client => (
-                            <option key={client._id} value={client._id}>{client.clientName}</option>
+                            <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
                         ))}
                     </select>
                 </div>
