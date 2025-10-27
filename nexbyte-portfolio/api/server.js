@@ -1112,6 +1112,17 @@ app.put('/api/tasks/:id', auth, admin, async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        // Check if status is changing to 'Done' to award credits
+        if (status === 'Done' && task.status !== 'Done') {
+            if (task.assignedTo && task.reward_amount_in_INR > 0) {
+                const user = await User.findById(task.assignedTo);
+                if (user) {
+                    user.credits = (user.credits || 0) + task.reward_amount_in_INR;
+                    await user.save();
+                }
+            }
+        }
+
         task.status = status;
         await task.save();
 

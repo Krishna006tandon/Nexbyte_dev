@@ -5,7 +5,6 @@ import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
 import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
-import TaskDetailModal from '../components/TaskDetailModal';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -24,8 +23,6 @@ const Admin = () => {
   // State for Task Manager Page
   const [taskPageClientId, setTaskPageClientId] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
 
 
   const [clientData, setClientData] = useState({
@@ -124,16 +121,6 @@ const Admin = () => {
 
   const handleTasksSaved = () => {
     setRefreshTrigger(prev => prev + 1);
-  };
-
-  const handleOpenTaskModal = (taskId) => {
-    setSelectedTaskId(taskId);
-    setIsTaskModalOpen(true);
-  };
-
-  const handleCloseTaskModal = () => {
-    setIsTaskModalOpen(false);
-    setSelectedTaskId(null);
   };
 
   const handleAddMember = async (e) => {
@@ -719,18 +706,7 @@ const Admin = () => {
                 onClientChange={setTaskPageClientId}
                 onTasksSaved={handleTasksSaved}
               />
-              <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} onTaskSelect={handleOpenTaskModal} />
-            </div>
-          )}
-
-        {isTaskModalOpen && (
-          <TaskDetailModal 
-            taskId={selectedTaskId} 
-            isOpen={isTaskModalOpen} 
-            onClose={handleCloseTaskModal} 
-            onUpdate={handleTasksSaved} // Re-use the same trigger to refresh the list
-          />
-        )}
+              <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
 
           {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>

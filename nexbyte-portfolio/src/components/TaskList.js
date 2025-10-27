@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './TaskList.css';
 
-const TaskList = ({ clientId, refreshTrigger, onTaskSelect }) => {
+const TaskList = ({ clientId, refreshTrigger }) => {
+    const navigate = useNavigate();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -30,6 +32,10 @@ const TaskList = ({ clientId, refreshTrigger, onTaskSelect }) => {
 
         fetchTasks();
     }, [clientId, refreshTrigger]);
+
+    const handleTaskClick = (taskId) => {
+        navigate(`/admin/task/${taskId}`);
+    };
 
     if (!clientId) {
         return <div className="task-list-container"><h4>Please select a client to view their tasks.</h4></div>;
@@ -61,7 +67,7 @@ const TaskList = ({ clientId, refreshTrigger, onTaskSelect }) => {
                     </thead>
                     <tbody>
                         {tasks.map(task => (
-                            <tr key={task._id} onClick={() => onTaskSelect(task._id)} className="clickable-row">
+                            <tr key={task._id} onClick={() => handleTaskClick(task._id)} className="clickable-row">
                                 <td>{task.task_title}</td>
                                 <td>{task.task_description}</td>
                                 <td>{task.estimated_effort_hours}</td>
