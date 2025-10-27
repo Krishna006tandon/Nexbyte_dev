@@ -929,6 +929,40 @@ app.get('/api/messages', auth, admin, async (req, res) => {
 
 const Task = require('./models/Task');
 
+// @route   POST api/generate-project-description
+// @desc    Generate a project description using AI
+// @access  Private (admin)
+app.post('/api/generate-project-description', auth, admin, async (req, res) => {
+    const { projectName, projectRequirements } = req.body;
+
+    if (!projectName || !projectRequirements) {
+        return res.status(400).json({ message: 'Project name and requirements are required.' });
+    }
+
+    const promptText = `
+        Based on the following project name and requirements, generate a concise, one-paragraph project description or goal.
+
+        - Project Name: "${projectName}"
+        - Project Requirements: "${projectRequirements}"
+
+        Generate only the summary paragraph. Do not include any conversational text, preambles, or titles.
+    `;
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    try {
+        const result = await model.generateContent(promptText);
+        const response = await result.response;
+        const description = response.text();
+        res.status(200).json({ description });
+    } catch (error) {
+        console.error('Error generating project description with Gemini:', error);
+        res.status(500).json({ message: 'Failed to generate project description.', error: error.message });
+    }
+});
+
+
 // @route   POST api/generate-tasks
 // @desc    Generate tasks for a project using AI
 // @access  Private (admin)
@@ -945,36 +979,44 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
         return res.status(400).json({ message: 'Please provide all required fields for task generation.' });
     }
 
-    const promptText = `
-        You are an expert AI project planner specializing in software development. Your goal is to generate a detailed, practical, and budget-aware task list for a given project.
-
-        INPUT:
-        - Project Name: "${projectName}"
-        - Project Goal & Requirements: "${projectGoal}"
-
-        WHAT TO DO:
-        1. Analyze the project goal and requirements to create a comprehensive task list for the entire software development lifecycle. This includes planning, UI/UX design, frontend development, backend development, database management, testing, and deployment.
-        2. Each task must have:
-           - task_title (short, action-oriented, max 8 words, e.g., "Develop User Login API")
-           - task_description (2-4 meaningful sentences explaining the task)
-           - estimated_effort_hours (a numeric estimate of hours required)
-        3. The tasks should be broken down into logical, manageable chunks.
-        4. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
-
-        OUTPUT FORMAT:
-        [
-          {
-            "task_title": "string",
-            "task_description": "string",
-            "estimated_effort_hours": number
-          }
-        ]
-    `;
-
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     try {
+        // Fetch client to get SRS document
+        const client = await Client.findById(clientId);
+        const srsContent = client ? client.srsDocument : 'No SRS provided.';
+
+        const promptText = `
+            You are an expert AI project planner specializing in software development. Your goal is to generate a detailed, practical, and budget-aware task list for a given project.
+
+            INPUT:
+            - Project Name: "${projectName}"
+            - Project Goal & Requirements: "${projectGoal}"
+            - Software Requirement Specification (SRS) Document:
+            ---
+            ${srsContent || 'No SRS provided.'}
+            ---
+
+            WHAT TO DO:
+            1. Analyze all provided documents (Description, Requirements, and SRS) to create a comprehensive task list for the entire software development lifecycle. This includes planning, UI/UX design, frontend development, backend development, database management, testing, and deployment.
+            2. Each task must have:
+               - task_title (short, action-oriented, max 8 words, e.g., "Develop User Login API")
+               - task_description (2-4 meaningful sentences explaining the task)
+               - estimated_effort_hours (a numeric estimate of hours required)
+            3. The tasks should be broken down into logical, manageable chunks.
+            4. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
+
+            OUTPUT FORMAT:
+            [
+              {
+                "task_title": "string",
+                "task_description": "string",
+                "estimated_effort_hours": number
+              }
+            ]
+        `;
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
         const result = await model.generateContent(promptText);
         const response = await result.response;
         const tasksJson = response.text().replace(/```json|```/g, '').trim();
@@ -1002,7 +1044,6 @@ app.post('/api/generate-tasks', auth, admin, async (req, res) => {
 
         const totalAllocated = tasksWithRewards.reduce((sum, task) => sum + task.reward_amount_in_INR, 0);
         if (totalAllocated > remaining_budget) {
-            // Handle overallocation if necessary, for now, we'll just log it
             console.warn("Warning: Total allocated rewards exceed the remaining budget.");
         }
 

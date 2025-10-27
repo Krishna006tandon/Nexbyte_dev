@@ -24,6 +24,23 @@
     color: #555;
 }
 
+.label-with-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.label-with-button label {
+    margin-bottom: 0;
+}
+
+.label-with-button button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    width: auto;
+}
+
 .task-generator-form input,
 .task-generator-form select,
 .task-generator-form textarea {

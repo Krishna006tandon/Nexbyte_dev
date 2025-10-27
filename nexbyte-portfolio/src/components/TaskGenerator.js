@@ -10,13 +10,14 @@ const TaskGenerator = () => {
     const [fixedCosts, setFixedCosts] = useState('');
     const [generatedTasks, setGeneratedTasks] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         // Fetch clients to populate the dropdown
         const fetchClients = async () => {
             try {
-                const response = await fetch('/api/clients'); // Assuming this endpoint exists and is protected
+                const response = await fetch('/api/clients');
                 if (!response.ok) {
                     throw new Error('Failed to fetch clients');
                 }
@@ -37,8 +38,40 @@ const TaskGenerator = () => {
         if (client) {
             setProjectName(client.projectName || '');
             setTotalBudget(client.totalBudget || '');
-            // Optionally, you can also pre-fill the project goal from project requirements
             setProjectGoal(client.projectRequirements || '');
+        }
+    };
+
+    const handleGenerateDescription = async () => {
+        if (!projectName && !projectGoal) {
+            alert('Please select a client or provide project name and requirements first.');
+            return;
+        }
+        setIsGeneratingDesc(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/generate-project-description', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    projectName: projectName,
+                    projectRequirements: projectGoal, // Using the goal/requirements field as input
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to generate description');
+            }
+
+            const { description } = await response.json();
+            setProjectGoal(description);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsGeneratingDesc(false);
         }
     };
 
@@ -95,7 +128,12 @@ const TaskGenerator = () => {
                     <input type="text" id="projectName" value={projectName} onChange={(e) => setProjectName(e.target.value)} required />
                 </div>
                 <div className="form-group">
-                    <label htmlFor="projectGoal">Project Goal</label>
+                    <div className="label-with-button">
+                        <label htmlFor="projectGoal">Project Description & Requirements</label>
+                        <button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc}>
+                            {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
+                        </button>
+                    </div>
                     <textarea id="projectGoal" value={projectGoal} onChange={(e) => setProjectGoal(e.target.value)} required />
                 </div>
                 <div className="form-group">
@@ -106,7 +144,7 @@ const TaskGenerator = () => {
                     <label htmlFor="fixedCosts">Fixed Costs (INR)</label>
                     <input type="number" id="fixedCosts" value={fixedCosts} onChange={(e) => setFixedCosts(e.target.value)} required />
                 </div>
-                <button type="submit" disabled={isLoading}>{isLoading ? 'Generating...' : 'Generate Tasks'}</button>
+                <button type="submit" disabled={isLoading}>{isLoading ? 'Generating Tasks...' : 'Generate Tasks'}</button>
             </form>
 
             {error && <p className="error-message">{error}</p>}
