@@ -76,7 +76,6 @@ const ClientPanel = () => {
           setMilestone(clientWithMilestone.milestone);
         } catch (err) {
           // Don't block the UI for this, just log the error
-          console.error("Error fetching milestone:", err.message);
         }
       }
     };
@@ -327,24 +326,18 @@ const ClientPanel = () => {
                         <strong>${data.clientData.project}</strong>
                     </td>
                     <td class="qty">1</td>
-                    <td class="rate">₹${(bill.amount / 1.18).toFixed(2)}</td>
-                    <td class="amount">₹${(bill.amount / 1.18).toFixed(2)}</td>
+                    <td class="rate">₹${bill.amount.toFixed(2)}</td>
+                    <td class="amount">₹${bill.amount.toFixed(2)}</td>
                 </tr>
             </tbody>
         </table>
         <section class="total-section">
-            <div>
-                <strong>Subtotal:</strong> ₹${(bill.amount / 1.18).toFixed(2)}
-            </div>
-            <div>
-                <strong>GST (18%):</strong> ₹${(bill.amount - (bill.amount / 1.18)).toFixed(2)}
-            </div>
             <div class="grand-total">
                 <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
             </div>
         </section>
         <footer class="footer">
-            <div>Payment due within 15 days.</div>
+            <div>${data.clientData.paymentTerms || 'Payment due upon receipt.'}</div>
             <div>Thank you for choosing NexByte_Dev!</div>
         </footer>
     </div>
@@ -357,7 +350,7 @@ const ClientPanel = () => {
       margin:       0,
       filename:     `invoice_${bill._id}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 },
+      html2canvas:  { scale: 2, backgroundColor: '#1a1a1a' },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
