@@ -11,7 +11,7 @@ const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 
 const User = require('./models/User');
-const Task = require('./models/Task');
+
 const Bill = require('./models/Bill');
 
 
@@ -833,80 +833,7 @@ app.post('/api/edit-srs', auth, admin, async (req, res) => {
   }
 });
 
-// @route   POST api/generate-tasks
-// @desc    Generate tasks for a project
-// @access  Private (admin)
-app.post('/api/generate-tasks', auth, admin, async (req, res) => {
-  const { clientId, description } = req.body;
 
-  if (!clientId) {
-    return res.status(400).json({ message: 'Client ID is required' });
-  }
-
-  try {
-    const client = await Client.findById(clientId);
-    if (!client) {
-      return res.status(404).json({ message: 'Client not found' });
-    }
-
-    const srs = client.srsDocument;
-    if (!srs) {
-      return res.status(404).json({ message: 'SRS document not found for this client. Please generate one first.' });
-    }
-
-    const promptText = `
-      Based on the following Software Requirement Specification (SRS) and project description, generate a list of development tasks.
-
-      **SRS Document:**
-      ---
-      ${srs}
-      ---
-
-      **High-Level Project Description/Instructions:**
-      ---
-      ${description || 'No additional description provided.'}
-      ---
-
-      Please generate a list of tasks required to complete this project.
-      The output MUST be a valid JSON array of objects. Each object in the array should represent a single task and have the following structure:
-      {
-        "description": "A detailed description of the task, including the goal of the task and the expected outcome.",
-        "status": "To Do"
-      }
-
-      Do not include any conversational text, preambles, or apologies in your response. Only provide the raw JSON array.
-    `;
-
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Using gemini-2.5-flash for potentially better JSON generation
-
-    const result = await model.generateContent(promptText);
-    const response = await result.response;
-    const text = response.text();
-
-    // Clean the text to ensure it's valid JSON
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-    try {
-      const tasks = JSON.parse(cleanedText);
-      // Add createdBy/assignedTo fields before sending
-      const finalTasks = tasks.map(task => ({
-        ...task,
-        projectId: clientId,
-        assignedTo: req.user.id,
-        createdBy: req.user.id,
-      }));
-      res.json(finalTasks);
-    } catch (e) {
-      console.error('Failed to parse AI response as JSON:', cleanedText);
-      res.status(500).json({ message: 'Failed to parse AI response. The AI did not return valid JSON.', rawResponse: cleanedText });
-    }
-
-  } catch (error) {
-    console.error('Error generating tasks with Gemini:', error);
-    res.status(500).json({ message: 'Failed to generate tasks with AI.', error: error.message });
-  }
-});
 
 // @route   POST api/summarize-srs
 // @desc    Generate a summary for an SRS document
@@ -988,151 +915,340 @@ app.get('/api/messages', auth, admin, async (req, res) => {
   }
 });
 
-// @route   GET /api/admin/contributions
-// @desc    Get admin contributions
+
+
+
+
+
+
+
+
+
+
+
+
+const Task = require('./models/Task');
+
+// @route   POST api/generate-project-description
+// @desc    Generate a project description using AI
 // @access  Private (admin)
-app.get('/api/admin/contributions', auth, admin, async (req, res) => {
-  try {
-    const tasks = await Task.aggregate([
-      {
-        $group: {
-          _id: '$assignedTo',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+app.post('/api/generate-project-description', auth, admin, async (req, res) => {
+    const { projectName, projectRequirements } = req.body;
 
-    const users = await User.find({ role: 'admin' }).select('-password');
+    if (!projectName || !projectRequirements) {
+        return res.status(400).json({ message: 'Project name and requirements are required.' });
+    }
 
-    const contributions = users.map(user => {
-      const taskInfo = tasks.find(t => t._id.toString() === user._id.toString());
-      return {
-        email: user.email,
-        tasks: taskInfo ? taskInfo.count : 0,
-      };
-    });
+    const promptText = `
+        Based on the following project name and requirements, generate a concise, one-paragraph project description or goal.
 
-    res.json(contributions);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
+        - Project Name: "${projectName}"
+        - Project Requirements: "${projectRequirements}"
+
+        Generate only the summary paragraph. Do not include any conversational text, preambles, or titles.
+    `;
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    try {
+        const result = await model.generateContent(promptText);
+        const response = await result.response;
+        const description = response.text();
+        res.status(200).json({ description });
+    } catch (error) {
+        console.error('Error generating project description with Gemini:', error);
+        res.status(500).json({ message: 'Failed to generate project description.', error: error.message });
+    }
+});
+
+
+// @route   POST api/preview-tasks
+// @desc    Generate a preview of tasks for a project using AI
+// @access  Private (admin)
+app.post('/api/preview-tasks', auth, admin, async (req, res) => {
+    const {
+        clientId,
+        projectName,
+        projectGoal,
+        total_budget_in_INR,
+        fixed_costs_in_INR
+    } = req.body;
+
+    if (!clientId || !projectName || !projectGoal || !total_budget_in_INR || !fixed_costs_in_INR) {
+        return res.status(400).json({ message: 'Please provide all required fields for task generation.' });
+    }
+
+    try {
+        // Fetch client to get SRS document
+        const client = await Client.findById(clientId);
+        const srsContent = client ? client.srsDocument : 'No SRS provided.';
+
+        const promptText = `
+            You are an expert AI project planner specializing in software development. Your goal is to generate a detailed, practical, and budget-aware task list for a given project.
+
+            INPUT:
+            - Project Name: "${projectName}"
+            - Project Goal & Requirements: "${projectGoal}"
+            - Software Requirement Specification (SRS) Document:
+            ---
+            ${srsContent || 'No SRS provided.'}
+            ---
+
+            WHAT TO DO:
+            1. Analyze all provided documents to create a comprehensive task list for the entire software development lifecycle.
+            2. IMPORTANT: The tasks must be strictly technical development tasks. DO NOT include project management, client communication, meetings, or any other non-technical administrative tasks. Focus only on the work required to build and deploy the software.
+            3. This includes planning, UI/UX design, frontend development, backend development, database management, testing, and deployment.
+            4. Each task must have:
+               - task_title (short, action-oriented, max 8 words, e.g., "Develop User Login API")
+               - task_description (2-4 meaningful sentences explaining the task)
+               - estimated_effort_hours (a numeric estimate of hours required)
+            5. The tasks should be broken down into logical, manageable chunks.
+            6. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
+
+            OUTPUT FORMAT:
+            [
+              {
+                "task_title": "string",
+                "task_description": "string",
+                "estimated_effort_hours": number
+              }
+            ]
+        `;
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const result = await model.generateContent(promptText);
+        const response = await result.response;
+        const tasksJson = response.text().replace(/```json|```/g, '').trim();
+        let generatedTasks = JSON.parse(tasksJson);
+
+        const remaining_budget = total_budget_in_INR - fixed_costs_in_INR;
+        const total_effort = generatedTasks.reduce((sum, task) => sum + task.estimated_effort_hours, 0);
+
+        if (total_effort === 0) {
+            return res.status(400).json({ message: 'Total estimated effort is zero, cannot allocate budget.' });
+        }
+
+        const tasksWithRewards = generatedTasks.map(task => {
+            const proportionalReward = (task.estimated_effort_hours / total_effort) * remaining_budget;
+            let reward = Math.max(300, proportionalReward);
+            reward = Math.round(reward / 50) * 50;
+
+            return {
+                ...task,
+                reward_amount_in_INR: reward,
+                client: clientId,
+                status: 'To Do'
+            };
+        });
+        
+        res.status(200).json(tasksWithRewards);
+
+    } catch (error) {
+        console.error('Error generating task preview with Gemini:', error);
+        res.status(500).json({ message: 'Failed to generate task preview.', error: error.message });
+    }
+});
+
+// @route   POST api/save-tasks
+// @desc    Save generated tasks to the database
+// @access  Private (admin)
+app.post('/api/save-tasks', auth, admin, async (req, res) => {
+    const { tasks } = req.body;
+
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+        return res.status(400).json({ message: 'A non-empty array of tasks is required.' });
+    }
+
+    try {
+        await Task.insertMany(tasks);
+        res.status(201).json({ message: 'Tasks saved successfully.' });
+    } catch (error) {
+        console.error('Error saving tasks:', error);
+        res.status(500).json({ message: 'Failed to save tasks.', error: error.message });
+    }
 });
 
 // @route   GET api/tasks
-// @desc    Get all tasks
-// @access  Private (admin)
-app.get('/api/tasks', auth, admin, async (req, res) => {
-  try {
-    const { projectId } = req.query;
-    const filter = projectId ? { projectId } : {};
-
-    const tasks = await Task.find(filter)
-      .populate('assignedTo', 'email')
-      .populate('createdBy', 'email')
-      .sort({ createdAt: -1 });
-    res.json(tasks);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   POST api/tasks
-// @desc    Create a new task
-// @access  Private (admin)
-app.post('/api/tasks', auth, admin, async (req, res) => {
-  const { description, assignedTo, cost, deadline, projectId } = req.body;
-
-  if (!description || !assignedTo || !projectId) {
-    return res.status(400).json({ message: 'Description, assignedTo, and projectId are required' });
-  }
-
-  try {
-    const newTask = new Task({
-      projectId,
-      description,
-      assignedTo,
-      createdBy: req.user.id,
-      cost,
-      deadline,
-    });
-
-    await newTask.save();
-    const task = await Task.findById(newTask._id)
-      .populate('assignedTo', 'email')
-      .populate('createdBy', 'email');
-    res.json(task);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
+// @desc    Get all tasks for a client
+// @access  Private (client or admin)
+app.get('/api/tasks', auth, async (req, res) => {
+    try {
+        let tasks;
+        if (req.user.role === 'admin') {
+            // Admin can see all tasks, or filter by clientId if provided
+            const { clientId } = req.query;
+            if (clientId) {
+                tasks = await Task.find({ client: clientId }).sort({ createdAt: -1 });
+            } else {
+                tasks = await Task.find().sort({ createdAt: -1 });
+            }
+        } else {
+            // A client can only see their own tasks
+            tasks = await Task.find({ client: req.user.id }).sort({ createdAt: -1 });
+        }
+        res.json(tasks);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 // @route   PUT api/tasks/:id
-// @desc    Update a task
+// @desc    Update a task's status
 // @access  Private (admin)
 app.put('/api/tasks/:id', auth, admin, async (req, res) => {
-  const { status } = req.body;
+    const { status } = req.body;
 
-  try {
-    const task = await Task.findById(req.params.id);
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
+    if (!status) {
+        return res.status(400).json({ message: 'Status is required' });
     }
 
-    if (status) {
-      task.status = status;
-      if (status === 'Done') {
-        task.completedAt = Date.now();
-        const user = await User.findById(task.assignedTo);
-        if (user) {
-          user.credits = (user.credits || 0) + (task.cost || 0);
-          await user.save();
+    try {
+        const task = await Task.findById(req.params.id);
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found' });
         }
+
+        // Check if status is changing to 'Done' to award credits
+        if (status === 'Done' && task.status !== 'Done') {
+            if (task.assignedTo && task.reward_amount_in_INR > 0) {
+                const user = await User.findById(task.assignedTo);
+                if (user) {
+                    user.credits = (user.credits || 0) + task.reward_amount_in_INR;
+                    await user.save();
+                }
+            }
+        }
+
+        task.status = status;
+        await task.save();
+
+        res.json(task);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   GET api/tasks/:id
+// @desc    Get a single task by ID
+// @access  Private
+app.get('/api/tasks/:id', auth, async (req, res) => {
+    try {
+        const task = await Task.findById(req.params.id)
+            .populate('assignedTo', 'email')
+            .populate('comments.user', 'email');
+
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+        res.json(task);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   PUT api/tasks/:id/assign
+// @desc    Assign a user to a task
+// @access  Private (admin)
+app.put('/api/tasks/:id/assign', auth, admin, async (req, res) => {
+    const { userId } = req.body;
+
+    try {
+        const task = await Task.findById(req.params.id);
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+        task.assignedTo = userId;
+        await task.save();
+
+        res.json(task);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   POST api/tasks/:id/comments
+// @desc    Add a comment to a task
+// @access  Private
+app.post('/api/tasks/:id/comments', auth, async (req, res) => {
+    const { body } = req.body;
+
+    if (!body) {
+        return res.status(400).json({ message: 'Comment body is required' });
+    }
+
+    try {
+        const task = await Task.findById(req.params.id);
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+        const newComment = {
+            body,
+            user: req.user.id,
+        };
+
+        task.comments.unshift(newComment);
+        await task.save();
+
+        // Populate user info for the new comment before sending back
+        const populatedTask = await Task.findById(req.params.id)
+            .populate('assignedTo', 'email')
+            .populate('comments.user', 'email');
+
+        res.json(populatedTask);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// @route   GET api/clients/:clientId/milestone
+// @desc    Get and update client project milestone
+// @access  Private (admin or client)
+app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const client = await Client.findById(clientId);
+
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    const tasks = await Task.find({ client: clientId });
+
+    let newMilestone = 'Planning'; // Default milestone
+
+    if (tasks.length > 0) {
+      const taskStatuses = tasks.map(task => task.status);
+
+      if (taskStatuses.every(status => status === 'Done')) {
+        newMilestone = 'Completed';
+      } else if (taskStatuses.some(status => status === 'Needs Review' || status === 'Defect')) {
+        newMilestone = 'Testing';
+      } else if (taskStatuses.some(status => status === 'In Progress' || status === 'Done')) {
+        newMilestone = 'Development';
+      } else if (taskStatuses.every(status => status === 'To Do')) {
+        newMilestone = 'Planning';
       }
     }
 
-    await task.save();
-    const updatedTask = await Task.findById(task._id)
-      .populate('assignedTo', 'email')
-      .populate('createdBy', 'email');
-    res.json(updatedTask);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   DELETE api/tasks/:id
-// @desc    Delete a task
-// @access  Private (admin)
-app.delete('/api/tasks/:id', auth, admin, async (req, res) => {
-  try {
-    const task = await Task.findByIdAndDelete(req.params.id);
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
+    if (client.milestone !== newMilestone) {
+      client.milestone = newMilestone;
+      client.milestoneHistory.push({ milestone: newMilestone, date: new Date() });
+      await client.save();
     }
-    res.json({ message: 'Task removed' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
-// @route   POST api/tasks/bulk
-// @desc    Create multiple tasks at once
-// @access  Private (admin)
-app.post('/api/tasks/bulk', auth, admin, async (req, res) => {
-  const { tasks } = req.body;
-
-  if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
-    return res.status(400).json({ message: 'Tasks array is required' });
-  }
-
-  try {
-    const createdTasks = await Task.insertMany(tasks);
-    res.json(createdTasks);
+    res.json(client);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });

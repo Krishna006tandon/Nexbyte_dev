@@ -1,0 +1,116 @@
+.project-tracker-container {
+  padding: 20px;
+  background-color: #f7f9fc;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.project-tracker {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  padding: 20px 0;
+}
+
+.project-tracker::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  right: 5%;
+  height: 3px;
+  background-color: #dfe3e8;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.milestone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  width: 100px;
+}
+
+.milestone-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 3px solid #dfe3e8;
+  color: #dfe3e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  transition: all 0.4s ease;
+}
+
+.milestone-name {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #919eab;
+  transition: color 0.4s ease;
+}
+
+/* Completed Status */
+.milestone.completed .milestone-icon {
+  border-color: #54d62c;
+  background-color: #54d62c;
+  color: #fff;
+}
+
+.milestone.completed .milestone-name {
+  color: #212b36;
+}
+
+/* Current Status */
+.milestone.current .milestone-icon {
+  border-color: #007bff;
+  background-color: #fff;
+  color: #007bff;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 6px rgba(0, 123, 255, 0.1);
+}
+
+.milestone.current .milestone-name {
+  color: #0052b3;
+  font-weight: 700;
+}
+
+/* Pulsing animation for current stage */
+.milestone.current .milestone-icon::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #007bff;
+  animation: pulse 1.5s infinite;
+  z-index: -1;
+}
+
+/* Pending Status */
+.milestone.pending .milestone-icon {
+  background-color: #f4f6f8;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}

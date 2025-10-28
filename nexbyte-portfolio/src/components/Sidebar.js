@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import './Sidebar.css';
 
 const Sidebar = () => {
-  const { isAdmin, user } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const links = [
     { to: "/admin", text: "Dashboard" },
@@ -14,13 +14,12 @@ const Sidebar = () => {
     { to: "/admin/contacts", text: "Contact Messages" },
     { to: "/admin/members", text: "Members" },
     { to: "/admin/srs-generator", text: "SRS Generator" },
-    { to: "/admin/task-generator", text: "Task Generator" },
-    { to: "/tasks", text: "Task List" },
+    { to: "/admin/tasks", text: "Task Manager" },
+    
+    
     ];
 
-  if (isAdmin) {
-    links.push({ to: "/admin/worklist", text: "Worklist" });
-  }
+  
 
   links.sort((a, b) => a.text.localeCompare(b.text));
 
@@ -28,7 +27,7 @@ const Sidebar = () => {
     <div className="sidebar">
       {user && (
         <div className="sidebar-profile">
-          <img src="https://i.pravatar.cc/150?img=32" alt="User Avatar" />
+          
           <div className="sidebar-profile-info">
             <span>{user.email}</span>
             <span>Credits: {user.credits}</span>

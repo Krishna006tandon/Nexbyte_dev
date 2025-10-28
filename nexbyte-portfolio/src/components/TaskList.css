@@ -1,0 +1,84 @@
+.task-list-container {
+    margin-top: 2rem;
+    padding: 2rem;
+    background-color: var(--surface);
+    border-radius: 8px;
+}
+
+.task-list-container h3 {
+    margin-top: 0;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tasks-table th,
+.tasks-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.tasks-table th {
+    background-color: var(--surface-hover);
+    font-weight: bold;
+}
+
+.clickable-row:hover {
+    background-color: var(--border);
+    cursor: pointer;
+}
+
+.success-message {
+    color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.5);
+    padding: 1rem;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.save-tasks-btn {
+    margin-top: 1rem;
+    background-color: var(--accent) !important;
+    color: #000 !important;
+    font-weight: 600;
+}
+
+.save-tasks-btn:hover:not(:disabled) {
+    background-color: var(--accent-hover) !important;
+}
+
+.task-section h4 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: var(--secondary-text);
+}
+
+.completed-tasks {
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.completed-tasks .tasks-table td {
+    color: var(--secondary-text);
+    text-decoration: line-through;
+}
+
+.defect-tasks {
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.defect-tasks h4 {
+    color: #b00020; /* Red for defects */
+}

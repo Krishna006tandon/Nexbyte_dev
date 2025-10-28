@@ -1,0 +1,96 @@
+/* Styles for the Task Detail Modal */
+.task-detail-modal {
+    width: 90%;
+    max-width: 700px;
+}
+
+.task-detail-modal h2 {
+    margin-top: 0;
+    color: var(--accent);
+}
+
+.task-meta {
+    display: flex;
+    gap: 2rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background-color: var(--background-light);
+    border-radius: 8px;
+}
+
+.task-meta span {
+    font-size: 0.9rem;
+}
+
+.task-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.task-actions .form-group label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+}
+
+.task-actions .form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--background-light);
+    color: var(--primary-text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.comments-section {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+}
+
+.comment-form textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: var(--background-light);
+    color: var(--primary-text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.comment-form button {
+    display: block;
+    width: auto;
+    margin-left: auto; /* Align button to the right */
+    padding: 0.5rem 1rem;
+    background-color: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.comments-list {
+    margin-top: 1.5rem;
+}
+
+.comment {
+    background-color: var(--background-light);
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--accent);
+}
+
+.comment-body {
+    margin: 0 0 0.5rem 0;
+}
+
+.comment-meta {
+    font-size: 0.8rem;
+    color: var(--secondary-text);
+    margin: 0;
+}

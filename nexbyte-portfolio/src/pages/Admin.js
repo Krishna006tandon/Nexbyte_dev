@@ -3,6 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
+import TaskGenerator from '../components/TaskGenerator';
+import TaskList from '../components/TaskList';
+import ProjectTracker from '../components/ProjectTracker';
+import Modal from '../components/Modal';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -18,13 +22,14 @@ const Admin = () => {
   const navigate = useNavigate();
   const { setSrsFullData } = useContext(SrsContext);
 
-  // State for Task Generator
-  const [generatedTasks, setGeneratedTasks] = useState([]);
-  const [selectedClientIdForTasks, setSelectedClientIdForTasks] = useState('');
-  const [projectDescriptionForTasks, setProjectDescriptionForTasks] = useState('');
-  const [isTasksLoading, setIsTasksLoading] = useState(false);
-  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
-  const [tasksError, setTasksError] = useState('');
+  // State for Task Manager Page
+  const [taskPageClientId, setTaskPageClientId] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
+  const [milestone, setMilestone] = useState(null);
+  const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
+
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -93,7 +98,7 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (location.pathname === '/admin/clients' || location.pathname === '/admin/srs-generator' || location.pathname === '/admin/billing' || location.pathname === '/admin/task-generator') {
+        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks'].includes(location.pathname)) {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -119,6 +124,10 @@ const Admin = () => {
 
     fetchData();
   }, [location.pathname]);
+
+  const handleTasksSaved = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const handleAddMember = async (e) => {
     e.preventDefault();
@@ -435,123 +444,28 @@ const Admin = () => {
     }
   };
 
-  const handleClientSelectionForTasks = async (clientId) => {
-    setSelectedClientIdForTasks(clientId);
-    if (!clientId) {
-      setProjectDescriptionForTasks('');
-      setTasksError('');
-      return;
-    }
-
-    setIsDescriptionLoading(true);
-    setProjectDescriptionForTasks('');
-    setTasksError('');
-    const token = localStorage.getItem('token');
-
+  const handleShowTracker = async (client) => {
+    setSelectedClientForTracker(client);
     try {
-      // Step 1: Fetch the SRS document
-      const srsRes = await fetch(`/api/clients/${clientId}/srs`, {
-        headers: { 'x-auth-token': token },
-      });
-
-      if (!srsRes.ok) {
-        if (srsRes.status === 404) {
-          setTasksError('SRS not found for this client. Please enter a description manually.');
-          setIsDescriptionLoading(false);
-          return;
-        }
-        throw new Error('Failed to fetch SRS document.');
-      }
-
-      const { srsDocument } = await srsRes.json();
-
-      // Step 2: Summarize the SRS
-      const summaryRes = await fetch('/api/summarize-srs', {
-        method: 'POST',
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/clients/${client._id}/milestone`, {
         headers: {
-          'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ srsContent: srsDocument }),
       });
-
-      if (!summaryRes.ok) {
-        throw new Error('Failed to generate SRS summary.');
-      }
-
-      const { summary } = await summaryRes.json();
-      setProjectDescriptionForTasks(summary);
-
-    } catch (err) {
-      setTasksError(err.message);
-    } finally {
-      setIsDescriptionLoading(false);
-    }
-  };
-
-  const handleGenerateTasks = async (e) => {
-    e.preventDefault();
-    setTasksError('');
-    setIsTasksLoading(true);
-
-    if (!selectedClientIdForTasks) {
-      setTasksError('Please select a client.');
-      setIsTasksLoading(false);
-      return;
-    }
-
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch('/api/generate-tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-        body: JSON.stringify({
-          clientId: selectedClientIdForTasks,
-          description: projectDescriptionForTasks,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to generate tasks.');
-      }
-
-      setGeneratedTasks(data);
-    } catch (err) {
-      setTasksError(err.message);
-    } finally {
-      setIsTasksLoading(false);
-    }
-  };
-
-  const handleSaveTasks = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch('/api/tasks/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-        body: JSON.stringify({ tasks: generatedTasks }),
-      });
-      const data = await res.json();
       if (res.ok) {
-        setGeneratedTasks([]);
-        alert('Tasks saved successfully!');
+        const clientWithMilestone = await res.json();
+        setMilestone(clientWithMilestone.milestone);
+        setIsTrackerModalOpen(true);
       } else {
-        console.error(data.message);
-        alert('Failed to save tasks.');
+        console.error("Failed to fetch milestone");
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to save tasks.');
     }
   };
+
+  
 
   console.log('Bills:', bills);
   return (
@@ -720,6 +634,7 @@ const Admin = () => {
                       </td>
                       <td>
                         <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
+                        <button onClick={() => handleShowTracker(client)} className="btn btn-info">Show Tracker</button>
                       </td>
                     </tr>
                   ))}
@@ -811,54 +726,15 @@ const Admin = () => {
             </div>
           )}
 
-          {location.pathname === '/admin/task-generator' && (
+                    {location.pathname === '/admin/tasks' && (
             <div>
-              <h2>Task Generator</h2>
-              <div className="form-container">
-                <form onSubmit={handleGenerateTasks}>
-                  <h3>Generate Project Tasks</h3>
-                  <select onChange={(e) => handleClientSelectionForTasks(e.target.value)} value={selectedClientIdForTasks} required>
-                    <option value="">Select a Client</option>
-                    {clients.map(client => (
-                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
-                    ))}
-                  </select>
-                  <textarea
-                    name="projectDescriptionForTasks"
-                    placeholder={isDescriptionLoading ? "Generating summary from SRS..." : "Provide a high-level description of the project or specific instructions for the AI."}
-                    value={projectDescriptionForTasks}
-                    onChange={(e) => setProjectDescriptionForTasks(e.target.value)}
-                    disabled={isDescriptionLoading}
-                  ></textarea>
-                  <button type="submit" className="btn btn-primary" disabled={isTasksLoading}>
-                    {isTasksLoading ? 'Generating...' : 'Generate Tasks'}
-                  </button>
-                  {tasksError && <p className="text-danger">{tasksError}</p>}
-                </form>
-              </div>
-
-              {generatedTasks.length > 0 && (
-                <div>
-                  <h3>Generated Tasks</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {generatedTasks.map((task, index) => (
-                        <tr key={index}>
-                          <td>{task.description}</td>
-                          <td>{task.status}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <button onClick={handleSaveTasks} className="btn btn-success">Save Tasks</button>
-                </div>
-              )}
+              <TaskGenerator 
+                clients={clients} 
+                clientId={taskPageClientId} 
+                onClientChange={setTaskPageClientId}
+                onTasksSaved={handleTasksSaved}
+              />
+              <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
             </div>
           )}
 
@@ -866,6 +742,16 @@ const Admin = () => {
             <p>Welcome to the admin dashboard!</p>
           )}
         </div>
+
+        {isTrackerModalOpen && selectedClientForTracker && milestone && (
+          <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
+            <div className="project-tracker-modal">
+              <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
+              <ProjectTracker currentMilestone={milestone} />
+            </div>
+          </Modal>
+        )}
+
       </div>
     </div>
   );
