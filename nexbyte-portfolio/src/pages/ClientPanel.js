@@ -164,6 +164,203 @@ const ClientPanel = () => {
     }
   };
 
+  const handleDownloadBill = (bill) => {
+    const invoiceContent = `
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ccc;
+            margin: 0;
+            padding: 20px;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 30px;
+            background-color: #222222;
+            border: 1px solid #333;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+        .header .logo {
+            max-width: 180px;
+        }
+        .company-details {
+            text-align: right;
+            font-size: 0.9em;
+            color: #bbb;
+        }
+        .company-details h1 {
+            margin: 0;
+            color: #eee;
+            font-size: 2em;
+        }
+        .details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            font-size: 0.9em;
+        }
+        .client-details {
+            color: #bbb;
+        }
+        .client-details strong {
+            color: #ddd;
+        }
+        .invoice-details {
+            text-align: right;
+        }
+        .invoice-details strong {
+            display: inline-block;
+            width: 100px;
+            color: #ddd;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items-table thead th {
+            background-color: #333;
+            color: #eee;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #444;
+        }
+        .items-table tbody tr {
+            border-bottom: 1px solid #444;
+        }
+        .items-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        .items-table td {
+            padding: 12px;
+            vertical-align: top;
+        }
+        .items-table .description {
+            color: #ddd;
+        }
+        .items-table .qty,
+        .items-table .rate,
+        .items-table .amount {
+            text-align: right;
+        }
+        .total-section {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 2px solid #555;
+            text-align: right;
+        }
+        .total-section div {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+        .total-section div strong {
+            display: inline-block;
+            width: 150px;
+            color: #ccc;
+        }
+        .total-section .grand-total {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #eee;
+        }
+        .total-section .grand-total strong {
+            color: #eee;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #444;
+            font-size: 0.8em;
+            color: #aaa;
+            text-align: center;
+        }
+    </style>
+    <div class="invoice-box">
+        <header class="header">
+            <div class="logo">
+                <img src="F:\Projects\Nexbyte_dev\nexbyte-portfolio\public\logobill.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
+            </div>
+            <div class="company-details">
+                <h1>INVOICE</h1>
+                <div>NexByte_Dev</div>
+                <div>123 Tech Street, Silicon Nagpur</div>
+                <div>Nagpur, MH 440001</div>
+                <div>info@nexbytedev.com</div>
+            </div>
+        </header>
+        <section class="details">
+            <div class="client-details">
+                <strong>BILL TO:</strong>
+                <div>${data.clientData.name}</div>
+                <div>${data.clientData.address || 'N/A'}</div>
+                <div>${data.clientData.email}</div>
+            </div>
+            <div class="invoice-details">
+                <div><strong>Invoice #:</strong> ${bill._id}</div>
+                <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+                <div><strong>Due Date:</strong> ${new Date(bill.dueDate).toLocaleDateString()}</div>
+            </div>
+        </section>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th class="qty">Qty</th>
+                    <th class="rate">Rate</th>
+                    <th class="amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="description">
+                        <strong>${data.clientData.project}</strong>
+                    </td>
+                    <td class="qty">1</td>
+                    <td class="rate">₹${(bill.amount / 1.18).toFixed(2)}</td>
+                    <td class="amount">₹${(bill.amount / 1.18).toFixed(2)}</td>
+                </tr>
+            </tbody>
+        </table>
+        <section class="total-section">
+            <div>
+                <strong>Subtotal:</strong> ₹${(bill.amount / 1.18).toFixed(2)}
+            </div>
+            <div>
+                <strong>GST (18%):</strong> ₹${(bill.amount - (bill.amount / 1.18)).toFixed(2)}
+            </div>
+            <div class="grand-total">
+                <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
+            </div>
+        </section>
+        <footer class="footer">
+            <div>Payment due within 15 days.</div>
+            <div>Thank you for choosing NexByte_Dev!</div>
+        </footer>
+    </div>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = invoiceContent;
+
+    const opt = {
+      margin:       0,
+      filename:     `invoice_${bill._id}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().from(element).set(opt).save();
+  };
+
   if (error) {
     return <div className="client-panel-error">{error}</div>;
   }
@@ -206,8 +403,7 @@ const ClientPanel = () => {
               {status !== 'Paid' && (
                 <div className="bill-actions">
                   <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
-                  {/* <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button> */}
-                  <button className="download-btn" disabled>Download Bill</button>
+                  <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button>
                 </div>
               )}
             </div>
