@@ -10,8 +10,8 @@ const { body, validationResult } = require('express-validator');
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 
-const User = require('./models/User');
 
+const User = require('./models/User');
 const Bill = require('./models/Bill');
 
 
@@ -464,6 +464,9 @@ app.get('/api/client/data', auth, client, async (req, res) => {
       message: `Welcome, ${client.clientName}`,
       clientData: {
         id: client._id,
+        name: client.clientName,
+        contactPerson: client.contactPerson,
+        email: client.email,
         project: client.projectName,
         status: 'In Progress',
         dueDate: client.projectDeadline,
@@ -914,6 +917,8 @@ app.get('/api/messages', auth, admin, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 
 
