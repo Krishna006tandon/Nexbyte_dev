@@ -43,7 +43,7 @@ const ClientPanel = () => {
         });
 
         if (!res.ok) {
-          throw new Error('Failed to fetch data');
+          throw new Error('Failed to fetch client data. Please check your network connection and login status.');
         }
 
         const clientData = await res.json();
@@ -165,6 +165,10 @@ const ClientPanel = () => {
   };
 
   const handleDownloadBill = (bill) => {
+    if (!data || !data.clientData) {
+      alert('Client data is not yet loaded. Please wait a moment and try again.');
+      return;
+    }
     const invoiceContent = `
     <style>
         body {
@@ -291,17 +295,15 @@ const ClientPanel = () => {
             <div class="company-details">
                 <h1>INVOICE</h1>
                 <div>NexByte_Dev</div>
-                <div>123 Tech Street, Silicon Nagpur</div>
-                <div>Nagpur, MH 440001</div>
-                <div>info@nexbytedev.com</div>
+                <div>nexbyte.dev@gmail.com</div>
             </div>
         </header>
         <section class="details">
             <div class="client-details">
                 <strong>BILL TO:</strong>
-                <div>${data.clientData.name}</div>
-                <div>${data.clientData.address || 'N/A'}</div>
-                <div>${data.clientData.email}</div>
+                <div>${data.clients.clientName}</div>
+                <div>${data.clients.companyAddress || 'N/A'}</div>
+                <div>${data.clients.email}</div>
             </div>
             <div class="invoice-details">
                 <div><strong>Invoice #:</strong> ${bill._id}</div>
@@ -362,7 +364,18 @@ const ClientPanel = () => {
   };
 
   if (error) {
-    return <div className="client-panel-error">{error}</div>;
+    return (
+      <div className="client-panel-error" style={{ padding: '20px', margin: '20px', border: '1px solid red', backgroundColor: '#ffebeb' }}>
+        <h2 style={{ color: '#d8000c' }}>An Error Occurred</h2>
+        <p>{error}</p>
+        <p><strong>Troubleshooting Tips:</strong></p>
+        <ul>
+          <li>Please ensure you are logged in with a client account.</li>
+          <li>If this is a new deployment, please verify that the environment variables (e.g., <code>MONGODB_URI</code>, <code>JWT_SECRET</code>) are correctly set in your hosting environment (like Vercel).</li>
+          <li>Check your internet connection.</li>
+        </ul>
+      </div>
+    );
   }
 
   if (!data) {
