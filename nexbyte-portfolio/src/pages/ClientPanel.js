@@ -286,7 +286,7 @@ const ClientPanel = () => {
     <div class="invoice-box">
         <header class="header">
             <div class="logo">
-                <img src="F:\Projects\Nexbyte_dev\nexbyte-portfolio\public\logobill.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
+                <img src="/logobill.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
             </div>
             <div class="company-details">
                 <h1>INVOICE</h1>
