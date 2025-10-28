@@ -1,8 +1,7 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React from 'react';
 import Card from '../components/Card';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import './About.css';
-import { AuthContext } from '../context/AuthContext';
 import { Canvas } from '@react-three/fiber';
 import { Box } from '@react-three/drei';
 
@@ -41,56 +40,21 @@ const teamMembers = [
   },
 ];
 
-const attendanceData = [
-  { name: 'Krishna Tandon', attendance: ['P', 'P', 'P', 'A', 'P', 'P', 'P'] },
-  { name: 'Rudresh Vyas', attendance: ['P', 'P', 'P', 'P', 'P', 'A', 'P'] },
-  { name: 'Kajal Mantapurwar', attendance: ['P', 'A', 'P', 'P', 'P', 'P', 'P'] },
-  { name: 'Abhishek Muthalkar', attendance: ['P', 'P', 'A', 'P', 'P', 'P', 'A'] },
-];
-
-const last7Days = [...Array(7).keys()].map(i => {
-  const d = new Date();
-  d.setDate(d.getDate() - i);
-  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
-}).reverse();
-
-
 const About = () => {
-  const { user } = useContext(AuthContext);
-  const [contributions, setContributions] = useState([]);
-
-  useEffect(() => {
-    const fetchContributions = async () => {
-      if (user && user.role === 'admin') {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch('/api/admin/contributions', {
-            headers: {
-              'x-auth-token': token,
-            },
-          });
-          const data = await response.json();
-          setContributions(data);
-        } catch (error) {
-          console.error('Error fetching admin contributions:', error);
-        }
-      }
-    };
-
-    fetchContributions();
-  }, [user]);
-
   return (
     <div className="about-page">
       <header className="page-header">
-        <h1 className="page-title">About Our Team</h1>
+        <h1 className="page-title">About NexByte_Dev</h1>
         <p className="page-subtitle">
-          We are a team of passionate developers and designers dedicated to creating innovative and beautiful digital experiences. 
-          Our diverse skills and collaborative spirit drive us to build technology that is not only functional but also inspiring.
+          Welcome to NexByte_Dev, a hub of innovation where technology meets creativity. We are a collective of passionate developers, designers, and strategists dedicated to building cutting-edge digital solutions. 
+          Our mission is to transform complex challenges into elegant, high-performance web applications, AI-driven systems, and secure backend architectures. 
+          With a collaborative spirit and a commitment to excellence, we strive to deliver products that are not only functional and scalable but also provide an inspiring user experience. 
+          At NexByte_Dev, we don't just write code; we build the future, one line at a time.
         </p>
       </header>
 
       <section className="team-section">
+        <h2 className="section-title">Our Team</h2>
         <div className="team-grid">
           {teamMembers.map((member, index) => (
             <Card key={index} className="team-member-card">
@@ -107,62 +71,29 @@ const About = () => {
         </div>
       </section>
 
-      <section className="three-d-section">
-        <h2 className="section-title">3D Model</h2>
-        <Canvas style={{ height: '400px' }}>
-            <ambientLight />
-            <pointLight position={[10, 10, 10]} />
-            <Box position={[0, 0, 0]} />
-        </Canvas>
-      </section>
-
-      {user && user.role === 'admin' && (
-        <section className="admin-contributions">
-          <h2 className="section-title">Admin Contributions</h2>
-          <pre>{JSON.stringify(contributions, null, 2)}</pre>
-        </section>
-      )}
-
       <section className="tech-stack-section">
-        <h2 className="section-title">Our Tech Stack</h2>
+        <h2 className="section-title">Our Core Technologies</h2>
         <div className="tech-stack-grid">
           <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" alt="React" /><span>React</span></div>
           <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" alt="Node.js" /><span>Node.js</span></div>
-          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg" alt="Express" /><span>Express</span></div>
-          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" alt="MongoDB" /><span>MongoDB</span></div>
           <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" alt="JavaScript" /><span>JavaScript</span></div>
-          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" alt="HTML5" /><span>HTML5</span></div>
-          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" alt="CSS3" /><span>CSS3</span></div>
+          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python" /><span>Python</span></div>
+          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" alt="MongoDB" /><span>MongoDB</span></div>
+          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flutter/flutter-original.svg" alt="Flutter" /><span>Flutter</span></div>
           <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" alt="Git" /><span>Git</span></div>
-          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" alt="GitHub" /><span>GitHub</span></div>
-          <div className="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vercel/vercel-original.svg" alt="Vercel" /><span>Vercel</span></div>
         </div>
       </section>
 
-      <section className="attendance-section">
-        <h2 className="section-title">Developer Attendance</h2>
-        <div className="attendance-table-container">
-          <table className="attendance-table">
-            <thead>
-              <tr>
-                <th>Developer</th>
-                {last7Days.map(day => <th key={day}>{day}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceData.map(dev => (
-                <tr key={dev.name}>
-                  <td>{dev.name}</td>
-                  {dev.attendance.map((status, i) => (
-                    <td key={i} className={`attendance-status ${status === 'P' ? 'present' : 'absent'}`}>
-                      {status}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <section className="three-d-section">
+        <h2 className="section-title">Our Creative Space</h2>
+        <Canvas style={{ height: '400px' }}>
+            <ambientLight intensity={0.5} />
+            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+            <pointLight position={[-10, -10, -10]} />
+            <Box position={[0, 0, 0]}>
+              <meshStandardMaterial color="royalblue" />
+            </Box>
+        </Canvas>
       </section>
     </div>
   );
