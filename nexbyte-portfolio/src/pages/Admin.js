@@ -415,6 +415,200 @@ const Admin = () => {
     }
   };
 
+  const handleDownloadBill = (bill) => {
+    if (!bill.client) {
+      alert('Client data is not available for this bill.');
+      return;
+    }
+    const clientData = bill.client;
+    const invoiceContent = `
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e2e2e2ff;
+            margin: 0;
+            padding: 20px;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 30px;
+            background-color: #222222;
+            border: 1px solid #333;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+        .header .logo {
+            max-width: 180px;
+        }
+        .company-details {
+            text-align: right;
+            font-size: 0.9em;
+            color: #bbb;
+        }
+        .company-details h1 {
+            margin: 0;
+            color: #eee;
+            font-size: 2em;
+        }
+        .details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            font-size: 0.9em;
+        }
+        .client-details {
+            color: #bbb;
+        }
+        .client-details strong {
+            color: #ddd;
+        }
+        .invoice-details {
+            text-align: right;
+        }
+        .invoice-details strong {
+            display: inline-block;
+            width: 100px;
+            color: #ddd;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items-table thead th {
+            background-color: #333;
+            color: #eee;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #444;
+        }
+        .items-table tbody tr {
+            border-bottom: 1px solid #444;
+        }
+        .items-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        .items-table td {
+            padding: 12px;
+            vertical-align: top;
+        }
+        .items-table .description {
+            color: #ddd;
+        }
+        .items-table .qty,
+        .items-table .rate,
+        .items-table .amount {
+            text-align: right;
+        }
+        .total-section {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 2px solid #555;
+            text-align: right;
+        }
+        .total-section div {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+        .total-section div strong {
+            display: inline-block;
+            width: 150px;
+            color: #ccc;
+        }
+        .total-section .grand-total {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #eee;
+        }
+        .total-section .grand-total strong {
+            color: #eee;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #444;
+            font-size: 0.8em;
+            color: #aaa;
+            text-align: center;
+        }
+    </style>
+    <div class="invoice-box">
+        <header class="header">
+            <div class="logo">
+                <img src="/logobill.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
+            </div>
+            <div class="company-details">
+                <h1>INVOICE</h1>
+                <div>NexByte_Dev</div>
+                <div>nexbyte.dev@gmail.com</div>
+            </div>
+        </header>
+        <section class="details">
+            <div class="client-details">
+                <strong>BILL TO:</strong>
+                <div>${clientData.contactPerson}</div>
+                <div>${clientData.clientName}</div>
+                <div>${clientData.billingAddress || 'N/A'}</div>
+                <div>${clientData.email}</div>
+            </div>
+            <div class="invoice-details">
+                <div><strong>Invoice #:</strong> ${bill._id}</div>
+                <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+                <div><strong>Due Date:</strong> ${new Date(bill.dueDate).toLocaleDateString()}</div>
+            </div>
+        </section>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th class="qty">Qty</th>
+                    <th class="rate">Rate</th>
+                    <th class="amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="description">
+                        <strong>${bill.description}</strong>
+                    </td>
+                    <td class="qty">1</td>
+                    <td class="rate">₹${bill.amount.toFixed(2)}</td>
+                    <td class="amount">₹${bill.amount.toFixed(2)}</td>
+                </tr>
+            </tbody>
+        </table>
+        <section class="total-section">
+            <div class="grand-total">
+                <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
+            </div>
+        </section>
+        <footer class="footer">
+            <div>Thank you for choosing NexByte_Dev!</div>
+        </footer>
+    </div>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = invoiceContent;
+
+    const opt = {
+      margin:       0,
+      filename:     `invoice_${bill._id}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, backgroundColor: '#1a1a1a' },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().from(element).set(opt).save();
+  };
+
   const handleSrsChange = (e) => {
     setLocalSrsData({ ...localSrsData, [e.target.name]: e.target.value });
   };
@@ -683,13 +877,14 @@ const Admin = () => {
                       <td>{bill.description}</td>
                       <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
                       <td>{bill.status}</td>
+.
                       <td>
                         {bill.status === 'Unpaid' && (
                           <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
                         )}
                         {bill.status === 'Verification Pending' && (
                           <>
-                            <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Approve Payment</button>
+                            <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
                             <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Payment Not Done</button>
                           </>
                         )}
@@ -697,123 +892,6 @@ const Admin = () => {
                           <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark as Unpaid</button>
                         )}
                         <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download Bill</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {location.pathname === '/admin/srs-generator' && (
-            <div>
-              <h2>SRS Generator</h2>
-              <div className="form-container">
-                <form onSubmit={handleGenerateSrs}>
-                  <h3>Generate New SRS</h3>
-                  <select onChange={(e) => handleClientSelect(e.target.value)} value={selectedClientId}>
-                    <option value="">Select a Client</option>
-                    {clients.map(client => (
-                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
-                    ))}
-                  </select>
-                  <input type="text" name="projectName" placeholder="Project Name" value={localSrsData.projectName} onChange={handleSrsChange} required />
-                  <textarea name="projectDescription" placeholder="Project Description" value={localSrsData.projectDescription} onChange={handleSrsChange}></textarea>
-                  <textarea name="targetAudience" placeholder="Target Audience" value={localSrsData.targetAudience} onChange={handleSrsChange}></textarea>
-                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={localSrsData.functionalRequirements} onChange={handleSrsChange}></textarea>
-                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={localSrsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
-                  <button type="submit" className="btn btn-primary">
-                    Generate SRS
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-                    {location.pathname === '/admin/tasks' && (
-            <div>
-              <TaskGenerator 
-                clients={clients} 
-                clientId={taskPageClientId} 
-                onClientChange={setTaskPageClientId}
-                onTasksSaved={handleTasksSaved}
-              />
-              <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
-            </div>
-          )}
-
-          {['/admin', '/admin/'].includes(location.pathname) && (
-            <p>Welcome to the admin dashboard!</p>
-          )}
-        </div>
-
-        {isTrackerModalOpen && selectedClientForTracker && milestone && (
-          <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
-            <div className="project-tracker-modal">
-              <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
-              <ProjectTracker currentMilestone={milestone} />
-            </div>
-          </Modal>
-        )}
-
-      </div>
-    </div>
-  );
-};
-
-export default Admin;
-}
-
-          {location.pathname === '/admin/billing' && (
-            <div>
-              <h2>Manage Billing</h2>
-              <div className="form-container">
-                <form onSubmit={handleAddBill}>
-                  <h3>Add New Bill</h3>
-                  <select name="client" onChange={handleBillChange} value={billData.client} required>
-                    <option value="">Select a Client</option>
-                    {clients.map(client => (
-                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
-                    ))}
-                  </select>
-                  <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
-                  <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
-                  <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
-                  <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate with AI</button>
-                  <button type="submit" className="btn btn-primary">Add Bill</button>
-                </form>
-              </div>
-
-              <h3>All Bills</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Client Name</th>
-                    <th>Amount</th>
-                    <th>Description</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bills.map((bill) => (
-                    <tr key={bill._id}>
-                      <td>{bill.client?.clientName || 'N/A'}</td>
-                      <td>{bill.amount}</td>
-                      <td>{bill.description}</td>
-                      <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
-                      <td>{bill.status}</td>
-                      <td>
-                        {bill.status === 'Unpaid' && (
-                          <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
-                        )}
-                        {bill.status === 'Verification Pending' && (
-                          <>
-                            <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Approve Payment</button>
-                            <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Payment Not Done</button>
-                          </>
-                        )}
                       </td>
                     </tr>
                   ))}
