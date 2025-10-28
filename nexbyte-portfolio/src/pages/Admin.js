@@ -29,6 +29,7 @@ const Admin = () => {
   const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
   const [milestone, setMilestone] = useState(null);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
+  const [expandedBill, setExpandedBill] = useState(null);
 
 
   const [clientData, setClientData] = useState({
@@ -426,7 +427,7 @@ const Admin = () => {
             'Content-Type': 'application/json',
             'x-auth-token': token,
           },
-          body: JSON.stringify({ status: 'Unpaid' }),
+          body: JSON.stringify({ status: 'Unpaid', paidAmount: 0 }),
         }
       );
       const data = await res.json();
@@ -638,6 +639,50 @@ const Admin = () => {
     };
 
     window.html2pdf().from(element).set(opt).save();
+  };
+
+  const handleApprovePayment = async (billId, paymentId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${billId}/approve-payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ paymentId }),
+      });
+      const updatedBill = await res.json();
+      if (res.ok) {
+        setBills(bills.map(b => b._id === billId ? updatedBill : b));
+      } else {
+        throw new Error(updatedBill.message || 'Failed to approve payment');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRejectPayment = async (billId, paymentId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${billId}/reject-payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ paymentId }),
+      });
+      const updatedBill = await res.json();
+      if (res.ok) {
+        setBills(bills.map(b => b._id === billId ? updatedBill : b));
+      } else {
+        throw new Error(updatedBill.message || 'Failed to reject payment');
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleSrsChange = (e) => {
@@ -902,29 +947,54 @@ const Admin = () => {
                 </thead>
                 <tbody>
                   {bills.map((bill) => (
-                    <tr key={bill._id}>
-                      <td>{bill.client?.clientName || 'N/A'}</td>
-                      <td>{bill.amount}</td>
-                      <td>{bill.description}</td>
-                      <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
-                      <td>{bill.status}</td>
-.
-                      <td>
-                        {bill.status === 'Unpaid' && (
-                          <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
-                        )}
-                        {bill.status === 'Verification Pending' && (
-                          <>
+                    <React.Fragment key={bill._id}>
+                      <tr>
+                        <td>{bill.client?.clientName || 'N/A'}</td>
+                        <td>
+                          <p>Total: ₹{bill.amount}</p>
+                          <p>Paid: ₹{bill.paidAmount || 0}</p>
+                          <p><strong>Remaining: ₹{bill.amount - (bill.paidAmount || 0)}</strong></p>
+                        </td>
+                        <td>{bill.description}</td>
+                        <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                        <td>{bill.status}</td>
+                        <td>
+                          {bill.status === 'Unpaid' && (
                             <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
-                            <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Payment Not Done</button>
-                          </>
-                        )}
-                        {bill.status === 'Paid' && (
-                          <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark as Unpaid</button>
-                        )}
-                        <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download Bill</button>
-                      </td>
-                    </tr>
+                          )}
+                          {bill.status === 'Verification Pending' && (
+                            <button onClick={() => setExpandedBill(expandedBill === bill._id ? null : bill._id)} className="btn btn-primary">
+                              {expandedBill === bill._id ? 'Hide' : 'Show'} Pending Payments
+                            </button>
+                          )}
+                          {bill.status === 'Paid' && (
+                            <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark as Unpaid</button>
+                          )}
+                          <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download Bill</button>
+                        </td>
+                      </tr>
+                      {expandedBill === bill._id && bill.pendingPayments && bill.pendingPayments.length > 0 && (
+                        <tr>
+                          <td colSpan="6">
+                            <div className="pending-payments">
+                              <h4>Pending Payments</h4>
+                              <ul>
+                                {bill.pendingPayments.map(p => (
+                                  <li key={p._id}>
+                                    <span>Amount: ₹{p.amount}</span>
+                                    <span>Transaction ID: {p.transactionId}</span>
+                                    <span>
+                                      <button onClick={() => handleApprovePayment(bill._id, p._id)} className="btn btn-success">Approve</button>
+                                      <button onClick={() => handleRejectPayment(bill._id, p._id)} className="btn btn-danger">Reject</button>
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

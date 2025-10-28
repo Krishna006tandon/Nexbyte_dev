@@ -579,7 +579,7 @@ app.get('/api/bills', auth, admin, async (req, res) => {
 // @desc    Update a bill
 // @access  Private (admin)
 app.put('/api/bills/:billId', auth, admin, async (req, res) => {
-  const { status } = req.body;
+  const { status, paidAmount } = req.body;
 
   try {
     const bill = await Bill.findById(req.params.billId);
@@ -587,7 +587,13 @@ app.put('/api/bills/:billId', auth, admin, async (req, res) => {
       return res.status(404).json({ message: 'Bill not found' });
     }
 
-    bill.status = status;
+    if (status) {
+        bill.status = status;
+    }
+    if (paidAmount !== undefined) {
+        bill.paidAmount = paidAmount;
+    }
+    
     await bill.save();
 
     res.json(bill);
@@ -597,14 +603,11 @@ app.put('/api/bills/:billId', auth, admin, async (req, res) => {
   }
 });
 
-// @route   PUT api/bills/:billId/confirm
-// @desc    Confirm a bill payment
-// @access  Private (client)
 app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
-  const { transactionId } = req.body;
+  const { transactionId, amount } = req.body;
 
-  if (!transactionId) {
-    return res.status(400).json({ message: 'Transaction ID is required' });
+  if (!transactionId || !amount) {
+    return res.status(400).json({ message: 'Transaction ID and amount are required' });
   }
 
   try {
@@ -619,8 +622,8 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
+    bill.pendingPayments.push({ amount, transactionId });
     bill.status = 'Verification Pending';
-    bill.transactionId = transactionId;
     await bill.save();
 
     // Find client to get email
@@ -633,7 +636,7 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
         subject: 'Payment Confirmation Received',
         html: `
           <p>Dear ${clientData.clientName},</p>
-          <p>We have received your payment confirmation for bill ID ${bill._id}.</p>
+          <p>We have received your payment confirmation for bill ID ${bill._id} of amount ${amount}.</p>
           <p>We will update your payment status shortly after verification.</p>
           <p>Thank you,</p>
           <p>The NexByte Team</p>
@@ -655,6 +658,87 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// @route   PUT api/bills/:billId/approve-payment
+// @desc    Approve a pending payment
+// @access  Private (admin)
+app.put('/api/bills/:billId/approve-payment', auth, admin, async (req, res) => {
+  const { paymentId } = req.body;
+
+  if (!paymentId) {
+    return res.status(400).json({ message: 'Payment ID is required' });
+  }
+
+  try {
+    const bill = await Bill.findById(req.params.billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    const payment = bill.pendingPayments.id(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: 'Pending payment not found' });
+    }
+
+    bill.paidAmount += payment.amount;
+    payment.remove();
+
+    if (bill.paidAmount >= bill.amount) {
+      bill.status = 'Paid';
+    } else {
+      bill.status = 'Partially Paid';
+    }
+    
+    // If there are no more pending payments, change status from 'Verification Pending'
+    if (bill.pendingPayments.length === 0 && bill.status === 'Verification Pending') {
+        bill.status = bill.paidAmount > 0 ? 'Partially Paid' : 'Unpaid';
+    }
+
+
+    await bill.save();
+
+    res.json(bill);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/bills/:billId/reject-payment
+// @desc    Reject a pending payment
+// @access  Private (admin)
+app.put('/api/bills/:billId/reject-payment', auth, admin, async (req, res) => {
+    const { paymentId } = req.body;
+
+    if (!paymentId) {
+        return res.status(400).json({ message: 'Payment ID is required' });
+    }
+
+    try {
+        const bill = await Bill.findById(req.params.billId);
+        if (!bill) {
+            return res.status(404).json({ message: 'Bill not found' });
+        }
+
+        const payment = bill.pendingPayments.id(paymentId);
+        if (!payment) {
+            return res.status(404).json({ message: 'Pending payment not found' });
+        }
+
+        payment.remove();
+        
+        if (bill.pendingPayments.length === 0 && bill.status === 'Verification Pending') {
+            bill.status = bill.paidAmount > 0 ? 'Partially Paid' : 'Unpaid';
+        }
+
+        await bill.save();
+
+        res.json(bill);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 

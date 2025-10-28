@@ -1,5 +1,20 @@
 const mongoose = require('mongoose');
 
+const PaymentSchema = new mongoose.Schema({
+  amount: {
+    type: Number,
+    required: true,
+  },
+  transactionId: {
+    type: String,
+    required: true,
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
 const BillSchema = new mongoose.Schema({
   client: {
     type: mongoose.Schema.Types.ObjectId,
@@ -10,17 +25,18 @@ const BillSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  paidAmount: {
+    type: Number,
+    default: 0,
+  },
   dueDate: {
     type: Date,
     required: true,
   },
   status: {
     type: String,
-    enum: ['Paid', 'Unpaid', 'Overdue', 'Verification Pending'],
+    enum: ['Paid', 'Unpaid', 'Overdue', 'Verification Pending', 'Partially Paid'],
     default: 'Unpaid',
-  },
-  transactionId: {
-    type: String,
   },
   description: {
     type: String,
@@ -29,6 +45,7 @@ const BillSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  pendingPayments: [PaymentSchema],
 });
 
 module.exports = mongoose.model('Bill', BillSchema);

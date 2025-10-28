@@ -14,6 +14,7 @@ const ClientPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [transactionId, setTransactionId] = useState('');
+  const [paidAmount, setPaidAmount] = useState('');
   const [milestone, setMilestone] = useState(null); // Add state for milestone
 
   const handlePayNow = (bill) => {
@@ -25,6 +26,7 @@ const ClientPanel = () => {
     setIsModalOpen(false);
     setSelectedBill(null);
     setTransactionId('');
+    setPaidAmount('');
   };
 
   useEffect(() => {
@@ -136,7 +138,6 @@ const ClientPanel = () => {
   };
 
   const handleConfirmPayment = async () => {
-    const amountToPay = selectedBill.amount;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/bills/${selectedBill._id}/confirm`, {
@@ -145,7 +146,7 @@ const ClientPanel = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ transactionId, amount: amountToPay }),
+        body: JSON.stringify({ transactionId, amount: paidAmount }),
       });
 
       if (!res.ok) {
@@ -402,7 +403,9 @@ const ClientPanel = () => {
                 <span>{bill._id}</span>
               </div>
               <div className="bill-details">
-                <p><strong>Amount:</strong> ₹{bill.amount}</p>
+                <p><strong>Total Amount:</strong> ₹{bill.amount}</p>
+                <p><strong>Amount Paid:</strong> ₹{bill.paidAmount || 0}</p>
+                <p><strong>Remaining Amount:</strong> ₹{bill.amount - (bill.paidAmount || 0)}</p>
                 <p><strong>Due Date:</strong> {new Date(bill.dueDate).toLocaleDateString()}</p>
                 <p><strong>Status:</strong> <span className={`status ${status.toLowerCase()}`}>{status}</span></p>
               </div>
@@ -476,12 +479,23 @@ const ClientPanel = () => {
           <Modal isOpen={isModalOpen} onClose={closeModal}>
             <div className="manual-payment-modal">
               <h2>Manual Payment</h2>
-              <p>Scan the QR code with your UPI app to pay ₹{selectedBill.amount}.</p>
+              <p>Scan the QR code with your UPI app to pay.</p>
               <div className="qr-code-container">
                 <QRCodeSVG
                   value={
-                    `upi://pay?pa=9175603240@upi&pn=Nexbyte&am=${selectedBill.amount}&tn=Payment for ${data.clientData.project} - Bill ${selectedBill._id}`
+                    `upi://pay?pa=9175603240@upi&pn=Nexbyte&tn=Payment for ${data.clientData.project} - Bill ${selectedBill._id}`
                   }
+                />
+              </div>
+              <div className="transaction-id-input">
+                <label htmlFor="paidAmount">Amount Paid</label>
+                <input
+                  type="number"
+                  id="paidAmount"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  placeholder="Enter the amount you paid"
+                  required
                 />
               </div>
               <div className="transaction-id-input">
@@ -492,12 +506,13 @@ const ClientPanel = () => {
                   value={transactionId}
                   onChange={(e) => setTransactionId(e.target.value.trim())}
                   placeholder="Enter the transaction ID from your UPI app"
+                  required
                 />
               </div>
               <div className="modal-actions">
                 <button
                   onClick={handleConfirmPayment}
-                  disabled={!transactionId}>
+                  disabled={!transactionId || !paidAmount}>
                   Confirm Payment</button>
                 <button onClick={closeModal}>Cancel</button>
               </div>
