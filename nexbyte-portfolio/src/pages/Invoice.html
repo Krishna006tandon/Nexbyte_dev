@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NexByte_Dev Invoice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* --- Basic Styles --- */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #1a1a1a; /* Dark Graphite */
             color: #ccc; /* Light Grey Text */
             margin: 0;
@@ -21,7 +24,7 @@
             padding: 30px;
             background-color: #222222; /* Matte Black/Dark Charcoal */
             border: 1px solid #333;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
         }
 
         /* --- Header: Logo and Company Info --- */
@@ -29,7 +32,9 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 40px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
         }
 
         .header .logo {
@@ -96,6 +101,10 @@
             border-bottom: none;
         }
 
+        .items-table tbody tr:nth-child(even) td {
+            background-color: #252525;
+        }
+
         .items-table td {
             padding: 12px;
             vertical-align: top;
@@ -152,15 +161,45 @@
             text-align: center;
         }
 
+        .no-print button {
+            background-color: #4CAF50; /* A green color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .no-print button:hover {
+            background-color: #45a049;
+        }
+
+        @media print {
+            body {
+                background-color: #fff;
+                color: #000;
+            }
+            .invoice-box {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()">Print / Download PDF</button>
+    </div>
     <div class="invoice-box">
         
         <header class="header">
             <div class="logo">
-                <img src="file:///C:/Users/LENOVO/OneDrive/Desktop/abhishek.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
+                <img src="/abhishek.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
                 
             </div>
             <div class="company-details">
