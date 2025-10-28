@@ -164,6 +164,49 @@ const ClientPanel = () => {
     }
   };
 
+
+  const handleDownloadBill = (bill) => {
+    const invoice = document.createElement('div');
+    invoice.style.padding = '20px';
+    invoice.style.fontFamily = 'Arial, sans-serif';
+    invoice.style.position = 'relative';
+
+    const watermark = document.createElement('div');
+    watermark.textContent = 'Watermark';
+    watermark.style.position = 'absolute';
+    watermark.style.top = '50%';
+    watermark.style.left = '50%';
+    watermark.style.transform = 'translate(-50%, -50%) rotate(-45deg)';
+    watermark.style.fontSize = '100px';
+    watermark.style.color = 'rgba(0, 0, 0, 0.1)';
+    watermark.style.pointerEvents = 'none';
+    invoice.appendChild(watermark);
+
+    const header = document.createElement('h1');
+    header.textContent = 'Invoice';
+    invoice.appendChild(header);
+
+    const billDetails = document.createElement('div');
+    billDetails.innerHTML = `
+      <p><strong>Bill ID:</strong> ${bill._id}</p>
+      <p><strong>Project:</strong> ${data.clientData.project}</p>
+      <p><strong>Amount:</strong> ₹${bill.amount}</p>
+      <p><strong>Due Date:</strong> ${new Date(bill.dueDate).toLocaleDateString()}</p>
+      <p><strong>Status:</strong> ${bill.status}</p>
+    `;
+    invoice.appendChild(billDetails);
+
+    const options = {
+      margin: 1,
+      filename: `bill_${bill._id}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().from(invoice).set(options).save();
+  };
+
   if (error) {
     return <div className="client-panel-error">{error}</div>;
   }
@@ -206,6 +249,7 @@ const ClientPanel = () => {
               {status !== 'Paid' && (
                 <div className="bill-actions">
                   <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
+                  <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button>
                 </div>
               )}
             </div>
