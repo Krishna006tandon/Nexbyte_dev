@@ -693,6 +693,127 @@ const Admin = () => {
                             <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Payment Not Done</button>
                           </>
                         )}
+                        {bill.status === 'Paid' && (
+                          <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark as Unpaid</button>
+                        )}
+                        <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download Bill</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/srs-generator' && (
+            <div>
+              <h2>SRS Generator</h2>
+              <div className="form-container">
+                <form onSubmit={handleGenerateSrs}>
+                  <h3>Generate New SRS</h3>
+                  <select onChange={(e) => handleClientSelect(e.target.value)} value={selectedClientId}>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="text" name="projectName" placeholder="Project Name" value={localSrsData.projectName} onChange={handleSrsChange} required />
+                  <textarea name="projectDescription" placeholder="Project Description" value={localSrsData.projectDescription} onChange={handleSrsChange}></textarea>
+                  <textarea name="targetAudience" placeholder="Target Audience" value={localSrsData.targetAudience} onChange={handleSrsChange}></textarea>
+                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={localSrsData.functionalRequirements} onChange={handleSrsChange}></textarea>
+                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={localSrsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
+                  <button type="submit" className="btn btn-primary">
+                    Generate SRS
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+                    {location.pathname === '/admin/tasks' && (
+            <div>
+              <TaskGenerator 
+                clients={clients} 
+                clientId={taskPageClientId} 
+                onClientChange={setTaskPageClientId}
+                onTasksSaved={handleTasksSaved}
+              />
+              <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
+            </div>
+          )}
+
+          {['/admin', '/admin/'].includes(location.pathname) && (
+            <p>Welcome to the admin dashboard!</p>
+          )}
+        </div>
+
+        {isTrackerModalOpen && selectedClientForTracker && milestone && (
+          <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
+            <div className="project-tracker-modal">
+              <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
+              <ProjectTracker currentMilestone={milestone} />
+            </div>
+          </Modal>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+export default Admin;
+}
+
+          {location.pathname === '/admin/billing' && (
+            <div>
+              <h2>Manage Billing</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddBill}>
+                  <h3>Add New Bill</h3>
+                  <select name="client" onChange={handleBillChange} value={billData.client} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
+                  <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
+                  <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
+                  <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate with AI</button>
+                  <button type="submit" className="btn btn-primary">Add Bill</button>
+                </form>
+              </div>
+
+              <h3>All Bills</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client Name</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bills.map((bill) => (
+                    <tr key={bill._id}>
+                      <td>{bill.client?.clientName || 'N/A'}</td>
+                      <td>{bill.amount}</td>
+                      <td>{bill.description}</td>
+                      <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                      <td>{bill.status}</td>
+                      <td>
+                        {bill.status === 'Unpaid' && (
+                          <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                        )}
+                        {bill.status === 'Verification Pending' && (
+                          <>
+                            <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Approve Payment</button>
+                            <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Payment Not Done</button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
