@@ -323,7 +323,7 @@ const ClientPanel = () => {
             <tbody>
                 <tr>
                     <td class="description">
-                        <strong>${data.clientData.project}</strong>
+                        <strong>${bill.description}</strong>
                     </td>
                     <td class="qty">1</td>
                     <td class="rate">₹${bill.amount.toFixed(2)}</td>
@@ -337,7 +337,6 @@ const ClientPanel = () => {
             </div>
         </section>
         <footer class="footer">
-            <div>${data.clientData.paymentTerms || 'Payment due upon receipt.'}</div>
             <div>Thank you for choosing NexByte_Dev!</div>
         </footer>
     </div>
