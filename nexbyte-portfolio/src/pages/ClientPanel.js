@@ -301,9 +301,9 @@ const ClientPanel = () => {
         <section class="details">
             <div class="client-details">
                 <strong>BILL TO:</strong>
-                <div>${data.clients.clientName}</div>
-                <div>${data.clients.companyAddress || 'N/A'}</div>
-                <div>${data.clients.email}</div>
+                <div>${data.clientData.name}</div>
+                <div>${data.clientData.billingAddress || 'N/A'}</div>
+                <div>${data.clientData.email}</div>
             </div>
             <div class="invoice-details">
                 <div><strong>Invoice #:</strong> ${bill._id}</div>
