@@ -173,7 +173,7 @@ const ClientPanel = () => {
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #1a1a1a;
-            color: #1a1a1a;
+            color: #e2e2e2ff;
             margin: 0;
             padding: 20px;
         }
