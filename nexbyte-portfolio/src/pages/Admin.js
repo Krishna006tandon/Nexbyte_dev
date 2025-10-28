@@ -295,6 +295,36 @@ const Admin = () => {
 
     try {
       const token = localStorage.getItem('token');
+
+      // Find the last bill for the client
+      const clientBills = bills.filter(b => b.client._id === billData.client);
+      const lastBill = clientBills.length > 0
+        ? clientBills.reduce((latest, current) => new Date(latest.billDate) > new Date(current.billDate) ? latest : current)
+        : null;
+      const lastBillDate = lastBill ? new Date(lastBill.billDate) : null;
+
+      // Fetch tasks for the client
+      const tasksRes = await fetch(`/api/tasks?clientId=${billData.client}`, {
+        headers: { 'x-auth-token': token },
+      });
+      if (!tasksRes.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      const tasks = await tasksRes.json();
+
+      // Filter completed tasks since the last bill
+      const completedTasks = tasks.filter(task => {
+        if (task.status !== 'Done' || !task.completedAt) {
+          return false;
+        }
+        if (lastBillDate) {
+          return new Date(task.completedAt) > lastBillDate;
+        }
+        return true; // Include all completed tasks if no previous bill
+      });
+
+      const completedTaskTitles = completedTasks.map(task => task.task_title);
+
       const res = await fetch('/api/generate-bill-description', {
         method: 'POST',
         headers: {
@@ -305,6 +335,7 @@ const Admin = () => {
           clientName: selectedClient.clientName,
           projectName: selectedClient.projectName,
           amount: billData.amount,
+          tasks: completedTaskTitles,
         }),
       });
 
@@ -316,7 +347,7 @@ const Admin = () => {
       setBillData({ ...billData, description });
     } catch (err) {
       console.error(err);
-      alert('Failed to generate description.');
+      alert(`Failed to generate description. ${err.message}`);
     }
   };
 

@@ -511,10 +511,18 @@ app.post('/api/bills', auth, admin, async (req, res) => {
 // @desc    Generate a bill description using AI
 // @access  Private (admin)
 app.post('/api/generate-bill-description', auth, admin, async (req, res) => {
-  const { clientName, projectName, amount } = req.body;
+  const { clientName, projectName, amount, tasks } = req.body;
 
   if (!clientName || !projectName || !amount) {
     return res.status(400).json({ message: 'Client name, project name, and amount are required' });
+  }
+
+  let tasksPrompt = '';
+  if (tasks && tasks.length > 0) {
+    tasksPrompt = `
+      The bill covers the following completed tasks:
+      - ${tasks.join('\n- ')}
+    `;
   }
 
   const promptText = `
@@ -522,8 +530,9 @@ app.post('/api/generate-bill-description', auth, admin, async (req, res) => {
     - Client: ${clientName}
     - Project: ${projectName}
     - Amount: ${amount}
+    ${tasksPrompt}
 
-    The description should be a single sentence, suitable for a bill. For example: "Payment for the development of the ${projectName} project."
+    The description should be a single sentence, suitable for a bill, and should summarize the work done. For example: "Payment for the development of the ${projectName} project, including the implementation of user authentication and profile management features."
   `;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -1126,6 +1135,7 @@ app.put('/api/tasks/:id', auth, admin, async (req, res) => {
                     await user.save();
                 }
             }
+            task.completedAt = new Date();
         }
 
         task.status = status;
