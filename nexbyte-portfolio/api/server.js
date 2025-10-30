@@ -201,6 +201,11 @@ const generateOfferLetter = (email, duration) => {
   `;
 };
 
+// Check for EMAIL_PASSWORD environment variable
+if (!process.env.EMAIL_PASSWORD) {
+  console.warn('WARNING: process.env.EMAIL_PASSWORD is not set. Email sending may fail. Please ensure it is configured in your .env file.');
+}
+
 // Nodemailer transporter setup
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -212,7 +217,9 @@ const transporter = nodemailer.createTransport({
   },
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  debug: true, // Enable debug output
+  logger: true // Enable console logging
 });
 
 // @route   POST api/users
