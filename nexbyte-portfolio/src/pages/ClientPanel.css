@@ -84,6 +84,32 @@
   border: 1px solid var(--border);
 }
 
+.srs-actions {
+  margin-bottom: 20px;
+}
+
+.srs-actions .download-btn,
+.srs-actions .see-btn {
+  margin-right: 10px;
+}
+
+.see-btn{
+  padding: 10px 15px;
+  background-color: var(--accent);
+  color: var(--background-dark);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  margin-left: 10px;
+}
+
+.see-btn:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
 .message-section {
   margin-top: 20px;
 }
@@ -335,4 +361,23 @@
   background-color: var(--disabled-text);
   color: var(--background-dark);
   cursor: not-allowed;
+}
+
+.srs-modal {
+  padding: 20px;
+  color: var(--primary-text);
+}
+
+.srs-modal h2 {
+  margin-top: 0;
+  color: var(--primary-text);
+}
+
+.srs-modal pre {
+  white-space: pre-wrap;
+  background-color: var(--surface);
+  padding: 15px;
+  border-radius: 5px;
+  color: var(--primary-text);
+  border: 1px solid var(--border);
 }

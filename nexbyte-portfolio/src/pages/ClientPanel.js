@@ -419,11 +419,122 @@ const ClientPanel = () => {
     );
   };
 
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
+
+  const handleDownloadSrs = () => {
+    if (!data || !data.clientData || !data.clientData.srsDocument) {
+      alert('SRS data is not yet loaded. Please wait a moment and try again.');
+      return;
+    }
+    setIsDownloading(true);
+    const srsContent = `
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+          }
+          .srs-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 50px;
+            background-color: #fff;
+            border: 1px solid #eee;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+          }
+          .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+          }
+          .header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 2.2em;
+            font-weight: 600;
+          }
+          pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="srs-box">
+            <header class="header">
+                <img src="/logobill.jpg" alt="NexByte_Dev Logo">
+                <h1>Software Requirement Specification</h1>
+            </header>
+            <pre>${data.clientData.srsDocument}</pre>
+            <footer class="footer">
+                <p>&copy; ${new Date().getFullYear()} NexByte_Dev. All rights reserved.</p>
+            </footer>
+        </div>
+      </body>
+    </html>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = srsContent;
+
+    const opt = {
+      margin:       0,
+      filename:     `srs_${data.clientData.project}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().from(element).set(opt).save().then(() => {
+        setIsDownloading(false);
+    });
+  };
+
+  const handleSeeSrs = () => {
+    if (!data || !data.clientData || !data.clientData.srsDocument) {
+      alert('SRS data is not yet loaded. Please wait a moment and try again.');
+      return;
+    }
+    setIsSrsModalOpen(true);
+  }
+
+  const closeSrsModal = () => {
+    setIsSrsModalOpen(false);
+  }
+
   const renderSrs = () => (
     <div className="srs-view">
       <h2>Software Requirement Specification</h2>
       {data.clientData.srsDocument ? (
         <>
+          <div className="srs-actions">
+            <button className="download-btn" onClick={handleDownloadSrs} disabled={isDownloading}>
+              {isDownloading ? 'Downloading...' : 'Download SRS'}
+            </button>
+            <button className="see-btn" onClick={handleSeeSrs}>See SRS</button>
+          </div>
           <pre className="srs-content">{data.clientData.srsDocument}</pre>
           <div className="message-section">
             <h3>Request Changes or Send a Message</h3>
@@ -467,6 +578,14 @@ const ClientPanel = () => {
         {activeView === 'dashboard' && renderDashboard()}
         {activeView === 'srs' && renderSrs()}
         {activeView === 'billing' && renderBilling()}
+        {isSrsModalOpen && (
+          <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
+            <div className="srs-modal">
+              <h2>Software Requirement Specification</h2>
+              <pre>{data.clientData.srsDocument}</pre>
+            </div>
+          </Modal>
+        )}
         {isModalOpen && selectedBill && (
           <Modal isOpen={isModalOpen} onClose={closeModal}>
             <div className="manual-payment-modal">
