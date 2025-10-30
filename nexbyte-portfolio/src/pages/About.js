@@ -2,8 +2,6 @@ import React from 'react';
 import Card from '../components/Card';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import './About.css';
-import { Canvas } from '@react-three/fiber';
-import { Box } from '@react-three/drei';
 
 const teamMembers = [
   {
