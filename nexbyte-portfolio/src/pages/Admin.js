@@ -454,178 +454,175 @@ const Admin = () => {
     }
     const clientData = bill.client;
     const invoiceContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: #e2e2e2ff;
-            margin: 0;
-            padding: 20px;
+            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            color: #555;
+            background: #FFF;
+            text-align: left;
+            font-size: 14px;
         }
         .invoice-box {
             max-width: 800px;
             margin: auto;
             padding: 30px;
-            background-color: #222222;
-            border: 1px solid #333;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .15);
+            font-size: 16px;
+            line-height: 24px;
+            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            color: #555;
         }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 40px;
-        }
-        .header .logo {
-            max-width: 180px;
-        }
-        .company-details {
-            text-align: right;
-            font-size: 0.9em;
-            color: #bbb;
-        }
-        .company-details h1 {
-            margin: 0;
-            color: #eee;
-            font-size: 2em;
-        }
-        .details {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 40px;
-            font-size: 0.9em;
-        }
-        .client-details {
-            color: #bbb;
-        }
-        .client-details strong {
-            color: #ddd;
-        }
-        .invoice-details {
-            text-align: right;
-        }
-        .invoice-details strong {
-            display: inline-block;
-            width: 100px;
-            color: #ddd;
-        }
-        .items-table {
+        .invoice-box table {
             width: 100%;
-            border-collapse: collapse;
-        }
-        .items-table thead th {
-            background-color: #333;
-            color: #eee;
-            padding: 12px;
+            line-height: inherit;
             text-align: left;
-            border-bottom: 2px solid #444;
         }
-        .items-table tbody tr {
-            border-bottom: 1px solid #444;
-        }
-        .items-table tbody tr:last-child {
-            border-bottom: none;
-        }
-        .items-table td {
-            padding: 12px;
+        .invoice-box table td {
+            padding: 5px;
             vertical-align: top;
         }
-        .items-table .description {
-            color: #ddd;
-        }
-        .items-table .qty,
-        .items-table .rate,
-        .items-table .amount {
+        .invoice-box table tr td:nth-child(2) {
             text-align: right;
         }
-        .total-section {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 2px solid #555;
-            text-align: right;
+        .invoice-box table tr.top table td {
+            padding-bottom: 20px;
         }
-        .total-section div {
-            font-size: 1.1em;
-            margin-bottom: 8px;
-            color: #ddd;
+        .invoice-box table tr.top table td.title {
+            font-size: 45px;
+            line-height: 45px;
+            color: #333;
         }
-        .total-section div strong {
-            display: inline-block;
-            width: 150px;
-            color: #ccc;
+        .invoice-box table tr.information table td {
+            padding-bottom: 40px;
         }
-        .total-section .grand-total {
-            font-size: 1.5em;
+        .invoice-box table tr.heading td {
+            background: #eee;
+            border-bottom: 1px solid #ddd;
             font-weight: bold;
-            color: #eee;
         }
-        .total-section .grand-total strong {
-            color: #eee;
+        .invoice-box table tr.details td {
+            padding-bottom: 20px;
         }
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #444;
-            font-size: 0.8em;
-            color: #aaa;
-            text-align: center;
+        .invoice-box table tr.item td{
+            border-bottom: 1px solid #eee;
+        }
+        .invoice-box table tr.item.last td {
+            border-bottom: none;
+        }
+        .invoice-box table tr.total td:nth-child(2) {
+            border-top: 2px solid #eee;
+            font-weight: bold;
+        }
+        @media only screen and (max-width: 600px) {
+            .invoice-box table tr.top table td {
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+            .invoice-box table tr.information table td {
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+        }
+        .rtl {
+            direction: rtl;
+            font-family: Tahoma, 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+        }
+        .rtl table {
+            text-align: right;
+        }
+        .rtl table tr td:nth-child(2) {
+            text-align: left;
         }
     </style>
+</head>
+<body>
     <div class="invoice-box">
-        <header class="header">
-            <div class="logo">
-                <img src="/logobill.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
-            </div>
-            <div class="company-details">
-                <h1>INVOICE</h1>
-                <div>NexByte_Dev</div>
-                <div>nexbyte.dev@gmail.com</div>
-            </div>
-        </header>
-        <section class="details">
-            <div class="client-details">
-                <strong>BILL TO:</strong>
-                <div>${clientData.contactPerson}</div>
-                <div>${clientData.clientName}</div>
-                <div>${clientData.billingAddress || 'N/A'}</div>
-                <div>${clientData.email}</div>
-            </div>
-            <div class="invoice-details">
-                <div><strong>Invoice #:</strong> ${bill._id}</div>
-                <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
-                <div><strong>Due Date:</strong> ${new Date(bill.dueDate).toLocaleDateString()}</div>
-            </div>
-        </section>
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>Description</th>
-                    <th class="qty">Qty</th>
-                    <th class="rate">Rate</th>
-                    <th class="amount">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="description">
-                        <strong>${bill.description}</strong>
-                    </td>
-                    <td class="qty">1</td>
-                    <td class="rate">₹${bill.amount.toFixed(2)}</td>
-                    <td class="amount">₹${bill.amount.toFixed(2)}</td>
-                </tr>
-            </tbody>
+        <table cellpadding="0" cellspacing="0">
+            <tr class="top">
+                <td colspan="2">
+                    <table>
+                        <tr>
+                            <td class="title">
+                                <img src="/logobill.jpg" style="width:100%; max-width:300px;">
+                            </td>
+                            <td>
+                                Invoice #: ${bill._id}<br>
+                                Created: ${new Date().toLocaleDateString()}<br>
+                                Due: ${new Date(bill.dueDate).toLocaleDateString()}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr class="information">
+                <td colspan="2">
+                    <table>
+                        <tr>
+                            <td>
+                                NexByte Dev, Inc.<br>
+                                nexbyte.dev@gmail.com
+                            </td>
+                            <td>
+                                ${clientData.clientName}<br>
+                                ${clientData.contactPerson}<br>
+                                ${clientData.email}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr class="heading">
+                <td>
+                    Payment Method
+                </td>
+                <td>
+                    Check #
+                </td>
+            </tr>
+            <tr class="details">
+                <td>
+                    Check
+                </td>
+                <td>
+                    1000
+                </td>
+            </tr>
+            <tr class="heading">
+                <td>
+                    Item
+                </td>
+                <td>
+                    Price
+                </td>
+            </tr>
+            <tr class="item">
+                <td>
+                    ${bill.description}
+                </td>
+                <td>
+                    ₹${bill.amount.toFixed(2)}
+                </td>
+            </tr>
+            <tr class="total">
+                <td></td>
+                <td>
+                   Total: ₹${bill.amount.toFixed(2)}
+                </td>
+            </tr>
         </table>
-        <section class="total-section">
-            <div class="grand-total">
-                <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
-            </div>
-        </section>
-        <footer class="footer">
-            <div>Thank you for choosing NexByte_Dev!</div>
-        </footer>
     </div>
-    `;
+</body>
+</html>
+`;
 
     const element = document.createElement('div');
     element.innerHTML = invoiceContent;
