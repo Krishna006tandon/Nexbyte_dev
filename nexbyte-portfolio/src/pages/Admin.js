@@ -913,93 +913,136 @@ const Admin = () => {
             </div>
           )}
 
-          {location.pathname === '/admin/billing' && (
-            <div>
-              <h2>Manage Billing</h2>
-              <div className="form-container">
-                <form onSubmit={handleAddBill}>
-                  <h3>Add New Bill</h3>
-                  <select name="client" onChange={handleBillChange} value={billData.client} required>
-                    <option value="">Select a Client</option>
-                    {clients.map(client => (
-                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
-                    ))}
-                  </select>
-                  <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
-                  <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
-                  <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
-                  <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate with AI</button>
-                  <button type="submit" className="btn btn-primary">Add Bill</button>
-                </form>
-              </div>
+          {location.pathname === '/admin/billing' && (() => {
+            const billsByClient = bills.reduce((acc, bill) => {
+              const client = bill.client;
+              if (!client) return acc;
 
-              <h3>All Bills</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Client Name</th>
-                    <th>Amount</th>
-                    <th>Description</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bills.map((bill) => (
-                    <React.Fragment key={bill._id}>
-                      <tr>
-                        <td>{bill.client?.clientName || 'N/A'}</td>
-                        <td>
-                          <p>Total: ₹{bill.amount}</p>
-                          <p>Paid: ₹{bill.paidAmount || 0}</p>
-                          <p><strong>Remaining: ₹{bill.amount - (bill.paidAmount || 0)}</strong></p>
-                        </td>
-                        <td>{bill.description}</td>
-                        <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
-                        <td>{bill.status}</td>
-                        <td>
-                          {bill.status === 'Unpaid' && (
-                            <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
-                          )}
-                          {bill.status === 'Verification Pending' && (
-                            <button onClick={() => setExpandedBill(expandedBill === bill._id ? null : bill._id)} className="btn btn-primary">
-                              {expandedBill === bill._id ? 'Hide' : 'Show'} Pending Payments
-                            </button>
-                          )}
-                          {bill.status === 'Paid' && (
-                            <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark as Unpaid</button>
-                          )}
-                          <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download Bill</button>
-                        </td>
-                      </tr>
-                      {expandedBill === bill._id && bill.pendingPayments && bill.pendingPayments.length > 0 && (
-                        <tr>
-                          <td colSpan="6">
-                            <div className="pending-payments">
-                              <h4>Pending Payments</h4>
-                              <ul>
-                                {bill.pendingPayments.map(p => (
-                                  <li key={p._id}>
-                                    <span>Amount: ₹{p.amount}</span>
-                                    <span>Transaction ID: {p.transactionId}</span>
-                                    <span>
-                                      <button onClick={() => handleApprovePayment(bill._id, p._id)} className="btn btn-success">Approve</button>
-                                      <button onClick={() => handleRejectPayment(bill._id, p._id)} className="btn btn-danger">Reject</button>
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+              if (!acc[client._id]) {
+                acc[client._id] = {
+                  ...client,
+                  bills: [],
+                };
+              }
+              acc[client._id].bills.push(bill);
+              return acc;
+            }, {});
+
+            return (
+              <div>
+                <h2>Manage Billing</h2>
+                <div className="form-container">
+                  <form onSubmit={handleAddBill}>
+                    <h3>Add New Bill</h3>
+                    <select name="client" onChange={handleBillChange} value={billData.client} required>
+                      <option value="">Select a Client</option>
+                      {clients.map(client => (
+                        <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                      ))}
+                    </select>
+                    <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
+                    <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
+                    <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
+                    <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate with AI</button>
+                    <button type="submit" className="btn btn-primary">Add Bill</button>
+                  </form>
+                </div>
+
+                <h3>All Bills by Client</h3>
+                {Object.values(billsByClient).map(client => {
+                  const totalBilled = client.bills.reduce((sum, bill) => sum + bill.amount, 0);
+                  const totalPaid = client.bills.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0);
+                  const remainingBudget = (client.totalBudget || 0) - totalPaid;
+
+                  return (
+                    <div key={client._id} className="client-billing-section">
+                      <h4>{client.clientName} - {client.projectName}</h4>
+                      <div className="billing-summary admin-summary">
+                        <div className="summary-card">
+                          <h5>Total Budget</h5>
+                          <p>₹{client.totalBudget ? client.totalBudget.toLocaleString() : 'N/A'}</p>
+                        </div>
+                        <div className="summary-card">
+                          <h5>Total Billed</h5>
+                          <p>₹{totalBilled.toLocaleString()}</p>
+                        </div>
+                        <div className="summary-card">
+                          <h5>Total Paid</h5>
+                          <p>₹{totalPaid.toLocaleString()}</p>
+                        </div>
+                        <div className="summary-card remaining">
+                          <h5>Remaining Budget</h5>
+                          <p>₹{remainingBudget.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {client.bills.map((bill) => (
+                            <React.Fragment key={bill._id}>
+                              <tr>
+                                <td>
+                                  <p>Total: ₹{bill.amount}</p>
+                                  <p>Paid: ₹{bill.paidAmount || 0}</p>
+                                </td>
+                                <td>{bill.description}</td>
+                                <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                                <td>{bill.status}</td>
+                                <td>
+                                  {bill.status === 'Unpaid' && (
+                                    <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                                  )}
+                                  {bill.status === 'Verification Pending' && (
+                                    <button onClick={() => setExpandedBill(expandedBill === bill._id ? null : bill._id)} className="btn btn-primary">
+                                      {expandedBill === bill._id ? 'Hide' : 'Show'} Pending
+                                    </button>
+                                  )}
+                                  {bill.status === 'Paid' && (
+                                    <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark Unpaid</button>
+                                  )}
+                                  <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download</button>
+                                </td>
+                              </tr>
+                              {expandedBill === bill._id && bill.pendingPayments && bill.pendingPayments.length > 0 && (
+                                <tr>
+                                  <td colSpan="5">
+                                    <div className="pending-payments">
+                                      <h4>Pending Payments</h4>
+                                      <ul>
+                                        {bill.pendingPayments.map(p => (
+                                          <li key={p._id}>
+                                            <span>Amount: ₹{p.amount}</span>
+                                            <span>ID: {p.transactionId}</span>
+                                            <span>
+                                              <button onClick={() => handleApprovePayment(bill._id, p._id)} className="btn btn-success">Approve</button>
+                                              <button onClick={() => handleRejectPayment(bill._id, p._id)} className="btn btn-danger">Reject</button>
+                                            </span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {location.pathname === '/admin/srs-generator' && (
             <div>

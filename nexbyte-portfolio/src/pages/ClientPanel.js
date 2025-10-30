@@ -386,46 +386,71 @@ const ClientPanel = () => {
     </div>
   );
 
-  const renderBilling = () => (
-    <div className="billing-view">
-      <h2>Billing Information</h2>
-      <div className="bills-list">
-        {bills.map((bill) => {
-          let status = bill.status;
-          if (status === 'Unpaid' && new Date(bill.dueDate) < new Date()) {
-            status = 'Overdue';
-          }
+  const renderBilling = () => {
+    const totalPaid = bills.reduce((acc, bill) => acc + (bill.paidAmount || 0), 0);
+    const totalBilled = bills.reduce((acc, bill) => acc + (bill.amount || 0), 0);
+    const remainingBudget = data.clientData.totalBudget - totalPaid;
 
-          return (
-            <div key={bill._id} className={`bill-card ${status.toLowerCase()}`}>
-              <div className="bill-header">
-                <h3>{data.clientData.project}</h3>
-                <span>{bill._id}</span>
-              </div>
-              <div className="bill-details">
-                <p><strong>Total Amount:</strong> ₹{bill.amount}</p>
-                <p><strong>Amount Paid:</strong> ₹{bill.paidAmount || 0}</p>
-                <p><strong>Remaining Amount:</strong> ₹{bill.amount - (bill.paidAmount || 0)}</p>
-                <p><strong>Due Date:</strong> {new Date(bill.dueDate).toLocaleDateString()}</p>
-                <p><strong>Status:</strong> <span className={`status ${status.toLowerCase()}`}>{status}</span></p>
-              </div>
-              {status !== 'Paid' && (
-                <div className="bill-actions">
-                  <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
-                  <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {bills.length === 0 && (
-          <div className="no-bills">
-            <p>You have no outstanding bills.</p>
+    return (
+      <div className="billing-view">
+        <h2>Billing Information</h2>
+
+        <div className="billing-summary">
+          <div className="summary-card">
+            <h4>Total Budget</h4>
+            <p>₹{data.clientData.totalBudget ? data.clientData.totalBudget.toLocaleString() : 'N/A'}</p>
           </div>
-        )}
+          <div className="summary-card">
+            <h4>Total Billed</h4>
+            <p>₹{totalBilled.toLocaleString()}</p>
+          </div>
+          <div className="summary-card">
+            <h4>Total Paid</h4>
+            <p>₹{totalPaid.toLocaleString()}</p>
+          </div>
+          <div className="summary-card remaining">
+            <h4>Remaining Budget</h4>
+            <p>₹{remainingBudget.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="bills-list">
+          {bills.map((bill) => {
+            let status = bill.status;
+            if (status === 'Unpaid' && new Date(bill.dueDate) < new Date()) {
+              status = 'Overdue';
+            }
+
+            return (
+              <div key={bill._id} className={`bill-card ${status.toLowerCase()}`}>
+                <div className="bill-header">
+                  <h3>{data.clientData.project}</h3>
+                  <span>{bill._id}</span>
+                </div>
+                <div className="bill-details">
+                  <p><strong>Bill Amount:</strong> ₹{bill.amount}</p>
+                  <p><strong>Amount Paid:</strong> ₹{bill.paidAmount || 0}</p>
+                  <p><strong>Due Date:</strong> {new Date(bill.dueDate).toLocaleDateString()}</p>
+                  <p><strong>Status:</strong> <span className={`status ${status.toLowerCase()}`}>{status}</span></p>
+                </div>
+                {status !== 'Paid' && (
+                  <div className="bill-actions">
+                    <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
+                    <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {bills.length === 0 && (
+            <div className="no-bills">
+              <p>You have no outstanding bills.</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderSrs = () => (
     <div className="srs-view">
