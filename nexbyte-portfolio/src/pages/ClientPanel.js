@@ -172,36 +172,34 @@ const ClientPanel = () => {
     const invoiceContent = `
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #121212;
-            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7fa;
+            color: #333;
             margin: 0;
             padding: 20px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
         .invoice-box {
             max-width: 800px;
             margin: auto;
-            padding: 40px;
-            background-color: #1e1e1e;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            padding: 50px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         }
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 50px;
         }
         .header .logo {
-            max-width: 200px;
+            max-width: 150px;
         }
         .company-details h1 {
             margin: 0;
-            color: #bb86fc;
-            font-size: 2.5em;
-            font-weight: 300;
+            color: #2a7ade;
+            font-size: 2em;
+            font-weight: 700;
         }
         .details {
             display: flex;
@@ -209,45 +207,38 @@ const ClientPanel = () => {
             margin-bottom: 50px;
         }
         .client-details, .invoice-details {
-            background-color: #2a2a2a;
-            padding: 20px;
-            border-radius: 8px;
             width: 48%;
         }
         .client-details strong, .invoice-details strong {
-            color: #bb86fc;
+            color: #2a7ade;
             display: block;
             margin-bottom: 10px;
-            font-weight: 500;
+            font-weight: 600;
         }
         .items-table {
             width: 100%;
             border-collapse: collapse;
         }
         .items-table thead th {
-            background-color: #bb86fc;
-            color: #121212;
+            background-color: #f4f7fa;
+            color: #555;
             padding: 15px;
             text-align: left;
-            font-weight: 500;
-        }
-        .items-table thead th:first-child {
-            border-top-left-radius: 8px;
-        }
-        .items-table thead th:last-child {
-            border-top-right-radius: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
         }
         .items-table tbody tr {
-            border-bottom: 1px solid #3a3a3a;
+            border-bottom: 1px solid #e6eaf1;
         }
         .items-table tbody tr:last-child {
             border-bottom: none;
         }
         .items-table td {
-            padding: 15px;
+            padding: 20px 15px;
         }
         .items-table .description {
-            font-weight: 500;
+            font-weight: 600;
         }
         .items-table .qty, .items-table .rate, .items-table .amount {
             text-align: right;
@@ -257,14 +248,14 @@ const ClientPanel = () => {
             text-align: right;
         }
         .total-section .grand-total {
-            font-size: 1.8em;
-            font-weight: 500;
-            color: #bb86fc;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #2a7ade;
         }
         .footer {
             margin-top: 50px;
             padding-top: 20px;
-            border-top: 1px solid #3a3a3a;
+            border-top: 1px solid #e6eaf1;
             font-size: 0.9em;
             color: #888;
             text-align: center;
