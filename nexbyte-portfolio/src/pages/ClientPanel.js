@@ -269,7 +269,7 @@ const ClientPanel = () => {
             <div class="client-details">
                 <strong>BILL TO:</strong>
                 <div>${data.clientData.contactPerson}</div>
-                <div>${clientData.clientName}</div>
+                <div>${data.clientData.clientName}</div>
                 <div>${data.clientData.billingAddress || 'N/A'}</div>
                 <div>${data.clientData.email}</div>
             </div>
