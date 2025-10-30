@@ -253,14 +253,7 @@ const ClientPanel = () => {
             font-size: 1.6em;
             font-weight: 600;
             color: #58a6ff;
-        }
-        .footer {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #30363d;
-            font-size: 0.9em;
-            color: #8b949e;
-            text-align: center;
+            margin-bottom: 10px;
         }
     </style>
     <div class="invoice-box">
@@ -276,7 +269,7 @@ const ClientPanel = () => {
             <div class="client-details">
                 <strong>BILL TO:</strong>
                 <div>${data.clientData.contactPerson}</div>
-                <div>${data.clientData.name}</div>
+                <div>${data.clientData.clientName}</div>
                 <div>${data.clientData.billingAddress || 'N/A'}</div>
                 <div>${data.clientData.email}</div>
             </div>
@@ -307,6 +300,12 @@ const ClientPanel = () => {
             </tbody>
         </table>
         <section class="total-section">
+            <div>
+                <strong>Total Paid:</strong> ₹${bill.paidAmount ? bill.paidAmount.toFixed(2) : '0.00'}
+            </div>
+            <div>
+                <strong>Remaining Amount:</strong> ₹${(bill.amount - (bill.paidAmount || 0)).toFixed(2)}
+            </div>
             <div class="grand-total">
                 <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
             </div>
@@ -324,7 +323,7 @@ const ClientPanel = () => {
       margin:       0,
       filename:     `invoice_${bill._id}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, backgroundColor: '#1a1a1a' },
+      html2canvas:  { scale: 2, backgroundColor: '#161b22' },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
@@ -407,12 +406,12 @@ const ClientPanel = () => {
                   <p><strong>Due Date:</strong> {new Date(bill.dueDate).toLocaleDateString()}</p>
                   <p><strong>Status:</strong> <span className={`status ${status.toLowerCase()}`}>{status}</span></p>
                 </div>
-                {status !== 'Paid' && (
                   <div className="bill-actions">
-                    <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
+                    {status !== 'Paid' && (
+                      <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
+                    )}
                     <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button>
                   </div>
-                )}
               </div>
             );
           })}
