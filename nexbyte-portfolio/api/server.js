@@ -730,7 +730,8 @@ app.put('/api/bills/:billId/reject-payment', auth, admin, async (req, res) => {
 
         await bill.save();
 
-        res.json(bill);
+        const populatedBill = await bill.populate('client', 'clientName projectName totalBudget');
+        res.json(populatedBill);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ message: 'Server error' });
