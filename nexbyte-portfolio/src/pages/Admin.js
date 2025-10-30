@@ -924,8 +924,6 @@ const Admin = () => {
                 <h3>All Bills by Client</h3>
                 {Object.values(billsByClient).map(client => {
                   const totalBilled = client.bills.reduce((sum, bill) => sum + bill.amount, 0);
-                  const totalPaid = client.bills.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0);
-                  const remainingBudget = (client.totalBudget || 0) - totalPaid;
 
                   return (
                     <div key={client._id} className="client-billing-section">
@@ -939,14 +937,7 @@ const Admin = () => {
                           <h5>Total Billed</h5>
                           <p>₹{totalBilled.toLocaleString()}</p>
                         </div>
-                        <div className="summary-card">
-                          <h5>Total Paid</h5>
-                          <p>₹{totalPaid.toLocaleString()}</p>
-                        </div>
-                        <div className="summary-card remaining">
-                          <h5>Remaining Budget</h5>
-                          <p>₹{remainingBudget.toLocaleString()}</p>
-                        </div>
+
                       </div>
 
                       <table>
