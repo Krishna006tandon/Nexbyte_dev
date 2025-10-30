@@ -210,6 +210,9 @@ const transporter = nodemailer.createTransport({
     user: "nexbyte.dev@gmail.com",
     pass: process.env.EMAIL_PASSWORD,
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 // @route   POST api/users
@@ -268,6 +271,8 @@ app.post('/api/users', auth, admin, async (req, res) => {
       console.log('Email sent:', info.response);
     } catch (error) {
       console.error('Error sending email:', error);
+      // If email sending fails, still return success for user creation but log the error
+      // Optionally, you could return an error here if email sending is critical
     }
 
     res.json({ message: 'User created successfully' });

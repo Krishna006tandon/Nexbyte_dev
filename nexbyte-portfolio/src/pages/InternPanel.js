@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './InternPanel.css';
-import Sidebar from '../components/Sidebar';
+import InternSidebar from '../components/InternSidebar';
 
 const InternPanel = () => {
   const [internTasks, setInternTasks] = useState([]);
@@ -52,7 +52,7 @@ const InternPanel = () => {
 
   return (
     <div className="intern-panel-container">
-      <Sidebar />
+      <InternSidebar />
       <div className="main-content">
         <h1>Intern Dashboard</h1>
 
