@@ -181,6 +181,26 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
 
 const nodemailer = require('nodemailer');
 
+// Helper function to generate offer letter content
+const generateOfferLetter = (email, duration) => {
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const durationText = duration ? `<p>Your internship will be for a duration of <strong>${duration}</strong>.</p>` : '';
+  return `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <p><strong>Date:</strong> ${date}</p>
+      <p><strong>Subject: Offer of Internship at NexByte_Dev</strong></p>
+      <p>Dear ${email},</p>
+      <p>We are pleased to offer you an internship position at NexByte_Dev. We were very impressed with your qualifications and believe you would be a valuable addition to our team.</p>
+      ${durationText}
+      <p>This internship will provide you with an excellent opportunity to gain practical experience and contribute to real-world projects. We are excited to have you join us.</p>
+      <p>Further details regarding your internship, including start date, duration, and responsibilities, will be communicated to you shortly.</p>
+      <p>We look forward to welcoming you to NexByte_Dev!</p>
+      <p>Sincerely,</p>
+      <p>The NexByte_Dev Team</p>
+    </div>
+  `;
+};
+
 // Nodemailer transporter setup
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -196,7 +216,7 @@ const transporter = nodemailer.createTransport({
 // @desc    Add a new user
 // @access  Private (admin)
 app.post('/api/users', auth, admin, async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password, role, internshipDuration } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Please enter all fields' });
@@ -208,10 +228,19 @@ app.post('/api/users', auth, admin, async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    const plainTextPassword = password; // Store plain text password before hashing
+    let offerLetterContent = null;
+
+    if (role === 'intern') {
+      offerLetterContent = generateOfferLetter(email, internshipDuration);
+    }
+
     user = new User({
       email,
       password,
       role: role || 'user',
+      offerLetter: offerLetterContent, // Save offer letter if generated
+      internshipDuration: role === 'intern' ? internshipDuration : undefined, // Save internship duration
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -220,11 +249,17 @@ app.post('/api/users', auth, admin, async (req, res) => {
     await user.save();
 
     // Send welcome email
+    let emailHtml = `<p>Welcome! Your account has been created.</p><p>Your login email is: <strong>${email}</strong></p><p>Your temporary password is: <strong>${plainTextPassword}</strong></p><p>Please log in and consider changing your password.</p>`;
+
+    if (offerLetterContent) {
+      emailHtml += `<h2>Your Offer Letter:</h2>${offerLetterContent}`;
+    }
+
     const mailOptions = {
       from: '"NexByte" <nexbyte.dev@gmail.com>',
       to: email,
       subject: 'Welcome to NexByte!',
-      html: `<p>Welcome! Your account has been created.</p><p>Your login email is:</p><p>Email: ${email}</p><p>Please proceed to reset your password.</p>`,
+      html: emailHtml,
     };
 
     try {

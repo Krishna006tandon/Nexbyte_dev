@@ -52,3 +52,25 @@
 .intern-panel-container p {
     color: #8b949e;
 }
+
+.offer-letter-section {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.offer-letter-section h2 {
+    color: #58a6ff;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.offer-letter-content {
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    padding: 20px;
+    border-radius: 5px;
+    color: #c9d1d9;
+}

@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, default: 'user' },
   credits: { type: Number, default: 0 },
   offerLetter: { type: String },
+  internshipDuration: { type: String },
 });
 //admin role added for admin user
 

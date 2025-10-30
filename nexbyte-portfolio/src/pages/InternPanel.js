@@ -4,24 +4,34 @@ import Sidebar from '../components/Sidebar';
 
 const InternPanel = () => {
   const [internTasks, setInternTasks] = useState([]);
+  const [offerLetter, setOfferLetter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchInternTasks = async () => {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
+      const headers = { 'x-auth-token': token };
+
       try {
-        const res = await fetch('/api/tasks', {
-          headers: { 'x-auth-token': token },
-        });
-        const data = await res.json();
-        if (res.ok) {
-          // Assuming the /api/tasks endpoint returns tasks assigned to the logged-in user if no clientId is provided
-          // Or, we might need a specific endpoint like /api/tasks/me
-          setInternTasks(data);
+        // Fetch tasks
+        const tasksRes = await fetch('/api/tasks', { headers });
+        const tasksData = await tasksRes.json();
+        if (tasksRes.ok) {
+          setInternTasks(tasksData);
         } else {
-          setError(data.message || 'Failed to fetch tasks');
+          setError(tasksData.message || 'Failed to fetch tasks');
         }
+
+        // Fetch user profile for offer letter
+        const profileRes = await fetch('/api/profile', { headers });
+        const profileData = await profileRes.json();
+        if (profileRes.ok) {
+          setOfferLetter(profileData.offerLetter);
+        } else {
+          setError(profileData.message || 'Failed to fetch profile');
+        }
+
       } catch (err) {
         setError(err.message);
       } finally {
@@ -29,11 +39,11 @@ const InternPanel = () => {
       }
     };
 
-    fetchInternTasks();
+    fetchData();
   }, []);
 
   if (loading) {
-    return <div className="intern-panel-container">Loading tasks...</div>;
+    return <div className="intern-panel-container">Loading...</div>;
   }
 
   if (error) {
@@ -45,6 +55,14 @@ const InternPanel = () => {
       <Sidebar />
       <div className="main-content">
         <h1>Intern Dashboard</h1>
+
+        {offerLetter && (
+          <div className="offer-letter-section">
+            <h2>Your Offer Letter</h2>
+            <div className="offer-letter-content" dangerouslySetInnerHTML={{ __html: offerLetter }} />
+          </div>
+        )}
+
         <h2>Your Assigned Tasks</h2>
         {internTasks.length === 0 ? (
           <p>No tasks assigned to you yet.</p>

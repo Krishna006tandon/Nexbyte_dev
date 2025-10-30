@@ -17,6 +17,7 @@ const Admin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
+  const [internshipDuration, setInternshipDuration] = useState(''); // New state for internship duration
   const [clientPasswords, setClientPasswords] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
@@ -143,13 +144,14 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email, password, role, internshipDuration: role === 'intern' ? internshipDuration : undefined }),
       });
       const data = await res.json();
       if (res.ok) {
         setMembers([...members, data]);
         setEmail('');
         setPassword('');
+        setInternshipDuration(''); // Clear duration after adding
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
@@ -899,7 +901,17 @@ const Admin = () => {
                   <select value={role} onChange={(e) => setRole(e.target.value)}>
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
+                    <option value="intern">Intern</option>
                   </select>
+                  {role === 'intern' && (
+                    <input
+                      type="text"
+                      placeholder="Internship Duration (e.g., 3 months)"
+                      value={internshipDuration}
+                      onChange={(e) => setInternshipDuration(e.target.value)}
+                      required
+                    />
+                  )}
                   <button type="submit" className="btn btn-primary">Add Member</button>
                 </form>
               </div>
@@ -910,6 +922,7 @@ const Admin = () => {
                   <tr>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Duration</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -918,6 +931,7 @@ const Admin = () => {
                     <tr key={member._id}>
                       <td>{member.email}</td>
                       <td>{member.role}</td>
+                      <td>{member.internshipDuration || 'N/A'}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                       </td>
