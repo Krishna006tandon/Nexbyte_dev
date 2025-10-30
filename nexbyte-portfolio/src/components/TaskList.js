@@ -7,9 +7,10 @@ const TaskList = ({ clientId, refreshTrigger }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [interns, setInterns] = useState([]);
 
     useEffect(() => {
-        const fetchTasks = async () => {
+        const fetchTasksAndInterns = async () => {
             if (!clientId) {
                 setTasks([]);
                 return;
@@ -17,12 +18,26 @@ const TaskList = ({ clientId, refreshTrigger }) => {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/tasks?clientId=${clientId}`);
-                if (!response.ok) {
+                const token = localStorage.getItem('token');
+                const headers = { 'x-auth-token': token };
+
+                // Fetch tasks
+                const tasksResponse = await fetch(`/api/tasks?clientId=${clientId}`, { headers });
+                if (!tasksResponse.ok) {
                     throw new Error('Failed to fetch tasks');
                 }
-                const data = await response.json();
-                setTasks(data);
+                const tasksData = await tasksResponse.json();
+
+                // Fetch interns
+                const usersResponse = await fetch('/api/users', { headers });
+                if (!usersResponse.ok) {
+                    throw new Error('Failed to fetch users');
+                }
+                const usersData = await usersResponse.json();
+                const internUsers = usersData.filter(user => user.role === 'intern');
+                setInterns(internUsers);
+
+                setTasks(tasksData);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -30,12 +45,80 @@ const TaskList = ({ clientId, refreshTrigger }) => {
             }
         };
 
-        fetchTasks();
+        fetchTasksAndInterns();
     }, [clientId, refreshTrigger]);
 
     const handleTaskClick = (taskId) => {
         navigate(`/admin/task/${taskId}`);
     };
+
+    const handleAssignTask = async (taskId, userId) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`/api/tasks/${taskId}/assign`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token,
+                },
+                body: JSON.stringify({ userId }),
+            });
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to assign task');
+            }
+            const updatedTask = await response.json();
+            setTasks(tasks.map(task => {
+                if (task._id === taskId) {
+                    const assignedIntern = interns.find(intern => intern._id === updatedTask.assignedTo);
+                    return { ...task, assignedTo: assignedIntern ? assignedIntern.email : null, assignedToId: updatedTask.assignedTo };
+                }
+                return task;
+            }));
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const renderTaskTable = (taskList) => (
+        <table className="tasks-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Effort (hrs)</th>
+                    <th>Reward (INR)</th>
+                    <th>Status</th>
+                    <th>Assigned To</th>
+                </tr>
+            </thead>
+            <tbody>
+                {taskList.map(task => (
+                    <tr key={task._id} className="clickable-row">
+                        <td onClick={() => handleTaskClick(task._id)}>{task.task_title}</td>
+                        <td onClick={() => handleTaskClick(task._id)}>{task.task_description}</td>
+                        <td onClick={() => handleTaskClick(task._id)}>{task.estimated_effort_hours}</td>
+                        <td onClick={() => handleTaskClick(task._id)}>₹{task.reward_amount_in_INR}</td>
+                        <td onClick={() => handleTaskClick(task._id)}>{task.status}</td>
+                        <td>
+                            <select
+                                value={task.assignedToId || ''}
+                                onChange={(e) => handleAssignTask(task._id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()} // Prevent row click when clicking select
+                            >
+                                <option value="">Unassigned</option>
+                                {interns.map(intern => (
+                                    <option key={intern._id} value={intern._id}>
+                                        {intern.email}
+                                    </option>
+                                ))}
+                            </select>
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
 
     const ongoingTasks = tasks.filter(task => !['Done', 'Defect'].includes(task.status));
     const defectTasks = tasks.filter(task => task.status === 'Defect');
@@ -62,28 +145,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                 {ongoingTasks.length === 0 ? (
                     <p>No ongoing tasks.</p>
                 ) : (
-                    <table className="tasks-table">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Description</th>
-                                <th>Effort (hrs)</th>
-                                <th>Reward (INR)</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {ongoingTasks.map(task => (
-                                <tr key={task._id} onClick={() => handleTaskClick(task._id)} className="clickable-row">
-                                    <td>{task.task_title}</td>
-                                    <td>{task.task_description}</td>
-                                    <td>{task.estimated_effort_hours}</td>
-                                    <td>₹{task.reward_amount_in_INR}</td>
-                                    <td>{task.status}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    renderTaskTable(ongoingTasks)
                 )}
             </div>
 
@@ -92,28 +154,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                 {defectTasks.length === 0 ? (
                     <p>No defect tasks.</p>
                 ) : (
-                    <table className="tasks-table">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Description</th>
-                                <th>Effort (hrs)</th>
-                                <th>Reward (INR)</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {defectTasks.map(task => (
-                                <tr key={task._id} onClick={() => handleTaskClick(task._id)} className="clickable-row">
-                                    <td>{task.task_title}</td>
-                                    <td>{task.task_description}</td>
-                                    <td>{task.estimated_effort_hours}</td>
-                                    <td>₹{task.reward_amount_in_INR}</td>
-                                    <td>{task.status}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    renderTaskTable(defectTasks)
                 )}
             </div>
 
@@ -122,28 +163,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                 {completedTasks.length === 0 ? (
                     <p>No completed tasks.</p>
                 ) : (
-                    <table className="tasks-table">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Description</th>
-                                <th>Effort (hrs)</th>
-                                <th>Reward (INR)</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {completedTasks.map(task => (
-                                <tr key={task._id} onClick={() => handleTaskClick(task._id)} className="clickable-row">
-                                    <td>{task.task_title}</td>
-                                    <td>{task.task_description}</td>
-                                    <td>{task.estimated_effort_hours}</td>
-                                    <td>₹{task.reward_amount_in_INR}</td>
-                                    <td>{task.status}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    renderTaskTable(completedTasks)
                 )}
             </div>
         </div>

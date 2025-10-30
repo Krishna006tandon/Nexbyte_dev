@@ -36,6 +36,8 @@ const Login = () => {
         } else if (data.role === 'client') {
           setIsClient(true);
           navigate('/client-panel');
+        } else if (data.role === 'intern') {
+          navigate('/intern-panel');
         } else {
           navigate('/');
         }  
