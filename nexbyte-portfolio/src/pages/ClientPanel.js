@@ -301,13 +301,13 @@ const ClientPanel = () => {
         </table>
         <section class="total-section">
             <div>
-                <strong>Total Paid:</strong> ₹${bill.paidAmount ? bill.paidAmount.toFixed(2) : '0.00'}
+                <strong>Total Amount:</strong> ₹${bill.amount.toFixed(2)}
             </div>
             <div>
-                <strong>Remaining Amount:</strong> ₹${(bill.amount - (bill.paidAmount || 0)).toFixed(2)}
+                <strong>Total Paid:</strong> ₹${bill.paidAmount ? bill.paidAmount.toFixed(2) : '0.00'}
             </div>
             <div class="grand-total">
-                <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
+                <strong>Remaining Amount:</strong> ₹${(bill.amount - (bill.paidAmount || 0)).toFixed(2)}
             </div>
         </section>
         <footer class="footer">
