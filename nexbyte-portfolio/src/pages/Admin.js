@@ -456,9 +456,9 @@ const Admin = () => {
     const invoiceContent = `
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7fa;
-            color: #333;
+            font-family: 'Poppins', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
             margin: 0;
             padding: 20px;
         }
@@ -466,9 +466,10 @@ const Admin = () => {
             max-width: 800px;
             margin: auto;
             padding: 50px;
-            background-color: #ffffff;
+            background-color: #161b22;
+            border: 1px solid #30363d;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
         .header {
             display: flex;
@@ -481,9 +482,9 @@ const Admin = () => {
         }
         .company-details h1 {
             margin: 0;
-            color: #2a7ade;
-            font-size: 2em;
-            font-weight: 700;
+            color: #58a6ff;
+            font-size: 2.2em;
+            font-weight: 600;
         }
         .details {
             display: flex;
@@ -494,26 +495,27 @@ const Admin = () => {
             width: 48%;
         }
         .client-details strong, .invoice-details strong {
-            color: #2a7ade;
+            color: #58a6ff;
             display: block;
             margin-bottom: 10px;
-            font-weight: 600;
+            font-weight: 500;
         }
         .items-table {
             width: 100%;
             border-collapse: collapse;
         }
         .items-table thead th {
-            background-color: #f4f7fa;
-            color: #555;
+            background-color: #21262d;
+            color: #f0f6fc;
             padding: 15px;
             text-align: left;
-            font-weight: 600;
+            font-weight: 500;
             text-transform: uppercase;
             font-size: 0.85em;
+            border-bottom: 1px solid #30363d;
         }
         .items-table tbody tr {
-            border-bottom: 1px solid #e6eaf1;
+            border-bottom: 1px solid #30363d;
         }
         .items-table tbody tr:last-child {
             border-bottom: none;
@@ -522,7 +524,7 @@ const Admin = () => {
             padding: 20px 15px;
         }
         .items-table .description {
-            font-weight: 600;
+            font-weight: 500;
         }
         .items-table .qty, .items-table .rate, .items-table .amount {
             text-align: right;
@@ -532,16 +534,16 @@ const Admin = () => {
             text-align: right;
         }
         .total-section .grand-total {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #2a7ade;
+            font-size: 1.6em;
+            font-weight: 600;
+            color: #58a6ff;
         }
         .footer {
             margin-top: 50px;
             padding-top: 20px;
-            border-top: 1px solid #e6eaf1;
+            border-top: 1px solid #30363d;
             font-size: 0.9em;
-            color: #888;
+            color: #8b949e;
             text-align: center;
         }
     </style>
