@@ -1,44 +1,74 @@
-.sidebar {
-  width: 200px;
-  background-color: var(--surface);
-  padding: 20px;
-  border-right: 1px solid var(--border);
+/* Sidebar Redesign for "Developer" Theme */
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.sidebar-profile {
+.sidebar {
+  width: 240px;
+  background-color: var(--background-dark);
+  padding: 20px 0;
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin-bottom: 20px;
-  color: var(--primary-text);
+  gap: 2rem;
+  animation: slideInLeft 0.5s ease-out forwards;
 }
 
-.sidebar-profile img {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  margin-bottom: 10px;
+
+.sidebar-profile {
+  padding: 1rem 20px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
 }
 
 .sidebar-profile-info {
-  text-align: center;
+  font-family: var(--font-mono), monospace;
+  color: var(--secondary-text);
+  transition: color 0.3s ease;
+}
+
+.sidebar-profile-info span:hover {
+  color: var(--primary-text);
+}
+
+.sidebar-profile-info span {
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
 .sidebar ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .sidebar li a {
   display: block;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 12px 20px;
   text-decoration: none;
   color: var(--secondary-text);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.95rem;
+  border-left: 3px solid transparent;
+  transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease, transform 0.2s ease;
 }
 
 .sidebar li a:hover {
-  background-color: var(--surface-hover);
+  background-color: var(--surface);
+  color: var(--primary-text);
+  transform: translateX(5px);
+}
+
+.sidebar li a.active {
+  background-color: var(--surface);
   color: var(--accent);
+  border-left-color: var(--accent);
 }

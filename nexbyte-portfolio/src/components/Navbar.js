@@ -44,7 +44,7 @@ const Navbar = () => {
             </>
           )}
         </div>
-        <button className="nav-toggler" type="button" onClick={handleNavCollapse}>
+        <button className={`nav-toggler ${!isNavCollapsed ? 'active' : ''}`} type="button" onClick={handleNavCollapse}>
           <span className="toggler-icon"></span>
           <span className="toggler-icon"></span>
           <span className="toggler-icon"></span>

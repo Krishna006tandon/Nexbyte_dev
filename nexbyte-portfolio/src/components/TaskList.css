@@ -1,15 +1,33 @@
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .task-list-container {
     margin-top: 2rem;
     padding: 2rem;
     background-color: var(--surface);
     border-radius: 8px;
+    animation: fadeInUp 0.5s ease-out forwards;
 }
+
 
 .task-list-container h3 {
     margin-top: 0;
     border-bottom: 2px solid var(--border);
     padding-bottom: 1rem;
     margin-bottom: 1rem;
+    transition: color 0.3s ease;
+}
+
+.task-list-container h3:hover {
+    color: var(--primary-text);
 }
 
 .tasks-table {
@@ -35,7 +53,7 @@
 }
 
 .success-message {
-    color: #28a745;
+    color: var(--success-color);
     background-color: rgba(40, 167, 69, 0.1);
     border: 1px solid rgba(40, 167, 69, 0.5);
     padding: 1rem;
@@ -47,7 +65,7 @@
 .save-tasks-btn {
     margin-top: 1rem;
     background-color: var(--accent) !important;
-    color: #000 !important;
+    color: var(--background-dark) !important;
     font-weight: 600;
 }
 
@@ -80,5 +98,5 @@
 }
 
 .defect-tasks h4 {
-    color: #b00020; /* Red for defects */
+    color: var(--error-color); /* Red for defects */
 }

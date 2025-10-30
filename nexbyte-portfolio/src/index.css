@@ -1,16 +1,23 @@
 :root {
-  --background-dark: #0a0a0a;
-  --background-light: #1a1a1a;
-  --surface: #1e1e1e;
-  --surface-hover: #2a2a2a;
-  --accent: #00ffff; /* Teal */
-  --accent-hover: #00e6e6;
-  --primary-text: #ffffff;
-  --secondary-text: #cccccc;
-  --disabled-text: #888888;
-  --border: #333333;
+  --background-dark: #0d1117; /* GitHub Dark Background */
+  --background-light: #161b22; /* GitHub Dark Lighter Background */
+  --surface: #1E2D3D; /* A deep blue-gray surface */
+  --surface-hover: #2A3C51;
+  --accent: #58a6ff; /* GitHub Dark Blue */
+  --accent-hover: #79c0ff;
+  --primary-text: #c9d1d9; /* GitHub Dark Primary Text */
+  --secondary-text: #8b949e; /* GitHub Dark Secondary Text */
+  --disabled-text: #6e7681;
+  --border: #30363d; /* GitHub Dark Border */
   --shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --success-color: #28a745;
+  --error-color: #dc3545;
+  --warning-color: #ffae42;
+  --success-color-rgb: 40, 167, 69;
+  --error-color-rgb: 220, 53, 69;
+  --default-border-radius: 8px;
 }
 
 body {
@@ -103,13 +110,13 @@ code {
 
 .btn-primary {
   background-color: var(--accent);
-  color: #000;
-  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.2);
+  color: var(--background-dark);
+  box-shadow: 0 4px 15px rgba(88, 166, 255, 0.2);
 }
 
 .btn-primary:hover {
   color: #fff;
-  box-shadow: 0 10px 25px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 10px 25px rgba(88, 166, 255, 0.4);
   transform: translateY(-3px);
 }
 
@@ -121,7 +128,7 @@ code {
 
 .btn-secondary:hover {
   background-color: var(--accent);
-  color: #000;
-  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.2);
+  color: var(--background-dark);
+  box-shadow: 0 4px 15px rgba(88, 166, 255, 0.2);
   transform: translateY(-3px);
 }

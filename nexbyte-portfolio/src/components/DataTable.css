@@ -2,6 +2,17 @@
   overflow-x: auto;
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .data-table {
   width: 100%;
   border-collapse: separate;
@@ -11,7 +22,9 @@
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+  animation: fadeInUp 0.5s ease-out forwards;
 }
+
 
 .data-table th, .data-table td {
   padding: 1.2rem 1.5rem;
@@ -20,7 +33,7 @@
 }
 
 .data-table thead th {
-  background: linear-gradient(to right, #434343, #000000);
+  background: linear-gradient(to right, var(--background-light), var(--background-dark));
   color: var(--accent);
   font-weight: 700;
   font-size: 1rem;

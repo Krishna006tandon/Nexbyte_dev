@@ -1,3 +1,12 @@
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -9,7 +18,9 @@
   justify-content: center;
   align-items: center;
   z-index: 1001;
+  animation: fadeInOverlay 0.3s ease-out;
 }
+
 
 .modal-content {
   background-color: var(--background-light);
@@ -35,6 +46,11 @@
   font-size: 1.5rem;
   color: var(--primary-text);
   margin: 0;
+  transition: color 0.3s ease;
+}
+
+.modal-title:hover {
+  color: var(--accent);
 }
 
 .close-button {

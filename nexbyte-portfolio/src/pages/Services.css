@@ -1,14 +1,33 @@
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .services-page .page-header {
   text-align: center;
   padding: 4rem 2rem;
   background: var(--background-light);
+  animation: fadeInDown 0.5s ease-out forwards;
 }
+
 
 .services-page .page-title {
   font-size: 3rem;
   font-weight: 700;
-  color: white;
+  color: var(--primary-text);
+  transition: color 0.3s ease;
 }
+
+.services-page .page-title:hover {
+  color: var(--accent);
+}
+
 
 .services-page .page-subtitle {
   font-size: 1.2rem;
@@ -21,13 +40,40 @@
   padding: 4rem 2rem;
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .service-item {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 3rem;
   align-items: center;
   margin-bottom: 4rem;
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0; /* Start invisible for staggered animation */
 }
+
+.service-item:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.service-item:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.service-item:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.service-item:nth-child(4) {
+  animation-delay: 0.5s;
+}
+
 
 .service-item:nth-child(even) {
   grid-template-columns: 2fr 1fr;
@@ -47,6 +93,11 @@
   font-size: 2rem;
   color: var(--primary-text);
   margin-bottom: 1rem;
+  transition: color 0.3s ease;
+}
+
+.service-details h3:hover {
+  color: var(--accent);
 }
 
 .service-details p {
@@ -69,6 +120,12 @@
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.9rem;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.service-details ul li:hover {
+  transform: translateY(-3px);
+  background-color: var(--surface-hover);
 }
 
 @media (max-width: 768px) {

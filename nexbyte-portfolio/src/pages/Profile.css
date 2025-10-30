@@ -12,12 +12,17 @@
 
 .profile-header h1 {
   font-size: 2rem;
+  transition: color 0.3s ease;
+}
+
+.profile-header h1:hover {
+  color: var(--accent);
 }
 
 .profile-card {
   background-color: var(--background-light);
   padding: 2rem;
-  border-radius: var(--border-radius);
+  border-radius: var(--default-border-radius);
   box-shadow: var(--shadow);
 }
 
@@ -53,28 +58,34 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.profile-form label:hover {
+  color: var(--primary-text);
 }
 
 .profile-form input {
   width: 100%;
   padding: 0.75rem;
-  border-radius: var(--border-radius);
+  border-radius: var(--default-border-radius);
   border: 1px solid var(--border);
-  background-color: var(--background);
+  background-color: var(--background-light);
   color: var(--primary-text);
 }
 
 .profile-form .submit-btn {
   background-color: var(--accent);
-  color: #fff;
+  color: var(--background-dark);
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: var(--default-border-radius);
   cursor: pointer;
   font-weight: 600;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, transform 0.3s ease;
 }
 
 .profile-form .submit-btn:hover {
-  background-color: #00b3b3;
+  background-color: var(--accent-hover);
+  transform: translateY(-2px);
 }

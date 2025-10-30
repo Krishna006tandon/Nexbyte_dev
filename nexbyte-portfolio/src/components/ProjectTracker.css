@@ -1,10 +1,23 @@
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .project-tracker-container {
   padding: 20px;
-  background-color: #f7f9fc;
+  background-color: var(--surface);
   border-radius: 12px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-light);
+  animation: fadeInUp 0.5s ease-out forwards;
 }
+
 
 .project-tracker {
   display: flex;
@@ -20,7 +33,7 @@
   left: 5%;
   right: 5%;
   height: 3px;
-  background-color: #dfe3e8;
+  background-color: var(--border);
   transform: translateY(-50%);
   z-index: 1;
 }
@@ -39,9 +52,9 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #fff;
-  border: 3px solid #dfe3e8;
-  color: #dfe3e8;
+  background-color: var(--background-dark);
+  border: 3px solid var(--border);
+  color: var(--secondary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,32 +67,32 @@
   margin-top: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #919eab;
+  color: var(--secondary-text);
   transition: color 0.4s ease;
 }
 
 /* Completed Status */
 .milestone.completed .milestone-icon {
-  border-color: #54d62c;
-  background-color: #54d62c;
-  color: #fff;
+  border-color: var(--success-color);
+  background-color: var(--success-color);
+  color: var(--background-dark);
 }
 
 .milestone.completed .milestone-name {
-  color: #212b36;
+  color: var(--primary-text);
 }
 
 /* Current Status */
 .milestone.current .milestone-icon {
-  border-color: #007bff;
-  background-color: #fff;
-  color: #007bff;
+  border-color: var(--accent);
+  background-color: var(--background-dark);
+  color: var(--accent);
   transform: scale(1.1);
-  box-shadow: 0 0 0 6px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 6px rgba(88, 166, 255, 0.1);
 }
 
 .milestone.current .milestone-name {
-  color: #0052b3;
+  color: var(--accent-hover);
   font-weight: 700;
 }
 
@@ -90,14 +103,14 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background-color: #007bff;
+  background-color: var(--accent);
   animation: pulse 1.5s infinite;
   z-index: -1;
 }
 
 /* Pending Status */
 .milestone.pending .milestone-icon {
-  background-color: #f4f6f8;
+  background-color: var(--background-light);
 }
 
 @keyframes pulse {

@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Sidebar.css';
 
@@ -36,7 +36,7 @@ const Sidebar = () => {
       )}
       <ul>
         {links.map(link => (
-          <li key={link.to}><Link to={link.to}>{link.text}</Link></li>
+          <li key={link.to}><NavLink to={link.to}>{link.text}</NavLink></li>
         ))}
       </ul>
     </div>

@@ -1,9 +1,22 @@
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .srs-generator-container {
   padding: 2rem;
   margin: 0 auto;
   max-width: 900px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  animation: fadeInUp 0.5s ease-out forwards;
 }
+
 
 .srs-output {
   background-color: var(--surface);
@@ -16,7 +29,7 @@
 .srs-output pre {
   white-space: pre-wrap;
   word-wrap: break-word;
-  background-color: var(--background);
+  background-color: var(--background-light);
   padding: 2rem;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -27,19 +40,20 @@
 }
 
 .btn-primary {
-    background-color: var(--primary-variant);
-    border-color: var(--primary-variant);
-    color: var(--on-primary);
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--background-dark);
     font-weight: 500;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     border-radius: 8px;
-    transition: background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    transition: background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out, transform 0.3s ease;
 }
 
 .btn-primary:hover {
-    background-color: var(--primary);
-    border-color: var(--primary);
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    transform: translateY(-2px);
 }
 
 .btn {
@@ -52,6 +66,11 @@
     -ms-user-select: none;
     user-select: none;
     border: 1px solid transparent;
+    transition: transform 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
 }
 
 .mt-4 {
@@ -65,7 +84,7 @@
 .srs-textarea {
   width: 100%;
   height: 600px;
-  background-color: var(--background);
+  background-color: var(--background-light);
   color: var(--secondary-text);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -91,7 +110,7 @@
 
 .ai-prompt-input {
   flex-grow: 1;
-  background-color: var(--background);
+  background-color: var(--background-light);
   color: var(--secondary-text);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -101,32 +120,37 @@
 
 .btn-secondary {
     background-color: var(--surface);
-    border-color: var(--on-primary);
-    color: var(--on-primary);
+    border-color: var(--primary-text);
+    color: var(--primary-text);
     font-weight: 500;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     border-radius: 8px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .btn-secondary:hover {
     background-color: var(--surface-hover);
-    border-color: var(--on-primary);
+    border-color: var(--primary-text);
+    transform: translateY(-2px);
 }
 
 .btn-success {
-    background-color: var(--secondary);
-    border-color: var(--secondary);
-    color: var(--on-secondary);
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: var(--background-dark);
     font-weight: 500;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     border-radius: 8px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .btn-success:hover {
-    background-color: var(--secondary-variant);
-    border-color: var(--secondary-variant);
+    background-color: var(--success-color);
+    filter: brightness(1.1);
+    border-color: var(--success-color);
+    transform: translateY(-2px);
 }
 
 .action-feedback {
@@ -136,18 +160,18 @@
 }
 
 .text-danger {
-  color: #dc3545;
+  color: var(--error-color);
 }
 
 .text-success {
-  color: #198754;
+  color: var(--success-color);
 }
 
 /* Print-specific styles */
 @media print {
   body {
-    background-color: #fff;
-    color: #000;
+    background-color: var(--primary-text);
+    color: var(--background-dark);
   }
 
   .srs-generator-container {
@@ -162,12 +186,12 @@
   }
 
   .srs-output pre, .srs-textarea {
-    background-color: #fff;
+    background-color: var(--primary-text);
     border: none;
     padding: 0;
     font-family: 'Times New Roman', Times, serif;
     font-size: 12pt;
-    color: #000;
+    color: var(--background-dark);
   }
 
   .action-buttons, .ai-prompt-container, .action-feedback {

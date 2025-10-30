@@ -5,20 +5,38 @@
 .home-page {
   flex-grow: 1;
   padding: 2rem;
-  background-color: #202020;
+  background-color: var(--background-dark);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .home-page .hero-section {
   text-align: center;
   padding: 6rem 2rem;
   background: linear-gradient(145deg, var(--background-dark), var(--background-light));
+  animation: fadeInDown 0.5s ease-out forwards;
 }
+
 
 .home-page .hero-title {
   font-size: 3.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
   color: var(--primary-text);
+  transition: color 0.3s ease;
+}
+
+.home-page .hero-title:hover {
+  color: var(--accent);
 }
 
 .home-page .hero-subtitle {
@@ -30,16 +48,35 @@
   margin-right: auto;
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .home-page .services-section {
   padding: 4rem 2rem;
   text-align: center;
+  animation: fadeInUp 0.5s ease-out forwards;
+  animation-delay: 0.2s; /* Delay to follow hero section animation */
 }
+
 
 .home-page .section-title {
   font-size: 2.5rem;
   font-weight: 600;
   margin-bottom: 3rem;
-  color: white;
+  color: var(--primary-text);
+  transition: color 0.3s ease;
+}
+
+.home-page .section-title:hover {
+  color: var(--accent);
 }
 
 .home-page .services-grid {
@@ -50,6 +87,12 @@
 
 .service-card {
   text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow);
 }
 
 .service-card .icon {

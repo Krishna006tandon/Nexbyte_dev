@@ -84,17 +84,7 @@ const About = () => {
         </div>
       </section>
 
-      <section className="three-d-section">
-        <h2 className="section-title">Our Creative Space</h2>
-        <Canvas style={{ height: '400px' }}>
-            <ambientLight intensity={0.5} />
-            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-            <pointLight position={[-10, -10, -10]} />
-            <Box position={[0, 0, 0]}>
-              <meshStandardMaterial color="royalblue" />
-            </Box>
-        </Canvas>
-      </section>
+
     </div>
   );
 };

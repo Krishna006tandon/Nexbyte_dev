@@ -6,6 +6,11 @@
 .settings-header h1 {
   font-size: 2rem;
   margin-bottom: 2rem;
+  transition: color 0.3s ease;
+}
+
+.settings-header h1:hover {
+  color: var(--accent);
 }
 
 .settings-card {
@@ -24,6 +29,11 @@
   margin-bottom: 1rem;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.settings-section h2:hover {
+  color: var(--accent);
 }
 
 .setting-item {
@@ -36,6 +46,11 @@
 .setting-item p {
   margin: 0;
   color: var(--primary-text);
+  transition: color 0.3s ease;
+}
+
+.setting-item p:hover {
+  color: var(--accent);
 }
 
 /* Simple Toggle Switch CSS */
@@ -59,7 +74,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: var(--secondary-text);
   transition: .4s;
   border-radius: 34px;
 }
@@ -71,7 +86,7 @@
   width: 20px;
   left: 4px;
   bottom: 4px;
-  background-color: white;
+  background-color: var(--primary-text);
   transition: .4s;
   border-radius: 50%;
 }

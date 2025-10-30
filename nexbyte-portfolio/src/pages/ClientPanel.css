@@ -25,16 +25,28 @@
   color: var(--secondary-text);
   border-radius: 5px;
   margin-bottom: 5px;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .sidebar ul li:hover {
   background-color: var(--surface-hover);
+  transform: translateX(5px);
 }
 
 .sidebar ul li.active {
   background-color: var(--accent);
-  color: #000;
+  color: var(--background-dark);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .main-content {
@@ -42,10 +54,12 @@
   padding: 20px;
   background-color: var(--background-dark);
   color: var(--primary-text);
+  animation: fadeInUp 0.5s ease-out forwards;
 }
 
+
 .client-panel-error {
-  color: #ff4d4d; /* Brighter red for dark background */
+  color: var(--error-color); /* Brighter red for dark background */
 }
 
 .client-panel-loading {
@@ -87,11 +101,17 @@
   margin-top: 10px;
   padding: 10px 15px;
   background-color: var(--accent);
-  color: #000;
+  color: var(--background-dark);
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.message-section button:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-2px);
 }
 
 .billing-summary {
@@ -106,6 +126,12 @@
   padding: 20px;
   border-radius: 8px;
   border: 1px solid var(--border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow);
 }
 
 .summary-card h4 {
@@ -136,27 +162,28 @@
   border-radius: 8px;
   padding: 15px;
   background-color: var(--surface);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .bill-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0, 255, 255, 0.1);
+    border-color: var(--accent);
 }
 
 .bill-card.paid {
-  background-color: rgba(0, 255, 127, 0.1); /* Darker green with opacity */
-  border-left: 5px solid #00ff7f;
+  background-color: rgba(var(--success-color-rgb), 0.1); /* Darker green with opacity */
+  border-left: 5px solid var(--success-color);
 }
 
 .bill-card.overdue {
-  background-color: rgba(255, 77, 77, 0.1); /* Darker red with opacity */
-  border-left: 5px solid #ff4d4d;
+  background-color: rgba(var(--error-color-rgb), 0.1); /* Darker red with opacity */
+  border-left: 5px solid var(--error-color);
 }
 
 .bill-card.unpaid {
   background-color: var(--surface);
-  border-left: 5px solid #ffae42; /* Amber */
+  border-left: 5px solid var(--warning-color); /* Amber */
 }
 
 .bill-header {
@@ -181,15 +208,15 @@
 }
 
 .bill-details .status.paid {
-  color: #00ff7f; /* Spring Green */
+  color: var(--success-color); /* Spring Green */
 }
 
 .bill-details .status.overdue {
-  color: #ff4d4d; /* Bright Red */
+  color: var(--error-color); /* Bright Red */
 }
 
 .bill-details .status.unpaid {
-  color: #ffae42; /* Amber */
+  color: var(--warning-color); /* Amber */
 }
 
 .bill-actions {
@@ -199,16 +226,17 @@
 .pay-now-btn {
   padding: 10px 15px;
   background-color: var(--accent);
-  color: #000;
+  color: var(--background-dark);
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .pay-now-btn:hover {
     background-color: var(--accent-hover);
+    transform: translateY(-2px);
 }
 
 .manual-payment-modal {
@@ -225,7 +253,7 @@
 .qr-code-container {
   margin: 20px 0;
   padding: 10px;
-  background-color: white; /* QR code needs a white background to be scannable */
+  background-color: var(--primary-text); /* QR code needs a white background to be scannable */
   display: inline-block;
   border-radius: 5px;
 }
@@ -263,16 +291,27 @@
   border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .manual-payment-modal .modal-actions button:first-child {
   background-color: var(--accent);
-  color: #000;
+  color: var(--background-dark);
+}
+
+.manual-payment-modal .modal-actions button:first-child:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-2px);
 }
 
 .manual-payment-modal .modal-actions button:last-child {
   background-color: var(--surface-hover);
   color: var(--primary-text);
+}
+
+.manual-payment-modal .modal-actions button:last-child:hover {
+  background-color: var(--border);
+  transform: translateY(-2px);
 }
 
 .manual-payment-modal .modal-actions button:disabled {

@@ -6,6 +6,17 @@
   color: white;
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .auth-container {
   width: 100%;
   max-width: 450px;
@@ -15,16 +26,23 @@
   border: 1px solid var(--border);
   
   box-shadow: var(--shadow);
+  animation: fadeInUp 0.5s ease-out forwards;
 }
+
 
 .auth-container h1 {
   text-align: center;
   font-size: 2.5rem;
   margin-bottom: 2rem;
+  transition: color 0.3s ease;
+}
+
+.auth-container h1:hover {
+  color: var(--accent);
 }
 
 .auth-container .error-message {
-  color: #ff8a8a;
+  color: var(--error-color);
   text-align: center;
   margin-bottom: 1.5rem;
 }
@@ -37,4 +55,9 @@
 
 .auth-container .switch-auth a {
   font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-container .switch-auth a:hover {
+  color: var(--accent);
 }

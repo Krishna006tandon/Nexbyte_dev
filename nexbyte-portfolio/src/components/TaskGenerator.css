@@ -1,3 +1,14 @@
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .task-generator-container {
     margin: 2rem auto;
     padding: 2rem;
@@ -5,12 +16,19 @@
     border-radius: 8px;
     box-shadow: var(--shadow);
     max-width: 800px;
+    animation: fadeInUp 0.5s ease-out forwards;
 }
+
 
 .task-generator-container h2 {
     text-align: center;
     margin-bottom: 1.5rem;
     color: var(--primary-text);
+    transition: color 0.3s ease;
+}
+
+.task-generator-container h2:hover {
+    color: var(--accent);
 }
 
 .task-generator-form .form-group {
@@ -22,6 +40,11 @@
     margin-bottom: 0.5rem;
     font-weight: bold;
     color: var(--secondary-text);
+    transition: color 0.3s ease;
+}
+
+.task-generator-form label:hover {
+    color: var(--primary-text);
 }
 
 .label-with-button {
@@ -43,10 +66,12 @@
     color: var(--accent);
     border: 1px solid var(--border);
     border-radius: 4px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .label-with-button button:hover {
     background-color: var(--border);
+    transform: translateY(-2px);
 }
 
 .task-generator-form input,
@@ -70,7 +95,7 @@
     width: 100%;
     padding: 0.75rem;
     background-color: var(--accent);
-    color: #000;
+    color: var(--background-dark);
     border: none;
     border-radius: 4px;
     font-size: 1.1rem;
@@ -89,7 +114,7 @@
 }
 
 .error-message {
-    color: #d9534f;
+    color: var(--error-color);
     text-align: center;
     margin-top: 1rem;
 }
@@ -122,4 +147,9 @@
 .task-item h4 {
     margin-top: 0;
     color: var(--accent);
+    transition: color 0.3s ease;
+}
+
+.task-item h4:hover {
+    color: var(--accent-hover);
 }
