@@ -590,14 +590,8 @@ const Admin = () => {
             </tbody>
         </table>
         <section class="total-section">
-            <div>
-                <strong>Total Amount:</strong> ₹${bill.amount.toFixed(2)}
-            </div>
-            <div>
-                <strong>Total Paid:</strong> ₹${bill.paidAmount ? bill.paidAmount.toFixed(2) : '0.00'}
-            </div>
             <div class="grand-total">
-                <strong>Remaining Amount:</strong> ₹${(bill.amount - (bill.paidAmount || 0)).toFixed(2)}
+                <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
             </div>
         </section>
         <footer class="footer">
