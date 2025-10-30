@@ -567,7 +567,7 @@ app.get('/api/bills/client/:clientId', auth, client, async (req, res) => {
 // @access  Private (admin)
 app.get('/api/bills', auth, admin, async (req, res) => {
   try {
-    const bills = await Bill.find().populate('client', 'clientName').sort({ billDate: -1 });
+    const bills = await Bill.find().populate('client', 'clientName projectName totalBudget').sort({ billDate: -1 });
     res.json(bills);
   } catch (err) {
     console.error(err.message);
