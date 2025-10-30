@@ -985,10 +985,6 @@ const Admin = () => {
                       <td>
                         <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
                         <button onClick={() => handleShowTracker(client)} className="btn btn-info">Show Tracker</button>
-                        <button onClick={() => handleDownloadSrs(client)} className="btn btn-success" disabled={isDownloading}>
-                          {isDownloading ? 'Downloading...' : 'Download SRS'}
-                        </button>
-                        <button onClick={() => handleSeeSrs(client)} className="btn btn-primary">See SRS</button>
                       </td>
                     </tr>
                   ))}
@@ -1048,7 +1044,14 @@ const Admin = () => {
                           <h5>Total Billed</h5>
                           <p>₹{totalBilled.toLocaleString()}</p>
                         </div>
-
+                        <div className="summary-card">
+                          <button onClick={() => handleDownloadSrs(client)} className="btn btn-success" disabled={isDownloading}>
+                            {isDownloading ? 'Downloading...' : 'Download SRS'}
+                          </button>
+                        </div>
+                        <div className="summary-card">
+                          <button onClick={() => handleSeeSrs(client)} className="btn btn-primary">See SRS</button>
+                        </div>
                       </div>
 
                       <table>
