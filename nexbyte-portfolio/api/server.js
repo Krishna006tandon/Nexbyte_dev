@@ -693,8 +693,8 @@ app.put('/api/bills/:billId/approve-payment', auth, admin, async (req, res) => {
     
     await bill.save();
 
-    const populatedBill = await bill.populate('client', 'clientName projectName totalBudget');
-    res.json(populatedBill);
+    const foundBill = await Bill.findById(bill._id).populate('client', 'clientName projectName totalBudget');
+    res.json(foundBill);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
@@ -730,8 +730,8 @@ app.put('/api/bills/:billId/reject-payment', auth, admin, async (req, res) => {
 
         await bill.save();
 
-        const populatedBill = await bill.populate('client', 'clientName projectName totalBudget');
-        res.json(populatedBill);
+        const foundBill = await Bill.findById(bill._id).populate('client', 'clientName projectName totalBudget');
+        res.json(foundBill);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ message: 'Server error' });
@@ -1007,10 +1007,6 @@ app.get('/api/messages', auth, admin, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-
-
-
 
 
 
