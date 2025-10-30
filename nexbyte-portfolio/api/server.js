@@ -683,7 +683,7 @@ app.put('/api/bills/:billId/approve-payment', auth, admin, async (req, res) => {
     }
 
     bill.paidAmount += payment.amount;
-    payment.remove();
+    bill.pendingPayments.pull(paymentId);
 
     if (bill.paidAmount >= bill.amount) {
       bill.status = 'Paid';
@@ -722,7 +722,7 @@ app.put('/api/bills/:billId/reject-payment', auth, admin, async (req, res) => {
             return res.status(404).json({ message: 'Pending payment not found' });
         }
 
-        payment.remove();
+        bill.pendingPayments.pull(paymentId);
         
         if (bill.pendingPayments.length === 0 && bill.status === 'Verification Pending') {
             bill.status = bill.paidAmount > 0 ? 'Partially Paid' : 'Unpaid';
@@ -1007,7 +1007,6 @@ app.get('/api/messages', auth, admin, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 
 
