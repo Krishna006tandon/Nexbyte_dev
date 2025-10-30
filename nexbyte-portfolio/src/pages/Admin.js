@@ -30,6 +30,9 @@ const Admin = () => {
   const [milestone, setMilestone] = useState(null);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [expandedBill, setExpandedBill] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
+  const [selectedSrsClient, setSelectedSrsClient] = useState(null);
 
 
   const [clientData, setClientData] = useState({
@@ -657,10 +660,6 @@ const Admin = () => {
       console.error(err);
     }
   };
-
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
-  const [selectedSrsClient, setSelectedSrsClient] = useState(null);
 
   const handleDownloadSrs = (client) => {
     if (!client || !client.srsDocument) {

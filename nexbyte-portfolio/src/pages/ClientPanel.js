@@ -16,6 +16,8 @@ const ClientPanel = () => {
   const [transactionId, setTransactionId] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [milestone, setMilestone] = useState(null); // Add state for milestone
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
 
   const handlePayNow = (bill) => {
     setSelectedBill(bill);
@@ -418,9 +420,6 @@ const ClientPanel = () => {
       </div>
     );
   };
-
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
 
   const handleDownloadSrs = () => {
     if (!data || !data.clientData || !data.clientData.srsDocument) {
