@@ -596,7 +596,8 @@ app.put('/api/bills/:billId', auth, admin, async (req, res) => {
     
     await bill.save();
 
-    res.json(bill);
+    const populatedBill = await bill.populate('client', 'clientName projectName totalBudget');
+    res.json(populatedBill);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
@@ -690,15 +691,10 @@ app.put('/api/bills/:billId/approve-payment', auth, admin, async (req, res) => {
       bill.status = 'Partially Paid';
     }
     
-    // If there are no more pending payments, change status from 'Verification Pending'
-    if (bill.pendingPayments.length === 0 && bill.status === 'Verification Pending') {
-        bill.status = bill.paidAmount > 0 ? 'Partially Paid' : 'Unpaid';
-    }
-
-
     await bill.save();
 
-    res.json(bill);
+    const populatedBill = await bill.populate('client', 'clientName projectName totalBudget');
+    res.json(populatedBill);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
