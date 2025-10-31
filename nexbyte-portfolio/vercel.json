@@ -3,12 +3,7 @@
   "builds": [
     {
       "src": "api/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "memory": 1024,
-        "maxDuration": 10,
-        "includeFiles": "node_modules/chrome-aws-lambda/**,node_modules/puppeteer-core/**,node_modules/puppeteer/.local-chromium/**"
-      }
+      "use": "@vercel/node"
     },
     {
       "src": "package.json",

@@ -180,8 +180,6 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
 });
 
 const nodemailer = require('nodemailer');
-const puppeteer = require('puppeteer-core'); // Use puppeteer-core
-const chromium = require('chrome-aws-lambda'); // Import chrome-aws-lambda
 
 // Helper function to generate offer letter content
 const generateOfferLetter = (email, duration) => {
@@ -239,32 +237,9 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
     const plainTextPassword = password; // Store plain text password before hashing
     let offerLetterContent = null;
-    let offerLetterPdfBuffer = null;
 
     if (role === 'intern') {
       offerLetterContent = generateOfferLetter(email, internshipDuration);
-      // Generate PDF from HTML content using Puppeteer
-      let browser;
-      try {
-        console.log('Attempting to launch Puppeteer browser...');// Debug log
-        browser = await puppeteer.launch({
-          args: chromium.args,
-          executablePath: await chromium.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome', // Fallback for local dev or other environments
-          headless: chromium.headless,
-        });
-        const page = await browser.newPage();
-        await page.setContent(offerLetterContent, { waitUntil: 'networkidle0' });
-        offerLetterPdfBuffer = await page.pdf({ format: 'A4' });
-        console.log('PDF generated successfully. Buffer size:', offerLetterPdfBuffer ? offerLetterPdfBuffer.length : 'null');
-      } catch (pdfError) {
-        console.error('Error generating PDF with Puppeteer:', pdfError.message, pdfError.stack);
-        // Continue without PDF if generation fails
-      } finally {
-        if (browser) {
-          await browser.close();
-          console.log('Puppeteer browser closed.');
-        }
-      }
     }
 
     user = new User({
@@ -281,30 +256,29 @@ app.post('/api/users', auth, admin, async (req, res) => {
     await user.save();
 
     // Send welcome email
-    let emailHtml = `<p>Welcome! Your account has been created.</p><p>Your login email is: <strong>${email}</strong></p><p>Your temporary password is: <strong>${plainTextPassword}</strong></p><p>Please log in and consider changing your password.</p>`;
+    let emailHtml = `
+      <p>Dear ${email},</p>
+      <p>Welcome to NexByte_Dev! Your intern account has been successfully created.</p>
+      <p>Please find your login credentials below:</p>
+      <ul>
+        <li><strong>Email:</strong> ${email}</li>
+        <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
+      </ul>
+      <p>For security reasons, we recommend logging in to your Intern Panel at your earliest convenience and updating your password.</p>
+    `;
 
     if (offerLetterContent) {
-      emailHtml += `<p>Please find your offer letter attached.</p>`;
+      emailHtml += `<p>Your official offer letter is available for review and download within your dedicated Intern Panel once you log in.</p>`;
     }
+
+    emailHtml += `<p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>`;
 
     const mailOptions = {
       from: '"NexByte" <nexbyte.dev@gmail.com>',
       to: email,
       subject: 'Welcome to NexByte!',
       html: emailHtml,
-      attachments: []
     };
-
-    if (offerLetterPdfBuffer) {
-      console.log('Attaching PDF to email. Filename: OfferLetter.pdf, ContentType: application/pdf');
-      mailOptions.attachments.push({
-        filename: 'OfferLetter.pdf',
-        content: offerLetterPdfBuffer,
-        contentType: 'application/pdf'
-      });
-    } else {
-      console.log('No PDF buffer available to attach.');
-    }
 
     // Explicitly check EMAIL_PASSWORD before attempting to send mail
     if (!process.env.EMAIL_PASSWORD) {

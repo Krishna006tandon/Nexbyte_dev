@@ -19,6 +19,7 @@ const Admin = () => {
   const [role, setRole] = useState('user');
   const [internshipDuration, setInternshipDuration] = useState(''); // New state for internship duration
   const [clientPasswords, setClientPasswords] = useState({});
+  const [successMessage, setSuccessMessage] = useState(''); // New state for success message
   const location = useLocation();
   const navigate = useNavigate();
   const { setSrsFullData } = useContext(SrsContext);
