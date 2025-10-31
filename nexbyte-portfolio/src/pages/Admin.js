@@ -18,6 +18,7 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
   const [internshipDuration, setInternshipDuration] = useState(''); // New state for internship duration
+  const [internshipStartDate, setInternshipStartDate] = useState('');
   const [clientPasswords, setClientPasswords] = useState({});
   const [successMessage, setSuccessMessage] = useState(''); // New state for success message
   const location = useLocation();
@@ -145,7 +146,7 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password, role, internshipDuration: role === 'intern' ? internshipDuration : undefined }),
+        body: JSON.stringify({ email, password, role, internshipDuration: role === 'intern' ? internshipDuration : undefined, internshipStartDate: role === 'intern' ? internshipStartDate : undefined }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -153,6 +154,7 @@ const Admin = () => {
         setEmail('');
         setPassword('');
         setInternshipDuration(''); // Clear duration after adding
+        setInternshipStartDate('');
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
@@ -191,7 +193,7 @@ const Admin = () => {
   };
 
   const handleDownloadOfferLetter = (member) => {
-    const startDate = new Date();
+    const startDate = new Date(member.internshipStartDate);
     const duration = member.internshipDuration;
     let endDate = new Date(startDate);
 
@@ -1019,13 +1021,22 @@ const Admin = () => {
                     <option value="intern">Intern</option>
                   </select>
                   {role === 'intern' && (
-                    <input
-                      type="text"
-                      placeholder="Internship Duration (e.g., 3 months)"
-                      value={internshipDuration}
-                      onChange={(e) => setInternshipDuration(e.target.value)}
-                      required
-                    />
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Internship Duration (e.g., 3 months)"
+                        value={internshipDuration}
+                        onChange={(e) => setInternshipDuration(e.target.value)}
+                        required
+                      />
+                      <input
+                        type="date"
+                        placeholder="Internship Start Date"
+                        value={internshipStartDate}
+                        onChange={(e) => setInternshipStartDate(e.target.value)}
+                        required
+                      />
+                    </>
                   )}
                   <button type="submit" className="btn btn-primary">Add Member</button>
                 </form>
@@ -1038,6 +1049,7 @@ const Admin = () => {
                     <th>Email</th>
                     <th>Role</th>
                     <th>Duration</th>
+                    <th>Start Date</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -1047,6 +1059,7 @@ const Admin = () => {
                       <td>{member.email}</td>
                       <td>{member.role}</td>
                       <td>{member.internshipDuration || 'N/A'}</td>
+                      <td>{member.internshipStartDate ? new Date(member.internshipStartDate).toLocaleDateString() : 'N/A'}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                         {member.role === 'intern' && (

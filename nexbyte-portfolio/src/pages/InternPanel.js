@@ -5,6 +5,7 @@ import InternSidebar from '../components/InternSidebar';
 const InternPanel = () => {
   const [internTasks, setInternTasks] = useState([]);
   const [offerLetter, setOfferLetter] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -27,6 +28,7 @@ const InternPanel = () => {
         const profileRes = await fetch('/api/profile', { headers });
         const profileData = await profileRes.json();
         if (profileRes.ok) {
+          setProfile(profileData);
           setOfferLetter(profileData.offerLetter);
         } else {
           setError(profileData.message || 'Failed to fetch profile');
@@ -41,6 +43,117 @@ const InternPanel = () => {
 
     fetchData();
   }, []);
+
+  const handleDownloadOfferLetter = (member) => {
+    const startDate = new Date(member.internshipStartDate);
+    const duration = member.internshipDuration;
+    let endDate = new Date(startDate);
+
+    if (duration) {
+      const parts = duration.split(' ');
+      if (parts.length === 2) {
+        const value = parseInt(parts[0]);
+        const unit = parts[1].toLowerCase();
+        if (!isNaN(value)) {
+          if (unit.startsWith('month')) {
+            endDate.setMonth(endDate.getMonth() + value);
+          } else if (unit.startsWith('day')) {
+            endDate.setDate(endDate.getDate() + value);
+          }
+        }
+      }
+    }
+
+    const formattedStartDate = startDate.toLocaleDateString();
+    const formattedEndDate = endDate.toLocaleDateString();
+
+    const acceptanceDate = new Date();
+    acceptanceDate.setDate(acceptanceDate.getDate() + 7);
+    const formattedAcceptanceDate = acceptanceDate.toLocaleDateString();
+
+    const offerLetterContent = `
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+        }
+        .offer-letter-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 50px;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 20px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #58a6ff;
+            font-size: 2.2em;
+            font-weight: 600;
+        }
+        .body-content {
+            line-height: 1.8;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #30363d;
+            color: #8b949e;
+        }
+    </style>
+    <div class="offer-letter-box">
+        <header class="header">
+            <img src="/logobill.jpg" alt="NexByte_Dev Logo">
+            <h1>Offer of Internship</h1>
+        </header>
+        <div class="body-content">
+            <p>Date: ${new Date().toLocaleDateString()}</p>
+            <p>To,</p>
+            <p>${member.email}</p>
+            <p><strong>Subject: Internship Offer at NexByte_Dev</strong></p>
+            <p>Dear ${member.email.split('@')[0]},</p>
+            <p>We are pleased to offer you an internship position at NexByte_Dev. This internship is for a duration of <strong>${member.internshipDuration}</strong>, starting from <strong>${formattedStartDate}</strong> to <strong>${formattedEndDate}</strong>.</p>
+            <p>We believe that your skills and passion will be a great asset to our team. We are excited to see your contributions to our projects.</p>
+            <p>Your internship will commence on <strong>${formattedStartDate}</strong>. Further details about your role, responsibilities, and onboarding process will be shared with you shortly.</p>
+            <p>Please confirm your acceptance of this offer by <strong>${formattedAcceptanceDate}</strong>.</p>
+            <p>We look forward to welcoming you to the team.</p>
+            <p>Sincerely,</p>
+            <p><strong>The NexByte_Dev Team</strong></p>
+        </div>
+        <footer class="footer">
+            <p>&copy; ${new Date().getFullYear()} NexByte_Dev. All rights reserved.</p>
+        </footer>
+    </div>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = offerLetterContent;
+
+    const opt = {
+      margin:       0,
+      filename:     `offer_letter_${member.email}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, backgroundColor: '#0d1117' },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().from(element).set(opt).save();
+  };
 
   if (loading) {
     return <div className="intern-panel-container">Loading...</div>;
@@ -60,6 +173,7 @@ const InternPanel = () => {
           <div className="offer-letter-section">
             <h2>Your Offer Letter</h2>
             <div className="offer-letter-content" dangerouslySetInnerHTML={{ __html: offerLetter }} />
+            <button onClick={() => handleDownloadOfferLetter(profile)} className="btn btn-primary">Download Offer Letter</button>
           </div>
         )}
 
