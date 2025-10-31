@@ -226,7 +226,7 @@ const transporter = nodemailer.createTransport({
 // @desc    Add a new user
 // @access  Private (admin)
 app.post('/api/users', auth, admin, async (req, res) => {
-  const { email, password, role, internshipStartDate, internshipEndDate } = req.body;
+  const { email, password, role, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Please enter all fields' });
@@ -240,11 +240,8 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
     const plainTextPassword = password; // Store plain text password before hashing
     let offerLetterContent = null;
-    let acceptanceDate = null;
 
     if (role === 'intern') {
-      acceptanceDate = new Date();
-      acceptanceDate.setDate(acceptanceDate.getDate() + 7);
       offerLetterContent = generateOfferLetter(email, internshipStartDate, internshipEndDate, acceptanceDate);
     }
 

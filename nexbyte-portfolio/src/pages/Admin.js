@@ -19,6 +19,7 @@ const Admin = () => {
   const [role, setRole] = useState('user');
   const [internshipStartDate, setInternshipStartDate] = useState('');
   const [internshipEndDate, setInternshipEndDate] = useState('');
+  const [acceptanceDate, setAcceptanceDate] = useState('');
   const [clientPasswords, setClientPasswords] = useState({});
   const [successMessage, setSuccessMessage] = useState(''); // New state for success message
   const location = useLocation();
@@ -146,7 +147,7 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password, role, internshipStartDate: role === 'intern' ? internshipStartDate : undefined, internshipEndDate: role === 'intern' ? internshipEndDate : undefined }),
+        body: JSON.stringify({ email, password, role, internshipStartDate: role === 'intern' ? internshipStartDate : undefined, internshipEndDate: role === 'intern' ? internshipEndDate : undefined, acceptanceDate: role === 'intern' ? acceptanceDate : undefined }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -155,6 +156,7 @@ const Admin = () => {
         setPassword('');
         setInternshipStartDate('');
         setInternshipEndDate('');
+        setAcceptanceDate('');
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
@@ -934,6 +936,13 @@ const Admin = () => {
                         placeholder="Internship End Date"
                         value={internshipEndDate}
                         onChange={(e) => setInternshipEndDate(e.target.value)}
+                        required
+                      />
+                      <input
+                        type="date"
+                        placeholder="Acceptance Date"
+                        value={acceptanceDate}
+                        onChange={(e) => setAcceptanceDate(e.target.value)}
                         required
                       />
                     </>
