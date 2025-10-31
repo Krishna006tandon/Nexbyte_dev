@@ -14,6 +14,7 @@
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
+    "chrome-aws-lambda": "^10.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "csurf": "^1.11.0",

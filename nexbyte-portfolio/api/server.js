@@ -180,7 +180,8 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
 });
 
 const nodemailer = require('nodemailer');
-const puppeteer = require('puppeteer'); // Import puppeteer
+const puppeteer = require('puppeteer-core'); // Use puppeteer-core
+const chromium = require('chrome-aws-lambda'); // Import chrome-aws-lambda
 
 // Helper function to generate offer letter content
 const generateOfferLetter = (email, duration) => {
@@ -245,16 +246,23 @@ app.post('/api/users', auth, admin, async (req, res) => {
       // Generate PDF from HTML content using Puppeteer
       let browser;
       try {
-        browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        console.log('Attempting to launch Puppeteer browser...');
+        browser = await puppeteer.launch({
+          args: chromium.args,
+          executablePath: await chromium.executablePath,
+          headless: chromium.headless,
+        });
         const page = await browser.newPage();
         await page.setContent(offerLetterContent, { waitUntil: 'networkidle0' });
         offerLetterPdfBuffer = await page.pdf({ format: 'A4' });
+        console.log('PDF generated successfully. Buffer size:', offerLetterPdfBuffer ? offerLetterPdfBuffer.length : 'null');
       } catch (pdfError) {
         console.error('Error generating PDF with Puppeteer:', pdfError.message, pdfError.stack);
         // Continue without PDF if generation fails
       } finally {
         if (browser) {
           await browser.close();
+          console.log('Puppeteer browser closed.');
         }
       }
     }
@@ -288,11 +296,14 @@ app.post('/api/users', auth, admin, async (req, res) => {
     };
 
     if (offerLetterPdfBuffer) {
+      console.log('Attaching PDF to email. Filename: OfferLetter.pdf, ContentType: application/pdf');
       mailOptions.attachments.push({
         filename: 'OfferLetter.pdf',
         content: offerLetterPdfBuffer,
         contentType: 'application/pdf'
       });
+    } else {
+      console.log('No PDF buffer available to attach.');
     }
 
     // Explicitly check EMAIL_PASSWORD before attempting to send mail
