@@ -17,8 +17,8 @@ const Admin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
-  const [internshipDuration, setInternshipDuration] = useState(''); // New state for internship duration
   const [internshipStartDate, setInternshipStartDate] = useState('');
+  const [internshipEndDate, setInternshipEndDate] = useState('');
   const [clientPasswords, setClientPasswords] = useState({});
   const [successMessage, setSuccessMessage] = useState(''); // New state for success message
   const location = useLocation();
@@ -146,15 +146,15 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password, role, internshipDuration: role === 'intern' ? internshipDuration : undefined, internshipStartDate: role === 'intern' ? internshipStartDate : undefined }),
+        body: JSON.stringify({ email, password, role, internshipStartDate: role === 'intern' ? internshipStartDate : undefined, internshipEndDate: role === 'intern' ? internshipEndDate : undefined }),
       });
       const data = await res.json();
       if (res.ok) {
         setMembers([...members, data]);
         setEmail('');
         setPassword('');
-        setInternshipDuration(''); // Clear duration after adding
         setInternshipStartDate('');
+        setInternshipEndDate('');
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
@@ -192,122 +192,7 @@ const Admin = () => {
     }
   };
 
-  const handleDownloadOfferLetter = (member) => {
-    if (!member.internshipStartDate) {
-      alert('Internship start date is not set for this member.');
-      return;
-    }
-    const dateParts = member.internshipStartDate.split('T')[0].split('-');
-    const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
 
-    const duration = member.internshipDuration;
-    let endDate = new Date(startDate);
-
-    if (duration) {
-      const parts = duration.split(' ');
-      if (parts.length === 2) {
-        const value = parseInt(parts[0]);
-        const unit = parts[1].toLowerCase();
-        if (!isNaN(value)) {
-          if (unit.startsWith('month')) {
-            endDate.setMonth(endDate.getMonth() + value);
-          } else if (unit.startsWith('day')) {
-            endDate.setDate(endDate.getDate() + value);
-          }
-        }
-      }
-    }
-
-    const formattedStartDate = startDate.toLocaleDateString();
-    const formattedEndDate = endDate.toLocaleDateString();
-
-    const acceptanceDate = new Date();
-    acceptanceDate.setDate(acceptanceDate.getDate() + 7);
-    const formattedAcceptanceDate = acceptanceDate.toLocaleDateString();
-
-    const offerLetterContent = `
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #0d1117;
-            color: #c9d1d9;
-            margin: 0;
-            padding: 20px;
-        }
-        .offer-letter-box {
-            max-width: 800px;
-            margin: auto;
-            padding: 50px;
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 50px;
-            border-bottom: 1px solid #30363d;
-            padding-bottom: 20px;
-        }
-        .header img {
-            max-width: 150px;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            margin: 0;
-            color: #58a6ff;
-            font-size: 2.2em;
-            font-weight: 600;
-        }
-        .body-content {
-            line-height: 1.8;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #30363d;
-            color: #8b949e;
-        }
-    </style>
-    <div class="offer-letter-box">
-        <header class="header">
-            <img src="/logobill.jpg" alt="NexByte_Dev Logo">
-            <h1>Offer of Internship</h1>
-        </header>
-        <div class="body-content">
-            <p>Date: ${new Date().toLocaleDateString()}</p>
-            <p>To,</p>
-            <p>${member.email}</p>
-            <p><strong>Subject: Internship Offer at NexByte_Dev</strong></p>
-            <p>Dear ${member.email.split('@')[0]},</p>
-            <p>We are pleased to offer you an internship position at NexByte_Dev. This internship is for a duration of <strong>${member.internshipDuration}</strong>, starting from <strong>${formattedStartDate}</strong> to <strong>${formattedEndDate}</strong>.</p>
-            <p>We believe that your skills and passion will be a great asset to our team. We are excited to see your contributions to our projects.</p>
-            <p>Your internship will commence on <strong>${formattedStartDate}</strong>. Further details about your role, responsibilities, and onboarding process will be shared with you shortly.</p>
-            <p>Please confirm your acceptance of this offer by <strong>${formattedAcceptanceDate}</strong>.</p>
-            <p>We look forward to welcoming you to the team.</p>
-            <p>Sincerely,</p>
-            <p><strong>The NexByte_Dev Team</strong></p>
-        </div>
-        <footer class="footer">
-            <p>&copy; ${new Date().getFullYear()} NexByte_Dev. All rights reserved.</p>
-        </footer>
-    </div>
-    `;
-
-    const element = document.createElement('div');
-    element.innerHTML = offerLetterContent;
-
-    const opt = {
-      margin:       0,
-      filename:     `offer_letter_${member.email}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, backgroundColor: '#0d1117' },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-
-    window.html2pdf().from(element).set(opt).save();
-  };
 
 
   const handleAddClient = async (e) => {
@@ -1029,17 +914,17 @@ const Admin = () => {
                   {role === 'intern' && (
                     <>
                       <input
-                        type="text"
-                        placeholder="Internship Duration (e.g., 3 months)"
-                        value={internshipDuration}
-                        onChange={(e) => setInternshipDuration(e.target.value)}
-                        required
-                      />
-                      <input
                         type="date"
                         placeholder="Internship Start Date"
                         value={internshipStartDate}
                         onChange={(e) => setInternshipStartDate(e.target.value)}
+                        required
+                      />
+                      <input
+                        type="date"
+                        placeholder="Internship End Date"
+                        value={internshipEndDate}
+                        onChange={(e) => setInternshipEndDate(e.target.value)}
                         required
                       />
                     </>
@@ -1054,8 +939,8 @@ const Admin = () => {
                   <tr>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>Duration</th>
                     <th>Start Date</th>
+                    <th>End Date</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -1064,13 +949,10 @@ const Admin = () => {
                     <tr key={member._id}>
                       <td>{member.email}</td>
                       <td>{member.role}</td>
-                      <td>{member.internshipDuration || 'N/A'}</td>
                       <td>{member.internshipStartDate ? new Date(member.internshipStartDate).toLocaleDateString() : 'N/A'}</td>
+                      <td>{member.internshipEndDate ? new Date(member.internshipEndDate).toLocaleDateString() : 'N/A'}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
-                        {member.role === 'intern' && (
-                          <button onClick={() => handleDownloadOfferLetter(member)} className="btn btn-success">Download Offer Letter</button>
-                        )}
                       </td>
                     </tr>
                   ))}

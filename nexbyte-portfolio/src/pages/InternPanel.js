@@ -45,30 +45,15 @@ const InternPanel = () => {
   }, []);
 
   const handleDownloadOfferLetter = (member) => {
-    if (!member.internshipStartDate) {
-      alert('Internship start date is not set for this member.');
+    if (!member.internshipStartDate || !member.internshipEndDate) {
+      alert('Internship start or end date is not set for this member.');
       return;
     }
-    const dateParts = member.internshipStartDate.split('T')[0].split('-');
-    const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    const startDateParts = member.internshipStartDate.split('T')[0].split('-');
+    const startDate = new Date(startDateParts[0], startDateParts[1] - 1, startDateParts[2]);
 
-    const duration = member.internshipDuration;
-    let endDate = new Date(startDate);
-
-    if (duration) {
-      const parts = duration.split(' ');
-      if (parts.length === 2) {
-        const value = parseInt(parts[0]);
-        const unit = parts[1].toLowerCase();
-        if (!isNaN(value)) {
-          if (unit.startsWith('month')) {
-            endDate.setMonth(endDate.getMonth() + value);
-          } else if (unit.startsWith('day')) {
-            endDate.setDate(endDate.getDate() + value);
-          }
-        }
-      }
-    }
+    const endDateParts = member.internshipEndDate.split('T')[0].split('-');
+    const endDate = new Date(endDateParts[0], endDateParts[1] - 1, endDateParts[2]);
 
     const formattedStartDate = startDate.toLocaleDateString();
     const formattedEndDate = endDate.toLocaleDateString();
@@ -133,7 +118,7 @@ const InternPanel = () => {
             <p>${member.email}</p>
             <p><strong>Subject: Internship Offer at NexByte_Dev</strong></p>
             <p>Dear ${member.email.split('@')[0]},</p>
-            <p>We are pleased to offer you an internship position at NexByte_Dev. This internship is for a duration of <strong>${member.internshipDuration}</strong>, starting from <strong>${formattedStartDate}</strong> to <strong>${formattedEndDate}</strong>.</p>
+            <p>We are pleased to offer you an internship position at NexByte_Dev. This internship is starting from <strong>${formattedStartDate}</strong> to <strong>${formattedEndDate}</strong>.</p>
             <p>We believe that your skills and passion will be a great asset to our team. We are excited to see your contributions to our projects.</p>
             <p>Your internship will commence on <strong>${formattedStartDate}</strong>. Further details about your role, responsibilities, and onboarding process will be shared with you shortly.</p>
             <p>Please confirm your acceptance of this offer by <strong>${formattedAcceptanceDate}</strong>.</p>
