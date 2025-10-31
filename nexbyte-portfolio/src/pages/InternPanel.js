@@ -45,7 +45,13 @@ const InternPanel = () => {
   }, []);
 
   const handleDownloadOfferLetter = (member) => {
-    const startDate = new Date(member.internshipStartDate);
+    if (!member.internshipStartDate) {
+      alert('Internship start date is not set for this member.');
+      return;
+    }
+    const dateParts = member.internshipStartDate.split('T')[0].split('-');
+    const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+
     const duration = member.internshipDuration;
     let endDate = new Date(startDate);
 
