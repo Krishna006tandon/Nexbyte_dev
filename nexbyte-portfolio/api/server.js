@@ -182,10 +182,11 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
 const nodemailer = require('nodemailer');
 
 // Helper function to generate offer letter content
-const generateOfferLetter = (email, startDate, endDate) => {
+const generateOfferLetter = (email, startDate, endDate, acceptanceDate) => {
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const startDateFormatted = new Date(startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const endDateFormatted = new Date(endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const acceptanceDateFormatted = new Date(acceptanceDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const durationText = startDate && endDate ? `<p>Your internship will be from <strong>${startDateFormatted}</strong> to <strong>${endDateFormatted}</strong>.</p>` : '';
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -195,7 +196,7 @@ const generateOfferLetter = (email, startDate, endDate) => {
       <p>We are pleased to offer you an internship position at NexByte_Dev. We were very impressed with your qualifications and believe you would be a valuable addition to our team.</p>
       ${durationText}
       <p>This internship will provide you with an excellent opportunity to gain practical experience and contribute to real-world projects. We are excited to have you join us.</p>
-      <p>Further details regarding your internship, including start date, duration, and responsibilities, will be communicated to you shortly.</p>
+      <p>Please confirm your acceptance of this offer by <strong>${acceptanceDateFormatted}</strong>.</p>
       <p>We look forward to welcoming you to NexByte_Dev!</p>
       <p>Sincerely,</p>
       <p>The NexByte_Dev Team</p>
@@ -239,9 +240,12 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
     const plainTextPassword = password; // Store plain text password before hashing
     let offerLetterContent = null;
+    let acceptanceDate = null;
 
     if (role === 'intern') {
-      offerLetterContent = generateOfferLetter(email, internshipStartDate, internshipEndDate);
+      acceptanceDate = new Date();
+      acceptanceDate.setDate(acceptanceDate.getDate() + 7);
+      offerLetterContent = generateOfferLetter(email, internshipStartDate, internshipEndDate, acceptanceDate);
     }
 
     user = new User({
@@ -251,6 +255,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
       offerLetter: offerLetterContent, // Save offer letter HTML if generated
       internshipStartDate: role === 'intern' ? internshipStartDate : undefined,
       internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
+      acceptanceDate: role === 'intern' ? acceptanceDate : undefined,
     });
 
     const salt = await bcrypt.genSalt(10);

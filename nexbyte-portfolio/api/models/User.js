@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   offerLetter: { type: String },
   internshipStartDate: { type: Date },
   internshipEndDate: { type: Date },
+  acceptanceDate: { type: Date },
 });
 //admin role added for admin user
 

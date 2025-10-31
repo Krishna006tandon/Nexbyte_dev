@@ -950,6 +950,7 @@ const Admin = () => {
                     <th>Role</th>
                     <th>Start Date</th>
                     <th>End Date</th>
+                    <th>Acceptance Date</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -960,6 +961,7 @@ const Admin = () => {
                       <td>{member.role}</td>
                       <td>{formatDate(member.internshipStartDate)}</td>
                       <td>{formatDate(member.internshipEndDate)}</td>
+                      <td>{formatDate(member.acceptanceDate)}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                       </td>
