@@ -156,14 +156,15 @@ const Admin = () => {
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
-        const updatedMembers = await fetchRes.json();
-        if (fetchRes.ok) {
-          setMembers(updatedMembers);
-        }
-      } else {
-        console.error(data.message);
-      }
-    } catch (err) {
+                const updatedMembers = await fetchRes.json();
+                if (fetchRes.ok) {
+                  setMembers(updatedMembers);
+                  setSuccessMessage('Member added successfully!');
+                  setTimeout(() => setSuccessMessage(''), 5000); // Clear message after 5 seconds
+                }
+              } else {
+                console.error(data.message);
+              }     } catch (err) {
       console.error(err);
     }
   };
@@ -827,6 +828,7 @@ const Admin = () => {
       <div className="main-content">
         <div className="card">
           <h1>Admin Dashboard</h1>
+          {successMessage && <div className="success-message">{successMessage}</div>}
           {location.pathname === '/admin/contacts' && (
             <div>
               <h2>Contact Messages</h2>
