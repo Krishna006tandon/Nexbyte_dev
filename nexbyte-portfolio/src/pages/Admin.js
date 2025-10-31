@@ -459,6 +459,15 @@ const Admin = () => {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) {
+      return 'N/A';
+    }
+    const dateParts = dateString.split('T')[0].split('-');
+    const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    return date.toLocaleDateString();
+  };
+
   const handleDownloadBill = (bill) => {
     if (!bill.client) {
       alert('Client data is not available for this bill.');
@@ -949,8 +958,8 @@ const Admin = () => {
                     <tr key={member._id}>
                       <td>{member.email}</td>
                       <td>{member.role}</td>
-                      <td>{member.internshipStartDate ? new Date(member.internshipStartDate).toLocaleDateString() : 'N/A'}</td>
-                      <td>{member.internshipEndDate ? new Date(member.internshipEndDate).toLocaleDateString() : 'N/A'}</td>
+                      <td>{formatDate(member.internshipStartDate)}</td>
+                      <td>{formatDate(member.internshipEndDate)}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                       </td>

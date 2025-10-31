@@ -182,9 +182,11 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
 const nodemailer = require('nodemailer');
 
 // Helper function to generate offer letter content
-const generateOfferLetter = (email, duration) => {
+const generateOfferLetter = (email, startDate, endDate) => {
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const durationText = duration ? `<p>Your internship will be for a duration of <strong>${duration}</strong>.</p>` : '';
+  const startDateFormatted = new Date(startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const endDateFormatted = new Date(endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const durationText = startDate && endDate ? `<p>Your internship will be from <strong>${startDateFormatted}</strong> to <strong>${endDateFormatted}</strong>.</p>` : '';
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
       <p><strong>Date:</strong> ${date}</p>
@@ -223,7 +225,7 @@ const transporter = nodemailer.createTransport({
 // @desc    Add a new user
 // @access  Private (admin)
 app.post('/api/users', auth, admin, async (req, res) => {
-  const { email, password, role, internshipDuration } = req.body;
+  const { email, password, role, internshipStartDate, internshipEndDate } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Please enter all fields' });
@@ -239,7 +241,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
     let offerLetterContent = null;
 
     if (role === 'intern') {
-      offerLetterContent = generateOfferLetter(email, internshipDuration);
+      offerLetterContent = generateOfferLetter(email, internshipStartDate, internshipEndDate);
     }
 
     user = new User({
@@ -247,7 +249,8 @@ app.post('/api/users', auth, admin, async (req, res) => {
       password,
       role: role || 'user',
       offerLetter: offerLetterContent, // Save offer letter HTML if generated
-      internshipDuration: role === 'intern' ? internshipDuration : undefined, // Save internship duration
+      internshipStartDate: role === 'intern' ? internshipStartDate : undefined,
+      internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
     });
 
     const salt = await bcrypt.genSalt(10);
