@@ -246,7 +246,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
       // Generate PDF from HTML content using Puppeteer
       let browser;
       try {
-        console.log('Attempting to launch Puppeteer browser...');
+        console.log('Attempting to launch Puppeteer browser...');// Debug log
         browser = await puppeteer.launch({
           args: chromium.args,
           executablePath: await chromium.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome', // Fallback for local dev or other environments
