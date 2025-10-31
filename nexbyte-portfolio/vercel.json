@@ -5,21 +5,17 @@
       "src": "api/index.js",
       "use": "@vercel/node"
     },
-    { 
-      "src": "package.json", 
-      "use": "@vercel/static-build", 
-      "config": { "distDir": "build" } 
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "build" }
     }
   ],
   "functions": {
     "api/index.js": {
-      "memory": 1024, 
-      "maxDuration": 10, 
-      "includeFiles": [
-        "node_modules/chrome-aws-lambda/**",
-        "node_modules/puppeteer-core/**",
-        "node_modules/puppeteer/.local-chromium/**" 
-      ]
+      "memory": 1024,
+      "maxDuration": 10,
+      "includeFiles": "node_modules/chrome-aws-lambda/**,node_modules/puppeteer-core/**,node_modules/puppeteer/.local-chromium/**"
     }
   },
   "rewrites": [
