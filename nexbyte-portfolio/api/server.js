@@ -180,6 +180,7 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
 });
 
 const nodemailer = require('nodemailer');
+const pdf = require('html-pdf'); // Import html-pdf
 
 // Helper function to generate offer letter content
 const generateOfferLetter = (email, duration) => {
@@ -215,9 +216,6 @@ const transporter = nodemailer.createTransport({
     user: "nexbyte.dev@gmail.com",
     pass: process.env.EMAIL_PASSWORD,
   },
-  tls: {
-    rejectUnauthorized: false
-  },
   debug: true, // Enable debug output
   logger: true // Enable console logging
 });
@@ -240,16 +238,24 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
     const plainTextPassword = password; // Store plain text password before hashing
     let offerLetterContent = null;
+    let offerLetterPdfBuffer = null;
 
     if (role === 'intern') {
       offerLetterContent = generateOfferLetter(email, internshipDuration);
+      // Generate PDF from HTML content
+      offerLetterPdfBuffer = await new Promise((resolve, reject) => {
+        pdf.create(offerLetterContent, {}).toBuffer((err, buffer) => {
+          if (err) return reject(err);
+          resolve(buffer);
+        });
+      });
     }
 
     user = new User({
       email,
       password,
       role: role || 'user',
-      offerLetter: offerLetterContent, // Save offer letter if generated
+      offerLetter: offerLetterContent, // Save offer letter HTML if generated
       internshipDuration: role === 'intern' ? internshipDuration : undefined, // Save internship duration
     });
 
@@ -262,7 +268,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
     let emailHtml = `<p>Welcome! Your account has been created.</p><p>Your login email is: <strong>${email}</strong></p><p>Your temporary password is: <strong>${plainTextPassword}</strong></p><p>Please log in and consider changing your password.</p>`;
 
     if (offerLetterContent) {
-      emailHtml += `<h2>Your Offer Letter:</h2>${offerLetterContent}`;
+      emailHtml += `<p>Please find your offer letter attached.</p>`;
     }
 
     const mailOptions = {
@@ -270,16 +276,36 @@ app.post('/api/users', auth, admin, async (req, res) => {
       to: email,
       subject: 'Welcome to NexByte!',
       html: emailHtml,
+      attachments: []
     };
+
+    if (offerLetterPdfBuffer) {
+      mailOptions.attachments.push({
+        filename: 'OfferLetter.pdf',
+        content: offerLetterPdfBuffer,
+        contentType: 'application/pdf'
+      });
+    }
+
+    // Explicitly check EMAIL_PASSWORD before attempting to send mail
+    if (!process.env.EMAIL_PASSWORD) {
+      console.error('Email not sent: process.env.EMAIL_PASSWORD is not defined. Please set it in your .env file.');
+      return res.status(500).json({ message: 'User created, but email could not be sent due to missing email password configuration.' });
+    }
 
     try {
       console.log('Attempting to send email...');
       const info = await transporter.sendMail(mailOptions);
       console.log('Email sent:', info.response);
     } catch (error) {
-      console.error('Error sending email:', error);
-      // If email sending fails, still return success for user creation but log the error
-      // Optionally, you could return an error here if email sending is critical
+      console.error('Error sending welcome email:', error.message, error.stack);
+      // Provide more specific guidance based on common errors
+      if (error.code === 'EAUTH') {
+        console.error('Authentication error: Check your EMAIL_PASSWORD. For Gmail, ensure you are using an App Password if 2FA is enabled, or have "Less secure app access" enabled.');
+      } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+        console.error('Connection error: The server could not reach the email host. Check network, firewall, and host/port settings.');
+      }
+      return res.status(500).json({ message: 'User created, but email could not be sent. Check server logs for details.' });
     }
 
     res.json({ message: 'User created successfully' });
