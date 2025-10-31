@@ -180,7 +180,7 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
 });
 
 const nodemailer = require('nodemailer');
-const pdf = require('html-pdf'); // Import html-pdf
+const puppeteer = require('puppeteer'); // Import puppeteer
 
 // Helper function to generate offer letter content
 const generateOfferLetter = (email, duration) => {
@@ -242,13 +242,21 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
     if (role === 'intern') {
       offerLetterContent = generateOfferLetter(email, internshipDuration);
-      // Generate PDF from HTML content
-      offerLetterPdfBuffer = await new Promise((resolve, reject) => {
-        pdf.create(offerLetterContent, {}).toBuffer((err, buffer) => {
-          if (err) return reject(err);
-          resolve(buffer);
-        });
-      });
+      // Generate PDF from HTML content using Puppeteer
+      let browser;
+      try {
+        browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setContent(offerLetterContent, { waitUntil: 'networkidle0' });
+        offerLetterPdfBuffer = await page.pdf({ format: 'A4' });
+      } catch (pdfError) {
+        console.error('Error generating PDF with Puppeteer:', pdfError.message, pdfError.stack);
+        // Continue without PDF if generation fails
+      } finally {
+        if (browser) {
+          await browser.close();
+        }
+      }
     }
 
     user = new User({
