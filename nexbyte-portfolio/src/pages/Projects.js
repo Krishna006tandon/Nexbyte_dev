@@ -1,5 +1,6 @@
 import React from 'react';
 import './Projects.css';
+import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
 
 const projects = [
   {

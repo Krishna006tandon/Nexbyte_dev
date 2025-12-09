@@ -2,6 +2,7 @@ import React from 'react';
 import Card from '../components/Card';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import './About.css';
+import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
 
 const teamMembers = [
   {

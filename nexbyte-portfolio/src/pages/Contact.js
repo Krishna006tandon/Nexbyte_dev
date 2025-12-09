@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FaEnvelope, FaPhone } from 'react-icons/fa';
 import '../components/Form.css';
 import './Contact.css';
+import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
 
 const Alert = ({ message, type }) => {
   if (!message) return null;
