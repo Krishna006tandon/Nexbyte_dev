@@ -2,8 +2,8 @@ import React from 'react';
 import Card from '../components/Card';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import './About.css';
-import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
-
+// import HomeSidebar from '../components/HomeSidebar';
+import '../components/HomeSidebar.css';
 const teamMembers = [
   {
     name: 'Krishna Tandon',
