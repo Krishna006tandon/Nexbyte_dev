@@ -13,14 +13,6 @@ const teamMembers = [
     linkedin: 'https://www.linkedin.com/in/krishna-tandon-9879a7367',
   },
   {
-    name: 'Rudresh Vyas',
-    role: 'Web & AI Developer',
-    imageUrl: 'https://picsum.photos/seed/ai/400/400',
-    bio: 'Expert in web development and AI. Proficient in C++, Flutter, and Git. Passionate about open-source and building intelligent systems.',
-    github: 'https://github.com/Rudreshvyas07',
-    linkedin: 'https://www.linkedin.com/in/rudresh-vyas-9b85582b0/',
-  },
-  {
     name: 'Kajal Mantapurwar',
     role: 'AI & ML Enthusiast',
     imageUrl: 'https://picsum.photos/seed/ml/400/400',
@@ -35,6 +27,14 @@ const teamMembers = [
     bio: 'Security-focused frontend developer. Expertise in system recovery, backend architecture, and automation scripts with Python and C++.',
     github: 'https://github.com/ABHISHEK120906',
     linkedin: 'https://www.linkedin.com/in/abhishek-mutthalkar-93726b377?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app ',
+  },
+  {
+    name: 'Om Bhudake',
+    role: 'Web & AI Developer',
+    imageUrl: 'https://picsum.photos/seed/ai/400/400',
+    bio: 'I am a Software Engineer and Web Developer with strong expertise in Python and a growing passion for Artificial Intelligence. I enjoy building efficient applications, exploring new technologies, and continuously improving my skills.',
+    github: 'https://github.com/ombhudake28',
+    linkedin: 'https://www.linkedin.com/in/om-bhudake-8584b331b?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app',
   },
 ];
 
