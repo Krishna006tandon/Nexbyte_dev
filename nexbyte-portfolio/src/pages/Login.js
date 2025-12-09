@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../components/Form.css';
 import './Auth.css';
-import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
+// import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
+import '../components/HomeSidebar.css';
 
 const Login = () => {
   const { setIsAdmin, setIsClient } = useContext(AuthContext);
