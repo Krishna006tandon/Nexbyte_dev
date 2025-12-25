@@ -56,13 +56,22 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
   try {
     let user = await User.findOne({ email });
-    let role = 'member'; // Changed default role from 'user' to 'member'
+    let role = 'member'; // Default role is now 'member' instead of 'user'
     let userId = '';
 
     if (user) {
-      role = user.role;
+      // Ensure the role is set correctly from the user document
+      role = user.role || 'member'; // Fallback to 'member' if role is not set
       userId = user.id;
+      
+      // For backward compatibility, convert 'user' role to 'member'
+      if (role === 'user') {
+        role = 'member';
+        // Optional: Update the user's role in the database
+        await User.findByIdAndUpdate(userId, { role: 'member' });
+      }
     } else {
+      // Handle client login
       const client = await Client.findOne({ email });
       if (!client) {
         return res.status(400).json({ message: 'Invalid credentials' });
