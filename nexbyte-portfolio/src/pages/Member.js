@@ -9,6 +9,13 @@ const Member = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [progressData, setProgressData] = useState({
+    completedTasks: 0,
+    inProgressTasks: 0,
+    pendingTasks: 0,
+    totalTasks: 0,
+    completionRate: 0
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,7 +66,23 @@ const Member = () => {
           }
         });
 
-        setTasks(res.data);
+        const tasksData = res.data;
+        setTasks(tasksData);
+        
+        // Calculate progress data
+        const completedTasks = tasksData.filter(t => t.status === 'Done').length;
+        const inProgressTasks = tasksData.filter(t => t.status === 'In Progress').length;
+        const pendingTasks = tasksData.filter(t => t.status === 'Pending').length;
+        const totalTasks = tasksData.length;
+        const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        
+        setProgressData({
+          completedTasks,
+          inProgressTasks,
+          pendingTasks,
+          totalTasks,
+          completionRate
+        });
       } catch (err) {
         console.error('Failed to fetch tasks:', err);
       }
@@ -83,6 +106,44 @@ const Member = () => {
       default: return '#95a5a6';
     }
   };
+  
+  const ProgressBar = ({ percentage }) => (
+    <div className="progress-bar-container">
+      <div 
+        className="progress-bar" 
+        style={{ width: `${percentage}%` }}
+      >
+        {percentage}%
+      </div>
+    </div>
+  );
+  
+  const renderProgressReport = () => (
+    <div className="progress-report">
+      <h3>Your Progress</h3>
+      <div className="progress-stats">
+        <div className="stat-item">
+          <span className="stat-value">{progressData.completedTasks}</span>
+          <span className="stat-label">Completed</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-value">{progressData.inProgressTasks}</span>
+          <span className="stat-label">In Progress</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-value">{progressData.pendingTasks}</span>
+          <span className="stat-label">Pending</span>
+        </div>
+      </div>
+      <div className="progress-summary">
+        <div className="progress-header">
+          <span>Task Completion</span>
+          <span>{progressData.completionRate}%</span>
+        </div>
+        <ProgressBar percentage={progressData.completionRate} />
+      </div>
+    </div>
+  );
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -118,8 +179,8 @@ const Member = () => {
             <li className={activeSection === 'tasks' ? 'active' : ''}>
               <a href="#tasks" onClick={() => setActiveSection('tasks')}>My Tasks</a>
             </li>
-            <li className={activeSection === 'messages' ? 'active' : ''}>
-              <a href="#messages" onClick={() => setActiveSection('messages')}>Messages</a>
+            <li className={activeSection === 'progress' ? 'active' : ''}>
+              <a href="#progress" onClick={() => setActiveSection('progress')}>Progress Report</a>
             </li>
           </ul>
         </nav>
@@ -249,11 +310,20 @@ const Member = () => {
             </div>
           )}
 
-          {activeSection === 'messages' && (
-            <div className="messages-section">
-              <h2>Messages</h2>
-              <div className="no-messages">
-                <p>No messages yet.</p>
+          {activeSection === 'progress' && (
+            <div className="progress-section">
+              <h2>My Progress Report</h2>
+              {renderProgressReport()}
+              <div className="recent-tasks">
+                <h3>Recent Tasks</h3>
+                {tasks.slice(0, 3).map(task => (
+                  <div key={task._id} className="task-item">
+                    <div className="task-title">{task.title}</div>
+                    <div className="task-status" style={{ color: getStatusColor(task.status) }}>
+                      {task.status}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
