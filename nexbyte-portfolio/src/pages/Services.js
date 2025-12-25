@@ -1,8 +1,6 @@
 import React from 'react';
 import { FaCode, FaMobileAlt, FaPaintBrush, FaRocket, FaShieldAlt, FaSync } from 'react-icons/fa';
 import './Services.css';
-// import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
-import HomeSidebar from '../components/HomeSidebar';
 
 const services = [
   {
