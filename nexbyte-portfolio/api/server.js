@@ -282,6 +282,14 @@ app.post('/api/users', auth, admin, async (req, res) => {
           <li><strong>Email:</strong> ${email}</li>
           <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
         </ul>
+        <p><strong>Admin Privileges:</strong></p>
+        <ul>
+          <li>Manage all clients and their projects</li>
+          <li>Create and manage user accounts (interns, members, admins)</li>
+          <li>Generate and manage bills and invoices</li>
+          <li>View and manage all system data</li>
+          <li>Access to admin dashboard and reports</li>
+        </ul>
         <p>As an admin, you have full access to manage clients, users, bills, and all system features.</p>
         <p>For security reasons, we recommend logging in to your Admin Panel at your earliest convenience and updating your password.</p>
         <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>
@@ -296,8 +304,25 @@ app.post('/api/users', auth, admin, async (req, res) => {
           <li><strong>Email:</strong> ${email}</li>
           <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
         </ul>
-        <p>For security reasons, we recommend logging in to your Intern Panel at your earliest convenience and updating your password.</p>
       `;
+      
+      // Add internship dates information if provided
+      if (internshipStartDate) {
+        const startDate = new Date(internshipStartDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        emailHtml += `<p><strong>Internship Start Date:</strong> ${startDate}</p>`;
+      }
+      
+      if (internshipEndDate) {
+        const endDate = new Date(internshipEndDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        emailHtml += `<p><strong>Internship End Date:</strong> ${endDate}</p>`;
+      }
+      
+      if (acceptanceDate) {
+        const acceptDate = new Date(acceptanceDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        emailHtml += `<p><strong>Offer Acceptance Deadline:</strong> ${acceptDate}</p>`;
+      }
+      
+      emailHtml += `<p>For security reasons, we recommend logging in to your Intern Panel at your earliest convenience and updating your password.</p>`;
       
       if (offerLetterContent) {
         emailHtml += `<p>Your official offer letter is available for review and download within your dedicated Intern Panel once you log in.</p>`;
