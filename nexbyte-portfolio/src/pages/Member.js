@@ -26,6 +26,18 @@ const Member = () => {
           }
         });
 
+        // Define all valid roles that can access the member dashboard
+        const allowedRoles = ['admin', 'member', 'intern'];
+        
+        // Check if user has an authorized role
+        // Convert 'user' role to 'member' for backward compatibility
+        const userRole = res.data.role === 'user' ? 'member' : res.data.role;
+        
+        if (!allowedRoles.includes(userRole)) {
+          navigate('/'); // Redirect to home if not authorized
+          return;
+        }
+
         setUserData(res.data);
         setLoading(false);
       } catch (err) {

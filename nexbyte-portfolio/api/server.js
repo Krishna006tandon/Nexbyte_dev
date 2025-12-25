@@ -56,7 +56,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
   try {
     let user = await User.findOne({ email });
-    let role = 'user';
+    let role = 'member'; // Changed default role from 'user' to 'member'
     let userId = '';
 
     if (user) {
@@ -256,7 +256,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
     user = new User({
       email,
       password,
-      role: role || 'user',
+      role: role || 'member', // Changed default role from 'user' to 'member'
       offerLetter: offerLetterContent, // Save offer letter HTML if generated
       internshipStartDate: role === 'intern' ? internshipStartDate : undefined,
       internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
