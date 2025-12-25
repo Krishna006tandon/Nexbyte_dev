@@ -23,6 +23,7 @@ app.use(cookieParser());
 
 const csrfProtection = csurf({ cookie: true });
 
+MONGODB_URI = "mongodb+srv://nexbyte:nexbyte@nexbyte.wplnzim.mongodb.net/"
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {
