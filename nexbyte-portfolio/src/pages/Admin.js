@@ -37,6 +37,7 @@ const Admin = () => {
   const [selectedInternForReport, setSelectedInternForReport] = useState(null);
   const [internReport, setInternReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [expandedBill, setExpandedBill] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
   const [selectedSrsClient, setSelectedSrsClient] = useState(null);
