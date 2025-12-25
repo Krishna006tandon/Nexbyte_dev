@@ -22,10 +22,10 @@ const teamMembers = [
     linkedin: 'https://www.linkedin.com/in/kajal-mantapurwar-748844298/',
   },
   {
-    name: 'Abhishek Muthalkar',
-    role: 'Frontend & Security',
+    name: 'Abhishek Mutthalkar',
+    role: 'Data Analyst and Python Developer ',
     imageUrl: 'https://picsum.photos/seed/security/400/400',
-    bio: 'Security-focused frontend developer. Expertise in system recovery, backend architecture, and automation scripts with Python and C++.',
+    bio: 'Skilled in Python, OOPs, and Web Development, with a good understanding of DSA.Capable of creating clean, reliable solutions and visualizing data using Power BI.Curious learner with a focus on improving every day and building meaningful digital tools.',
     github: 'https://github.com/ABHISHEK120906',
     linkedin: 'https://www.linkedin.com/in/abhishek-mutthalkar-93726b377?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app ',
   },

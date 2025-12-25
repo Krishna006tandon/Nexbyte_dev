@@ -30,6 +30,7 @@ if (!uri) {
     process.exit(1);
 }
 
+<<<<<<< HEAD
 // MongoDB connection configuration
 const connectDB = async () => {
   try {
@@ -81,6 +82,36 @@ mongoose.connection.on('error', (err) => {
 mongoose.connection.on('disconnected', () => {
   console.log('MongoDB disconnected. Reconnecting...');
   setTimeout(connectDB, 5000);
+=======
+// MongoDB connection options
+const mongooseOptions = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+};
+
+// MongoDB connection with error handling
+const connectDB = async () => {
+    try {
+        await mongoose.connect(uri, mongooseOptions);
+        console.log('MongoDB connected successfully');
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        // Retry connection after 5 seconds
+        setTimeout(connectDB, 5000);
+    }
+};
+
+// Event listeners for connection
+mongoose.connection.on('error', (err) => {
+    console.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('MongoDB disconnected. Reconnecting...');
+    connectDB();
+>>>>>>> 8c9e90989ed06aeaa3878aab46012f05ebc989c0
 });
 
 // Initial connection
