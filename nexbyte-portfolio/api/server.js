@@ -30,62 +30,12 @@ if (!uri) {
     process.exit(1);
 }
 
-// MongoDB connection configuration
-const connectDB = async () => {
-  try {
-    const options = {
-      // Remove deprecated options for MongoDB Driver 4.0+
-      serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      // Enable buffering to prevent connection errors during initial connection
-      bufferCommands: true,
-      bufferMaxEntries: 100, // Allow buffered operations
-    };
+mongoose.connect(uri);
 
-    await mongoose.connect(uri, options);
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error.message);
-    
-    // Handle specific errors
-    if (error.name === 'MongooseServerSelectionError') {
-      console.error('Could not connect to any servers in your MongoDB Atlas cluster.');
-      console.error('Common reasons:');
-      console.error('1. IP not whitelisted in Atlas cluster');
-      console.error('2. Network connectivity issues');
-      console.error('3. Invalid connection string');
-      console.error('Check your Atlas cluster IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/');
-    } else if (error.code === 'ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR') {
-      console.error('SSL/TLS connection error. This may be due to:');
-      console.error('1. Outdated MongoDB driver');
-      console.error('2. Network proxy/firewall interference');
-      console.error('3. Atlas cluster connectivity issues');
-    }
-    
-    // Don't exit process, let it retry
-    console.log('MongoDB disconnected. Reconnecting...');
-    
-    // Retry connection after 5 seconds
-    setTimeout(connectDB, 5000);
-  }
-};
-
-// Handle connection events
-mongoose.connection.on('connected', () => {
-  console.log('MongoDB connected successfully');
+const connection = mongoose.connection;
+connection.once('open', () => {
+  console.log("MongoDB database connection established successfully");
 });
-
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err.message);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected. Reconnecting...');
-  setTimeout(connectDB, 5000);
-});
-
-// Initial connection
-connectDB();
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
