@@ -37,6 +37,14 @@ connection.once('open', () => {
   console.log("MongoDB database connection established successfully");
 });
 
+connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err.message);
+  if (err.message.includes('Authentication failed')) {
+    console.error('MongoDB Authentication failed. Check your MONGODB_URI environment variable.');
+    console.error('Ensure the username and password are correct in MongoDB Atlas.');
+  }
+});
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // limit each IP to 10 requests per windowMs
