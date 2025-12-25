@@ -924,6 +924,7 @@ const Admin = () => {
                   </select>
                   {role === 'intern' && (
                     <>
+                      <label>Internship Start Date:</label>
                       <input
                         type="date"
                         placeholder="Internship Start Date"
@@ -931,6 +932,7 @@ const Admin = () => {
                         onChange={(e) => setInternshipStartDate(e.target.value)}
                         required
                       />
+                      <label>Internship End Date:</label>
                       <input
                         type="date"
                         placeholder="Internship End Date"
@@ -938,6 +940,7 @@ const Admin = () => {
                         onChange={(e) => setInternshipEndDate(e.target.value)}
                         required
                       />
+                      <label>Offer Acceptance Deadline:</label>
                       <input
                         type="date"
                         placeholder="Acceptance Date"
