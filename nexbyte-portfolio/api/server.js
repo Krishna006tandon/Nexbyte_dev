@@ -37,8 +37,8 @@ const connectDB = async () => {
       // Remove deprecated options for MongoDB Driver 4.0+
       serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferMaxEntries: 0, // Disable mongoose buffering
-      bufferCommands: false, // Disable mongoose buffering
+      // Enable buffering to prevent connection errors during initial connection
+      bufferCommands: true,
     };
 
     await mongoose.connect(uri, options);
