@@ -23,8 +23,7 @@ app.use(cookieParser());
 
 const csrfProtection = csurf({ cookie: true });
 
-MONGODB_URI = "mongodb+srv://nexbyte:nexbyte@nexbyte.wplnzim.mongodb.net/"
-const uri = process.env.MONGODB_URI || MONGODB_URI;
+const uri = process.env.MONGODB_URI;
 
 if (!uri) {
     console.error('Error: MONGODB_URI is not defined. Please set it in your environment variables.');
