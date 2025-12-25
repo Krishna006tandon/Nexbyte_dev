@@ -1359,6 +1359,127 @@ app.put('/api/tasks/:id', auth, admin, async (req, res) => {
     }
 });
 
+// @route   GET api/users/intern-report/:internId
+// @desc    Get intern growth and performance report
+// @access  Private (admin)
+app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
+    try {
+        const intern = await User.findById(req.params.internId);
+        if (!intern || intern.role !== 'intern') {
+            return res.status(404).json({ message: 'Intern not found' });
+        }
+
+        // Get all tasks assigned to this intern
+        const tasks = await Task.find({ assignedTo: req.params.internId })
+            .populate('comments.user', 'email')
+            .sort({ createdAt: -1 });
+
+        // Calculate statistics
+        const totalTasks = tasks.length;
+        const completedTasks = tasks.filter(task => task.status === 'Done').length;
+        const inProgressTasks = tasks.filter(task => task.status === 'In Progress').length;
+        const pendingTasks = tasks.filter(task => task.status === 'Pending').length;
+        
+        // Calculate total earnings
+        const totalEarnings = tasks
+            .filter(task => task.status === 'Done')
+            .reduce((sum, task) => sum + (task.reward_amount_in_INR || 0), 0);
+
+        // Task completion rate
+        const completionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : 0;
+
+        // Tasks by priority
+        const highPriorityTasks = tasks.filter(task => task.priority === 'High');
+        const mediumPriorityTasks = tasks.filter(task => task.priority === 'Medium');
+        const lowPriorityTasks = tasks.filter(task => task.priority === 'Low');
+
+        const highPriorityCompleted = highPriorityTasks.filter(task => task.status === 'Done').length;
+        const mediumPriorityCompleted = mediumPriorityTasks.filter(task => task.status === 'Done').length;
+        const lowPriorityCompleted = lowPriorityTasks.filter(task => task.status === 'Done').length;
+
+        // Monthly task completion trend
+        const monthlyStats = {};
+        tasks.forEach(task => {
+            if (task.status === 'Done' && task.updatedAt) {
+                const month = new Date(task.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+                monthlyStats[month] = (monthlyStats[month] || 0) + 1;
+            }
+        });
+
+        // Recent activity
+        const recentTasks = tasks.slice(0, 5);
+
+        const report = {
+            intern: {
+                id: intern._id,
+                email: intern.email,
+                internshipStartDate: intern.internshipStartDate,
+                internshipEndDate: intern.internshipEndDate,
+                acceptanceDate: intern.acceptanceDate,
+                createdAt: intern.createdAt
+            },
+            statistics: {
+                totalTasks,
+                completedTasks,
+                inProgressTasks,
+                pendingTasks,
+                completionRate: parseFloat(completionRate),
+                totalEarnings,
+                averageTaskValue: totalTasks > 0 ? (totalEarnings / totalTasks).toFixed(2) : 0
+            },
+            priorityBreakdown: {
+                high: {
+                    total: highPriorityTasks.length,
+                    completed: highPriorityCompleted,
+                    completionRate: highPriorityTasks.length > 0 ? (highPriorityCompleted / highPriorityTasks.length * 100).toFixed(1) : 0
+                },
+                medium: {
+                    total: mediumPriorityTasks.length,
+                    completed: mediumPriorityCompleted,
+                    completionRate: mediumPriorityTasks.length > 0 ? (mediumPriorityCompleted / mediumPriorityTasks.length * 100).toFixed(1) : 0
+                },
+                low: {
+                    total: lowPriorityTasks.length,
+                    completed: lowPriorityCompleted,
+                    completionRate: lowPriorityTasks.length > 0 ? (lowPriorityCompleted / lowPriorityTasks.length * 100).toFixed(1) : 0
+                }
+            },
+            monthlyTrend: monthlyStats,
+            recentActivity: recentTasks.map(task => ({
+                id: task._id,
+                title: task.title,
+                status: task.status,
+                priority: task.priority,
+                reward: task.reward_amount_in_INR || 0,
+                completedAt: task.status === 'Done' ? task.updatedAt : null,
+                comments: task.comments.length
+            }))
+        };
+
+        res.json(report);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   GET api/tasks/my-tasks
+// @desc    Get tasks assigned to current user
+// @access  Private
+app.get('/api/tasks/my-tasks', auth, async (req, res) => {
+    try {
+        const tasks = await Task.find({ assignedTo: req.user.id })
+            .populate('assignedTo', 'email')
+            .populate('comments.user', 'email')
+            .sort({ createdAt: -1 });
+
+        res.json(tasks);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   GET api/tasks/:id
 // @desc    Get a single task by ID
 // @access  Private

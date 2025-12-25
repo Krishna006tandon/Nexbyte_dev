@@ -33,7 +33,10 @@ const Admin = () => {
   const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
   const [milestone, setMilestone] = useState(null);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
-  const [expandedBill, setExpandedBill] = useState(null);
+  const [showInternReport, setShowInternReport] = useState(false);
+  const [selectedInternForReport, setSelectedInternForReport] = useState(null);
+  const [internReport, setInternReport] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
   const [selectedSrsClient, setSelectedSrsClient] = useState(null);
@@ -785,6 +788,36 @@ const Admin = () => {
     setSelectedSrsClient(null);
   }
 
+  const handleShowInternReport = async (internId) => {
+    setSelectedInternForReport(internId);
+    setReportLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/users/intern-report/${internId}`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      if (res.ok) {
+        const reportData = await res.json();
+        setInternReport(reportData);
+        setShowInternReport(true);
+      } else {
+        console.error("Failed to fetch intern report");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const closeInternReport = () => {
+    setShowInternReport(false);
+    setSelectedInternForReport(null);
+    setInternReport(null);
+  };
+
   const handleSrsChange = (e) => {
     setLocalSrsData({ ...localSrsData, [e.target.name]: e.target.value });
   };
@@ -976,6 +1009,11 @@ const Admin = () => {
                       <td>{formatDate(member.acceptanceDate)}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
+                        {member.role === 'intern' && (
+                          <button onClick={() => handleShowInternReport(member._id)} className="btn btn-info">
+                            {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1234,6 +1272,88 @@ const Admin = () => {
             <div className="project-tracker-modal">
               <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
               <ProjectTracker currentMilestone={milestone} />
+            </div>
+          </Modal>
+        )}
+
+        {showInternReport && internReport && (
+          <Modal isOpen={showInternReport} onClose={closeInternReport} size="lg">
+            <div className="intern-report-modal">
+              <h2>Intern Performance Report</h2>
+              {reportLoading ? (
+                <p>Loading report...</p>
+              ) : (
+                <div className="report-content">
+                  <div className="report-header">
+                    <h3>{internReport.intern.email}</h3>
+                    <p>Internship Period: {new Date(internReport.intern.internshipStartDate).toLocaleDateString()} - {new Date(internReport.intern.internshipEndDate).toLocaleDateString()}</p>
+                  </div>
+
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <h4>Total Tasks</h4>
+                      <div className="stat-number">{internReport.statistics.totalTasks}</div>
+                    </div>
+                    <div className="stat-card">
+                      <h4>Completed</h4>
+                      <div className="stat-number">{internReport.statistics.completedTasks}</div>
+                    </div>
+                    <div className="stat-card">
+                      <h4>In Progress</h4>
+                      <div className="stat-number">{internReport.statistics.inProgressTasks}</div>
+                    </div>
+                    <div className="stat-card">
+                      <h4>Completion Rate</h4>
+                      <div className="stat-number">{internReport.statistics.completionRate}%</div>
+                    </div>
+                  </div>
+
+                  <div className="report-section">
+                    <h4>Task Priority Breakdown</h4>
+                    <div className="priority-breakdown">
+                      <div className="priority-item">
+                        <span className="priority-label">High Priority:</span>
+                        <span>{internReport.priorityBreakdown.high.completed} of {internReport.priorityBreakdown.high.total} completed ({internReport.priorityBreakdown.high.completionRate}%)</span>
+                      </div>
+                      <div className="priority-item">
+                        <span className="priority-label">Medium Priority:</span>
+                        <span>{internReport.priorityBreakdown.medium.completed} of {internReport.priorityBreakdown.medium.total} completed ({internReport.priorityBreakdown.medium.completionRate}%)</span>
+                      </div>
+                      <div className="priority-item">
+                        <span className="priority-label">Low Priority:</span>
+                        <span>{internReport.priorityBreakdown.low.completed} of {internReport.priorityBreakdown.low.total} completed ({internReport.priorityBreakdown.low.completionRate}%)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="report-section">
+                    <h4>Recent Activity</h4>
+                    <div className="recent-activity">
+                      {internReport.recentActivity.map((task, index) => (
+                        <div key={index} className="activity-item">
+                          <div className="activity-header">
+                            <span className="task-title">{task.title}</span>
+                            <span className={`status-badge ${task.status.toLowerCase().replace(' ', '-')}`}>
+                              {task.status}
+                            </span>
+                          </div>
+                          <div className="activity-details">
+                            <span>Priority: {task.priority}</span>
+                            <span>Reward: ₹{task.reward}</span>
+                            {task.completedAt && (
+                              <span>Completed: {new Date(task.completedAt).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="report-footer">
+                    <p>Report generated on: {new Date().toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </Modal>
         )}
