@@ -268,28 +268,61 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
     await user.save();
 
-    // Send welcome email
-    let emailHtml = `
-      <p>Dear ${email},</p>
-      <p>Welcome to NexByte_Dev! Your intern account has been successfully created.</p>
-      <p>Please find your login credentials below:</p>
-      <ul>
-        <li><strong>Email:</strong> ${email}</li>
-        <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
-      </ul>
-      <p>For security reasons, we recommend logging in to your Intern Panel at your earliest convenience and updating your password.</p>
-    `;
-
-    if (offerLetterContent) {
-      emailHtml += `<p>Your official offer letter is available for review and download within your dedicated Intern Panel once you log in.</p>`;
+    // Send welcome email based on role
+    let emailHtml = '';
+    let emailSubject = '';
+    
+    if (role === 'admin') {
+      emailSubject = 'Welcome to NexByte - Admin Account Created';
+      emailHtml = `
+        <p>Dear ${email},</p>
+        <p>Welcome to NexByte_Dev! Your admin account has been successfully created.</p>
+        <p>Please find your login credentials below:</p>
+        <ul>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
+        </ul>
+        <p>As an admin, you have full access to manage clients, users, bills, and all system features.</p>
+        <p>For security reasons, we recommend logging in to your Admin Panel at your earliest convenience and updating your password.</p>
+        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>
+      `;
+    } else if (role === 'intern') {
+      emailSubject = 'Welcome to NexByte - Intern Account Created';
+      emailHtml = `
+        <p>Dear ${email},</p>
+        <p>Welcome to NexByte_Dev! Your intern account has been successfully created.</p>
+        <p>Please find your login credentials below:</p>
+        <ul>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
+        </ul>
+        <p>For security reasons, we recommend logging in to your Intern Panel at your earliest convenience and updating your password.</p>
+      `;
+      
+      if (offerLetterContent) {
+        emailHtml += `<p>Your official offer letter is available for review and download within your dedicated Intern Panel once you log in.</p>`;
+      }
+      
+      emailHtml += `<p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>`;
+    } else {
+      emailSubject = 'Welcome to NexByte - Account Created';
+      emailHtml = `
+        <p>Dear ${email},</p>
+        <p>Welcome to NexByte_Dev! Your account has been successfully created.</p>
+        <p>Please find your login credentials below:</p>
+        <ul>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
+        </ul>
+        <p>For security reasons, we recommend logging in to your account at your earliest convenience and updating your password.</p>
+        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>
+      `;
     }
-
-    emailHtml += `<p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>`;
 
     const mailOptions = {
       from: '"NexByte" <nexbyte.dev@gmail.com>',
       to: email,
-      subject: 'Welcome to NexByte!',
+      subject: emailSubject,
       html: emailHtml,
     };
 
