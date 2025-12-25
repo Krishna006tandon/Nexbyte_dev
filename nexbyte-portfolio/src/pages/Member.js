@@ -33,23 +33,37 @@ const Member = () => {
           }
         });
 
+        // Ensure we have valid user data
+        if (!res.data || !res.data.role) {
+          throw new Error('Invalid user data received');
+        }
+
         // Define all valid roles that can access the member dashboard
         const allowedRoles = ['admin', 'member', 'intern'];
         
         // Check if user has an authorized role
-        // Convert 'user' role to 'member' for backward compatibility
-        const userRole = res.data.role === 'user' ? 'member' : res.data.role;
+        const userRole = res.data.role.toLowerCase();
         
         if (!allowedRoles.includes(userRole)) {
-          navigate('/'); // Redirect to home if not authorized
+          console.warn(`Access denied for role: ${userRole}. Redirecting to home.`);
+          navigate('/');
           return;
         }
 
-        setUserData(res.data);
+        // Update user data with the role
+        setUserData({
+          ...res.data,
+          role: userRole // Ensure consistent casing
+        });
         setLoading(false);
+        
       } catch (err) {
-        setError('Failed to fetch user data');
+        console.error('Error fetching user data:', err);
+        setError('Failed to fetch user data. Please try logging in again.');
         setLoading(false);
+        // Redirect to login on error
+        localStorage.removeItem('token');
+        navigate('/login');
       }
     };
 

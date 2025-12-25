@@ -17,11 +17,37 @@ const Bill = require('./models/Bill');
 
 const app = express();
 
-app.use(express.json());
+// Trust proxy for rate limiting behind load balancers/proxies
+app.set('trust proxy', 1);
+
+// Security middleware
 app.use(helmet());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const csrfProtection = csurf({ cookie: true });
+// Configure rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  keyGenerator: (req) => {
+    // Use the client's IP address from the X-Forwarded-For header if available
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  },
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+
+// Apply rate limiting to all requests
+app.use(limiter);
+
+// CSRF protection
+const csrfProtection = csurf({ 
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  }
+});
 
 const uri = process.env.MONGODB_URI;
 
@@ -406,7 +432,15 @@ app.get('/api/users', auth, admin, async (req, res) => {
 // @access  Private
 app.get('/api/profile', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    let user = await User.findById(req.user.id).select('-password');
+    
+    // For backward compatibility, convert 'user' role to 'member'
+    if (user.role === 'user') {
+      user.role = 'member';
+      // Optional: Update the user's role in the database
+      await User.findByIdAndUpdate(user._id, { role: 'member' });
+    }
+    
     res.json(user);
   } catch (err) {
     console.error(err.message);
