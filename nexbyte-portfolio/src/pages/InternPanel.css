@@ -62,6 +62,7 @@ body {
   width: 100vw;
   background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   overflow-x: hidden;
+  position: relative;
 }
 
 /* Loading State */
@@ -113,6 +114,7 @@ body {
   top: 0;
   z-index: 1000;
   box-shadow: var(--shadow-lg);
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -249,6 +251,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  position: relative;
 }
 
 .content-header {
@@ -258,6 +261,9 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .header-left h1 {
@@ -308,6 +314,8 @@ body {
   overflow-y: auto;
   width: 100%;
   max-width: calc(100vw - 280px - 4rem);
+  box-sizing: border-box;
+  min-height: calc(100vh - 200px);
 }
 
 /* Section Headers */
@@ -331,12 +339,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  width: 100%;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
+  width: 100%;
 }
 
 .stat-card {
@@ -348,6 +358,8 @@ body {
   align-items: center;
   gap: 1rem;
   transition: var(--transition);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stat-card:hover {
@@ -401,6 +413,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 1.5rem;
+  width: 100%;
 }
 
 .dashboard-card {
@@ -408,6 +421,8 @@ body {
   padding: 1.5rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dashboard-card h3 {
@@ -639,6 +654,8 @@ body {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   transition: var(--transition);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .task-card:hover {
@@ -749,6 +766,8 @@ body {
   padding: 2rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .profile-avatar {
@@ -830,6 +849,8 @@ body {
   padding: 2rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .diary-form {
@@ -904,6 +925,8 @@ body {
   padding: 1.5rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .report-card h3 {
@@ -1006,6 +1029,8 @@ body {
   border: 1px solid var(--border-color);
   text-align: center;
   transition: var(--transition);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .resource-card:hover {
@@ -1056,6 +1081,8 @@ body {
   border: 1px solid var(--border-color);
   text-align: center;
   transition: var(--transition);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .team-card:hover {
@@ -1112,6 +1139,8 @@ body {
   padding: 2rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .setting-group {
@@ -1311,6 +1340,7 @@ body {
   
   .content-body {
     padding: 0.75rem;
+    max-width: calc(100vw - 1.5rem);
   }
   
   .stat-card {
