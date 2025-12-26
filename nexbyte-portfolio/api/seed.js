@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
-require('dotenv').config({ path: './api/.env' });
+require('dotenv').config();
 
 const seedAdmin = async () => {
   try {
@@ -13,20 +13,40 @@ const seedAdmin = async () => {
     const existingAdmin = await User.findOne({ email: adminEmail });
     if (existingAdmin) {
       console.log('Admin user already exists.');
-      return;
+    } else {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(adminPassword, salt);
+
+      const adminUser = new User({
+        email: adminEmail,
+        password: hashedPassword,
+        role: 'admin',
+      });
+
+      await adminUser.save();
+      console.log('Admin user created successfully.');
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(adminPassword, salt);
+    // Create a member user for testing
+    const memberEmail = 'member@example.com';
+    const memberPassword = 'member';
 
-    const adminUser = new User({
-      email: adminEmail,
-      password: hashedPassword,
-      role: 'admin',
-    });
+    const existingMember = await User.findOne({ email: memberEmail });
+    if (existingMember) {
+      console.log('Member user already exists.');
+    } else {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(memberPassword, salt);
 
-    await adminUser.save();
-    console.log('Admin user created successfully.');
+      const memberUser = new User({
+        email: memberEmail,
+        password: hashedPassword,
+        role: 'member',
+      });
+
+      await memberUser.save();
+      console.log('Member user created successfully.');
+    }
   } catch (err) {
     console.error(err.message);
   } finally {
