@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import InternSidebar from '../components/InternSidebar';
 import './Profile.css';
 import '../components/Form.css'; // Reusing form styles
 
@@ -20,40 +23,52 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  if (!user) {
-    return <div>Loading...</div>;
+  const { user: authUser } = useAuth();
+  const navigate = useNavigate();
+
+  if (!authUser || !user) {
+    return <div className="loading-container">Loading...</div>;
+  }
+
+  // Redirect if not an intern
+  if (authUser.role !== 'intern') {
+    navigate('/login');
+    return null;
   }
 
   return (
-    <div className="profile-container">
-      <div className="profile-header">
-        <h1>My Profile</h1>
-      </div>
+    <div className="profile-page-container">
+      <InternSidebar />
+      <div className="main-content">
+        <div className="profile-container">
+          <div className="profile-header">
+            <h1>My Profile</h1>
+          </div>
 
-      <div className="profile-card">
-        <div className="profile-info">
-          <img 
-            src="https://i.pravatar.cc/150?img=32" // Placeholder avatar
-            alt="User Avatar" 
-            className="profile-avatar" 
-          />
-          <div className="profile-details">
-            <h2>{user.email}</h2>
-            <p>Credits: {user.credits}</p>
+          <div className="profile-card">
+            <div className="profile-info">
+              <img 
+                src="https://i.pravatar.cc/150?img=32" // Placeholder avatar
+                alt="User Avatar" 
+                className="profile-avatar" 
+              />
+              <div className="profile-details">
+                <h2>{user.email}</h2>
+                <p>Credits: {user.credits}</p>
+              </div>
+            </div>
+
+            <form className="profile-form">
+              <div className="form-group">
+                <label htmlFor="email">Email Address</label>
+                <input type="email" id="email" defaultValue={user.email} readOnly />
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="btn-save">Save Changes</button>
+              </div>
+            </form>
           </div>
         </div>
-
-        <form className="profile-form">
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input type="email" id="email" defaultValue={user.email} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">New Password</label>
-            <input type="password" id="password" placeholder="Enter new password" />
-          </div>
-          <button type="submit" className="submit-btn">Update Profile</button>
-        </form>
       </div>
     </div>
   );

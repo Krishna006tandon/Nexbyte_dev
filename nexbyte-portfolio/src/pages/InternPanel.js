@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './InternPanel.css';
 import InternSidebar from '../components/InternSidebar';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const InternPanel = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [internTasks, setInternTasks] = useState([]);
   const [offerLetter, setOfferLetter] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -146,53 +154,211 @@ const InternPanel = () => {
     window.html2pdf().from(element).set(opt).save();
   };
 
+  const handleAcceptOffer = async () => {
+    if (!window.confirm('Are you sure you want to accept this internship offer?')) {
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/intern/accept-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status: 'accepted' })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success('Offer accepted successfully!');
+        // Update UI or redirect as needed
+        window.location.reload();
+      } else {
+        throw new Error(data.message || 'Failed to accept offer');
+      }
+    } catch (err) {
+      console.error('Error accepting offer:', err);
+      toast.error(err.message || 'Failed to accept offer');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRejectOffer = async () => {
+    if (!rejectionReason.trim()) {
+      toast.error('Please provide a reason for rejecting the offer');
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to reject this internship offer?')) {
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/intern/reject-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ 
+          status: 'rejected',
+          reason: rejectionReason
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success('Offer rejected. Thank you for your response.');
+        // Update UI or redirect as needed
+        window.location.reload();
+      } else {
+        throw new Error(data.message || 'Failed to reject offer');
+      }
+    } catch (err) {
+      console.error('Error rejecting offer:', err);
+      toast.error(err.message || 'Failed to reject offer');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
-    return <div className="intern-panel-container">Loading...</div>;
+    return (
+      <div className="intern-panel-container">
+        <div className="loading-spinner">Loading...</div>
+      </div>
+    );
   }
 
   if (error) {
     return <div className="intern-panel-container">Error: {error}</div>;
   }
 
+  if (!user || user.role !== 'intern') {
+    navigate('/login');
+    return null;
+  }
+
   return (
     <div className="intern-panel-container">
       <InternSidebar />
-      <div className="main-content">
-        <h1>Intern Dashboard</h1>
-
-        {offerLetter && (
-          <div className="offer-letter-section">
-            <h2>Your Offer Letter</h2>
-            <div className="offer-letter-content" dangerouslySetInnerHTML={{ __html: offerLetter }} />
-            <button onClick={() => handleDownloadOfferLetter(profile)} className="btn btn-primary">Download Offer Letter</button>
+      <div className="intern-main-content">
+        <div className="intern-panel">
+          <h2>Welcome, {user.email}</h2>
+          <div className="intern-content">
+            {offerLetter && (
+              <div className="card offer-letter-section">
+                <h3>Your Offer Letter</h3>
+                <div className="offer-letter-content" dangerouslySetInnerHTML={{ __html: offerLetter }} />
+                <div className="offer-letter-actions">
+                  <button 
+                    className="btn-download"
+                    onClick={() => handleDownloadOfferLetter(profile)}
+                  >
+                    <i className="fas fa-download"></i> Download Offer Letter
+                  </button>
+                  
+                  {profile?.offerStatus === 'pending' && (
+                    <>
+                      <button 
+                        className="btn-accept"
+                        onClick={handleAcceptOffer}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? 'Processing...' : 'Accept Offer'}
+                      </button>
+                      
+                      <button 
+                        className="btn-reject"
+                        onClick={() => setShowRejectForm(!showRejectForm)}
+                        disabled={isSubmitting}
+                      >
+                        {showRejectForm ? 'Cancel' : 'Reject Offer'}
+                      </button>
+                      
+                      {showRejectForm && (
+                        <div className="reject-form">
+                          <textarea
+                            className="reject-reason"
+                            placeholder="Please provide a reason for rejecting the offer (required)"
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            rows="4"
+                            required
+                          />
+                          <button 
+                            className="btn-submit-reject"
+                            onClick={handleRejectOffer}
+                            disabled={!rejectionReason.trim() || isSubmitting}
+                          >
+                            {isSubmitting ? 'Submitting...' : 'Submit Rejection'}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  {profile?.offerStatus === 'accepted' && (
+                    <div className="offer-status accepted">
+                      <i className="fas fa-check-circle"></i> Offer Accepted
+                    </div>
+                  )}
+                  
+                  {profile?.offerStatus === 'rejected' && (
+                    <div className="offer-status rejected">
+                      <i className="fas fa-times-circle"></i> Offer Rejected
+                      {profile.rejectionReason && (
+                        <div className="rejection-reason">
+                          <strong>Reason:</strong> {profile.rejectionReason}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <div className="card tasks-section">
+              <h3>Your Tasks</h3>
+              {internTasks.length > 0 ? (
+                <ul className="task-list">
+                  {internTasks.map((task) => (
+                    <li key={task._id} className="task-item">
+                      <div className="task-header">
+                        <h4>{task.task_title || 'Untitled Task'}</h4>
+                        <span className={`status-badge ${task.status || 'pending'}`}>
+                          {task.status || 'Pending'}
+                        </span>
+                      </div>
+                      {task.task_description && (
+                        <p className="task-description">{task.task_description}</p>
+                      )}
+                      {task.dueDate && (
+                        <div className="task-meta">
+                          <span className="due-date">
+                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="no-tasks">
+                  <p>No tasks assigned yet. Check back later or contact your supervisor.</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-
-        <h2>Your Assigned Tasks</h2>
-        {internTasks.length === 0 ? (
-          <p>No tasks assigned to you yet.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Reward (INR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {internTasks.map(task => (
-                <tr key={task._id}>
-                  <td>{task.task_title}</td>
-                  <td>{task.task_description}</td>
-                  <td>{task.status}</td>
-                  <td>₹{task.reward_amount_in_INR}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        </div>
       </div>
     </div>
   );
