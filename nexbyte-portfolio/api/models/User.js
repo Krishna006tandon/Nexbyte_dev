@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   internshipStartDate: { type: Date },
   internshipEndDate: { type: Date },
   acceptanceDate: { type: Date },
+  internType: { type: String, enum: ['free', 'stipend'], default: 'free' },
 });
 //admin role added for admin user
 

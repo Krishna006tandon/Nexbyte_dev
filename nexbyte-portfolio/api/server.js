@@ -326,7 +326,7 @@ app.post('/api/register', async (req, res) => {
 // @desc    Add a new user
 // @access  Private (admin)
 app.post('/api/users', auth, admin, async (req, res) => {
-  const { email, password, role, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
+  const { email, password, role, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Please enter all fields' });
@@ -349,6 +349,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
       email,
       password,
       role: role || 'member', // Changed default role from 'user' to 'member'
+      internType: role === 'intern' ? internType : undefined,
       offerLetter: offerLetterContent, // Save offer letter HTML if generated
       internshipStartDate: role === 'intern' ? internshipStartDate : undefined,
       internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
@@ -2000,6 +2001,58 @@ app.get('/api/team', verifyIntern, async (req, res) => {
       .sort({ lastName: 1, firstName: 1 });
     
     res.json(teamMembers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/intern-payment/:internId
+// @desc    Calculate intern payment based on type and growth
+// @access  Private
+app.get('/api/intern-payment/:internId', auth, async (req, res) => {
+  try {
+    const intern = await User.findById(req.params.internId);
+    
+    if (!intern || intern.role !== 'intern') {
+      return res.status(404).json({ message: 'Intern not found' });
+    }
+
+    if (intern.internType === 'free') {
+      // Free intern - company gets money
+      res.json({
+        internType: 'free',
+        paymentToIntern: 0,
+        paymentToCompany: 5000, // Example amount
+        description: 'Free intern - Company receives payment'
+      });
+    } else if (intern.internType === 'stipend') {
+      // Stipend intern - intern gets money based on growth
+      // Fetch intern's growth reports to calculate stipend
+      const reports = await Report.find({ user: req.params.internId });
+      const avgPerformance = reports.length > 0 
+        ? reports.reduce((sum, report) => sum + (report.performanceScore || 0), 0) / reports.length 
+        : 0;
+      
+      const baseStipend = 3000;
+      const performanceBonus = avgPerformance > 80 ? 2000 : avgPerformance > 60 ? 1000 : 0;
+      const totalStipend = baseStipend + performanceBonus;
+      
+      res.json({
+        internType: 'stipend',
+        paymentToIntern: totalStipend,
+        paymentToCompany: 0,
+        avgPerformance,
+        description: `Stipend intern - Intern receives ₹${totalStipend} based on performance`
+      });
+    } else {
+      res.json({
+        internType: 'unknown',
+        paymentToIntern: 0,
+        paymentToCompany: 0,
+        description: 'Intern type not specified'
+      });
+    }
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
