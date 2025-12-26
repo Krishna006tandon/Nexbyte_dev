@@ -505,6 +505,39 @@ app.get('/api/profile', auth, async (req, res) => {
   }
 });
 
+// @route   PUT api/profile
+// @desc    Update current user profile
+// @access  Private
+app.put('/api/profile', auth, async (req, res) => {
+  try {
+    const { firstName, lastName, phone, bio, skills } = req.body;
+    
+    // Find user and update profile
+    let user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Update profile fields
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+    if (skills !== undefined) user.skills = Array.isArray(skills) ? skills : [];
+    
+    await user.save();
+    
+    // Return updated user without password
+    const updatedUser = await User.findById(req.user.id).select('-password');
+    
+    res.json(updatedUser);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   DELETE api/users/:id
 // @desc    Delete a user
 // @access  Private (admin)

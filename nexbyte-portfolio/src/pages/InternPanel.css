@@ -59,7 +59,9 @@ body {
 .intern-panel-container {
   display: flex;
   min-height: 100vh;
+  width: 100vw;
   background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  overflow-x: hidden;
 }
 
 /* Loading State */
@@ -100,6 +102,7 @@ body {
 /* Sidebar Styles */
 .intern-sidebar {
   width: 280px;
+  min-width: 250px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -242,8 +245,10 @@ body {
   flex: 1;
   margin-left: 280px;
   min-height: 100vh;
+  width: calc(100vw - 280px);
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 .content-header {
@@ -299,7 +304,10 @@ body {
 .content-body {
   flex: 1;
   padding: 2rem;
+  padding-bottom: 2rem;
   overflow-y: auto;
+  width: 100%;
+  max-width: calc(100vw - 280px - 4rem);
 }
 
 /* Section Headers */
@@ -483,7 +491,8 @@ body {
 
 /* Offer Letter Section */
 .offer-section {
-  max-width: 800px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .offer-card {
@@ -491,6 +500,9 @@ body {
   padding: 2rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .offer-content {
@@ -500,6 +512,9 @@ body {
   border-radius: var(--radius-md);
   margin-bottom: 2rem;
   min-height: 400px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
 .offer-actions {
@@ -584,13 +599,15 @@ body {
 
 /* Tasks Section */
 .tasks-section {
-  max-width: 1200px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .task-filters {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .filter-btn {
@@ -723,7 +740,8 @@ body {
 
 /* Profile Section */
 .profile-section {
-  max-width: 800px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .profile-card {
@@ -803,7 +821,8 @@ body {
 
 /* Diary Section */
 .diary-section {
-  max-width: 800px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .diary-card {
@@ -870,7 +889,8 @@ body {
 
 /* Reports Section */
 .reports-section {
-  max-width: 1200px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .reports-grid {
@@ -969,7 +989,8 @@ body {
 
 /* Resources Section */
 .resources-section {
-  max-width: 1200px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .resources-grid {
@@ -1018,7 +1039,8 @@ body {
 
 /* Team Section */
 .team-section {
-  max-width: 1200px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .team-grid {
@@ -1081,7 +1103,8 @@ body {
 
 /* Settings Section */
 .settings-section {
-  max-width: 800px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .settings-card {
@@ -1216,6 +1239,11 @@ body {
   
   .intern-main-content {
     margin-left: 0;
+    width: 100vw;
+  }
+  
+  .content-body {
+    max-width: calc(100vw - 4rem);
   }
   
   .stats-grid {
