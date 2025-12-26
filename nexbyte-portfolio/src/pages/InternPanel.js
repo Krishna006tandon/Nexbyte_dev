@@ -405,15 +405,6 @@ const InternPanel = () => {
             </li>
             <li>
               <button 
-                className={`nav-btn ${activeSection === 'team' ? 'active' : ''}`}
-                onClick={() => setActiveSection('team')}
-              >
-                <i className="fas fa-users"></i>
-                Team
-              </button>
-            </li>
-            <li>
-              <button 
                 className={`nav-btn ${activeSection === 'settings' ? 'active' : ''}`}
                 onClick={() => setActiveSection('settings')}
               >
@@ -426,9 +417,6 @@ const InternPanel = () => {
         
         <div className="sidebar-footer">
           <div className="user-info">
-            <div className="user-avatar">
-              <i className="fas fa-user-circle"></i>
-            </div>
             <div className="user-details">
               <p className="user-name">{profileForm.firstName || user.email.split('@')[0]}</p>
               <p className="user-role">Intern</p>
@@ -716,13 +704,6 @@ const InternPanel = () => {
               </div>
               
               <div className="profile-card">
-                <div className="profile-avatar">
-                  <div className="avatar-placeholder">
-                    <i className="fas fa-user-circle"></i>
-                  </div>
-                  <button className="btn btn-secondary">Change Avatar</button>
-                </div>
-                
                 <div className="profile-form">
                   <div className="form-row">
                     <div className="form-group">
