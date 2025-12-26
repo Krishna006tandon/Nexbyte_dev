@@ -6,7 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const InternPanel = () => {
-  const { user } = useAuth();
+  const { user, isIntern, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [loading, setLoading] = useState(true);
@@ -36,12 +36,26 @@ const InternPanel = () => {
   });
 
   useEffect(() => {
-    if (!user || user.role !== 'intern') {
+    console.log('InternPanel - User:', user);
+    console.log('InternPanel - isIntern:', isIntern);
+    console.log('InternPanel - authLoading:', authLoading);
+    
+    if (authLoading) return;
+    
+    if (!user) {
+      console.log('No user found, redirecting to login');
       navigate('/login');
       return;
     }
+    
+    if (user.role !== 'intern') {
+      console.log(`User role is ${user.role}, not intern. Access denied.`);
+      navigate('/dashboard');
+      return;
+    }
+    
     fetchInternData();
-  }, [user, navigate]);
+  }, [user, isIntern, authLoading, navigate]);
 
   const fetchInternData = async () => {
     const token = localStorage.getItem('token');
@@ -286,11 +300,11 @@ const InternPanel = () => {
     }));
   };
 
-  if (loading) {
+  if (authLoading) {
     return (
-      <div className="intern-panel-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading your intern dashboard...</p>
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Checking authentication...</p>
       </div>
     );
   }
