@@ -33,4 +33,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-export default useAuth;
+export const useAuth = () => useContext(AuthContext);
