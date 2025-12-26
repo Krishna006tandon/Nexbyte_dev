@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import './InternPanel.css';
 import InternSidebar from '../components/InternSidebar';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const InternPanel = () => {
   const { user, logout } = useAuth();
@@ -249,6 +250,17 @@ const InternPanel = () => {
 
   return (
     <div className="intern-panel-container">
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <InternSidebar />
       <div className="intern-main-content">
         <div className="intern-panel">
