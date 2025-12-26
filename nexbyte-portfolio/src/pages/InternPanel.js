@@ -278,7 +278,7 @@ const InternPanel = () => {
                     <i className="fas fa-download"></i> Download Offer Letter
                   </button>
                   
-                  {profile?.offerStatus === 'pending' && (
+                  {(!profile?.offerStatus || profile?.offerStatus === 'pending') && (
                     <>
                       <button 
                         className="btn-accept"
