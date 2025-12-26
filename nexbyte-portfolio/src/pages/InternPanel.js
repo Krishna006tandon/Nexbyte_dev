@@ -249,7 +249,7 @@ const InternPanel = () => {
   }
 
   return (
-    <div className="intern-panel-container">
+    <div className="app-wrapper">
       <ToastContainer 
         position="top-right"
         autoClose={5000}
@@ -261,11 +261,18 @@ const InternPanel = () => {
         draggable
         pauseOnHover
       />
-      <InternSidebar />
-      <div className="intern-main-content">
-        <div className="intern-panel">
-          <h2>Welcome, {user.email}</h2>
-          <div className="intern-content">
+      <div className="intern-panel-container">
+        <div className="sidebar">
+        <h2>Intern Panel</h2>
+        <ul>
+          <li className="active">
+            Dashboard
+          </li>
+        </ul>
+      </div>
+      <div className="main-content">
+        <h1>Welcome, {user.email}</h1>
+        <div className="intern-content">
             {offerLetter && (
               <div className="card offer-letter-section">
                 <h3>Your Offer Letter</h3>
