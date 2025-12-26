@@ -177,6 +177,8 @@ const InternPanel = () => {
   const handleAcceptOffer = async () => {
     if (!window.confirm('Are you sure you want to accept this internship offer?')) return;
     
+    console.log('Before accept - current offerStatus:', profile?.offerStatus);
+    
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
@@ -191,7 +193,9 @@ const InternPanel = () => {
 
       if (response.ok) {
         toast.success('Offer accepted successfully!');
-        fetchInternData();
+        console.log('Accept API call successful, fetching updated data...');
+        await fetchInternData();
+        console.log('After accept - updated offerStatus:', profile?.offerStatus);
       } else {
         throw new Error('Failed to accept offer');
       }
@@ -207,6 +211,8 @@ const InternPanel = () => {
       toast.error('Please provide a reason for rejection');
       return;
     }
+    
+    console.log('Before reject - current offerStatus:', profile?.offerStatus);
     
     try {
       setIsSubmitting(true);
@@ -227,7 +233,9 @@ const InternPanel = () => {
         toast.success('Offer rejected successfully');
         setShowRejectForm(false);
         setRejectionReason('');
-        fetchInternData();
+        console.log('Reject API call successful, fetching updated data...');
+        await fetchInternData();
+        console.log('After reject - updated offerStatus:', profile?.offerStatus);
       } else {
         throw new Error('Failed to reject offer');
       }
@@ -578,6 +586,11 @@ const InternPanel = () => {
                   <div className="offer-content" dangerouslySetInnerHTML={{ __html: offerLetter }} />
                   
                   <div className="offer-actions">
+                    {/* Debug: Show current offer status */}
+                    <div style={{background: '#f0f0f0', padding: '10px', marginBottom: '10px', fontSize: '12px', color: '#666'}}>
+                      DEBUG: Current offerStatus = {profile?.offerStatus || 'undefined'}
+                    </div>
+                    
                     <button 
                       className="btn btn-primary"
                       onClick={handleDownloadOfferLetter}
