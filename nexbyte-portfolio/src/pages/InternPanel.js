@@ -149,11 +149,11 @@ const InternPanel = () => {
           <ul style="color: #34495e; font-size: 16px; margin: 15px 0; padding-left: 20px;">
             <li style="margin: 8px 0;"><strong>Position:</strong> Intern Developer</li>
             <li style="margin: 8px 0;"><strong>Duration:</strong> ${startDate} to ${endDate}</li>
-            <li style="margin: 8px 0;"><strong>Location:</strong> Remote/On-site (as applicable)</li>
+            <li style="margin: 8px 0;"><strong>Location:</strong> Remote</li>
             <li style="margin: 8px 0;"><strong>Department:</strong> Technology & Development</li>
           </ul>
           
-          <p style="color: #34495e; font-size: 16px; margin: 15px 0;">During your internship, you will have the opportunity to work on real-world projects, collaborate with experienced developers, and enhance your technical skills in modern web technologies.</p>
+          <p style="color: #34495e; font-size: 16px; margin: 15px 0;">During your internship, you will have the opportunity to work on real-world projects, collaborate with experienced developers, and enhance your technical skills in modern web and application development technologies.</p>
         </div>
         
         <div style="margin-bottom: 40px;">
@@ -164,8 +164,7 @@ const InternPanel = () => {
           <p style="color: #34495e; font-size: 16px; margin: 10px 0;">Sincerely,</p>
           <p style="color: #2c3e50; font-size: 18px; font-weight: bold; margin: 10px 0;">The NexByte Core Team</p>
           <p style="color: #7f8c8d; font-size: 14px; margin: 5px 0;">Human Resources Department</p>
-          <p style="color: #7f8c8d; font-size: 14px; margin: 5px 0;">www.nexbytecore.com</p>
-        </div>
+          </div>
       </div>
     `;
 
