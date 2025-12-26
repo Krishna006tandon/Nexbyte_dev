@@ -40,6 +40,8 @@ const Login = () => {
           navigate('/client-panel');
         } else if (data.role === 'intern') {
           navigate('/intern-panel');
+        } else if (data.role === 'member') {
+          navigate('/member');
         } else {
           navigate('/');
         }  
