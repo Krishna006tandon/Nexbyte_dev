@@ -962,7 +962,7 @@ const Admin = () => {
                     <>
                       <label>Intern Type:</label>
                       <select value={internType} onChange={(e) => setInternType(e.target.value)}>
-                        <option value="free">Free Intern (Company gets money)</option>
+                        <option value="free">Free Intern (no money in no money out)</option>
                         <option value="stipend">Stipend Intern (Intern gets money based on growth)</option>
                       </select>
                       <label>Internship Start Date:</label>
