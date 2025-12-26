@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import InternSidebar from '../components/InternSidebar';
 import './Settings.css';
 
 const Settings = () => {
@@ -16,7 +15,6 @@ const Settings = () => {
 
   return (
     <div className="settings-page-container">
-      <InternSidebar />
       <div className="main-content">
         <div className="settings-container">
           <div className="settings-header">

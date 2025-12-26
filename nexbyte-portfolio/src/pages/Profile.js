@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import InternSidebar from '../components/InternSidebar';
 import './Profile.css';
 import '../components/Form.css'; // Reusing form styles
 
@@ -38,7 +37,6 @@ const Profile = () => {
 
   return (
     <div className="profile-page-container">
-      <InternSidebar />
       <div className="main-content">
         <div className="profile-container">
           <div className="profile-header">
