@@ -1252,8 +1252,6 @@ app.get('/api/messages', auth, admin, async (req, res) => {
 
 
 
-const Task = require('./models/Task');
-
 // @route   POST api/generate-project-description
 // @desc    Generate a project description using AI
 // @access  Private (admin)
