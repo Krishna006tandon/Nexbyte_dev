@@ -1697,6 +1697,145 @@ app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
   }
 });
 
+// @route   POST api/intern/accept-offer
+// @desc    Accept internship offer
+// @access  Private (intern)
+app.post('/api/intern/accept-offer', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Find the user and update their offer status
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (user.role !== 'intern') {
+      return res.status(403).json({ message: 'Only interns can accept offers' });
+    }
+    
+    // Update the user's offer status
+    user.offerStatus = 'accepted';
+    user.offerAcceptedDate = new Date();
+    await user.save();
+    
+    // Send confirmation email
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: user.email,
+      subject: 'Internship Offer Accepted - Confirmation',
+      html: `
+        <p>Dear ${user.email},</p>
+        <p>Thank you for accepting your internship offer at NexByte_Dev!</p>
+        <p>We are excited to have you join our team. Your acceptance has been recorded and we will be in touch with next steps.</p>
+        <p>Acceptance Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p>Welcome aboard!</p>
+        <p>Sincerely,</p>
+        <p>The NexByte_Dev Team</p>
+      `,
+    };
+    
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log('Offer acceptance email sent to:', user.email);
+    } catch (emailError) {
+      console.error('Error sending acceptance email:', emailError);
+      // Don't fail the request if email fails
+    }
+    
+    res.json({ 
+      message: 'Offer accepted successfully',
+      offerStatus: 'accepted'
+    });
+    
+  } catch (err) {
+    console.error('Error accepting offer:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/intern/reject-offer
+// @desc    Reject internship offer
+// @access  Private (intern)
+app.post('/api/intern/reject-offer', auth, async (req, res) => {
+  try {
+    const { status, reason } = req.body;
+    
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ message: 'Rejection reason is required' });
+    }
+    
+    // Find the user and update their offer status
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (user.role !== 'intern') {
+      return res.status(403).json({ message: 'Only interns can reject offers' });
+    }
+    
+    // Update the user's offer status
+    user.offerStatus = 'rejected';
+    user.rejectionReason = reason.trim();
+    user.offerRejectedDate = new Date();
+    await user.save();
+    
+    // Send rejection notification email
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: user.email,
+      subject: 'Internship Offer Rejection Received',
+      html: `
+        <p>Dear ${user.email},</p>
+        <p>We have received your decision to decline the internship offer at NexByte_Dev.</p>
+        <p>Rejection Reason: ${reason.trim()}</p>
+        <p>We understand that career decisions are important and we respect your choice. We wish you the best in your future endeavors.</p>
+        <p>Rejection Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p>Thank you for your time and consideration.</p>
+        <p>Sincerely,</p>
+        <p>The NexByte_Dev Team</p>
+      `,
+    };
+    
+    // Also notify admin about the rejection
+    const adminMailOptions = {
+      from: '"NexByte System" <nexbyte.dev@gmail.com>',
+      to: 'nexbyte.dev@gmail.com',
+      subject: 'Internship Offer Rejected - Notification',
+      html: `
+        <p>Admin Notification:</p>
+        <p>The following intern has rejected their offer:</p>
+        <ul>
+          <li><strong>Email:</strong> ${user.email}</li>
+          <li><strong>Rejection Date:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</li>
+          <li><strong>Reason:</strong> ${reason.trim()}</li>
+        </ul>
+      `,
+    };
+    
+    try {
+      await transporter.sendMail(mailOptions);
+      await transporter.sendMail(adminMailOptions);
+      console.log('Rejection emails sent for:', user.email);
+    } catch (emailError) {
+      console.error('Error sending rejection emails:', emailError);
+      // Don't fail the request if email fails
+    }
+    
+    res.json({ 
+      message: 'Offer rejection received. Thank you for your response.',
+      offerStatus: 'rejected'
+    });
+    
+  } catch (err) {
+    console.error('Error rejecting offer:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
