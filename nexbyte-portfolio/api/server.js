@@ -1982,7 +1982,7 @@ app.post('/api/intern/accept-offer', verifyIntern, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    user.offerLetter = 'accepted';
+    user.offerStatus = 'accepted';
     user.acceptanceDate = new Date();
     await user.save();
     
@@ -2015,7 +2015,9 @@ app.post('/api/intern/reject-offer', verifyIntern, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    user.offerLetter = 'rejected';
+    user.offerStatus = 'rejected';
+    user.rejectionReason = reason;
+    user.rejectionDate = new Date();
     await user.save();
     
     // Create notification

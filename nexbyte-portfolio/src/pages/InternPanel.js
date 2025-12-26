@@ -126,15 +126,46 @@ const InternPanel = () => {
     const endDate = new Date(profile.internshipEndDate).toLocaleDateString();
     
     const offerContent = `
-      <div style="font-family: Arial, sans-serif; padding: 40px; background: #f9f9f9;">
-        <h1 style="color: #333;">Internship Offer</h1>
-        <p>Date: ${new Date().toLocaleDateString()}</p>
-        <p>To: ${user.email}</p>
-        <p>Dear ${profileForm.firstName || 'Intern'},</p>
-        <p>We are pleased to offer you an internship position at NexByte Dev.</p>
-        <p>Duration: ${startDate} to ${endDate}</p>
-        <p>We look forward to having you join our team!</p>
-        <p>Best regards,<br>NexByte Dev Team</p>
+      <div style="font-family: 'Georgia', serif; padding: 60px; background: white; max-width: 800px; margin: 0 auto; border: 2px solid #2c3e50;">
+        <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #3498db; padding-bottom: 20px;">
+          <h1 style="color: #2c3e50; font-size: 32px; margin: 0; font-weight: bold;">NEXBYTE CORE</h1>
+          <p style="color: #7f8c8d; font-size: 14px; margin: 5px 0 0 0;">Technology Solutions & Innovation</p>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #2c3e50; font-size: 24px; text-align: center; margin-bottom: 30px;">INTERNSHIP OFFER LETTER</h2>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+          <p style="color: #34495e; font-size: 16px; margin: 10px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+          <p style="color: #34495e; font-size: 16px; margin: 10px 0;"><strong>To:</strong> ${user.email}</p>
+          <p style="color: #34495e; font-size: 16px; margin: 10px 0;"><strong>Dear</strong> ${profileForm.firstName || 'Intern'},</p>
+        </div>
+        
+        <div style="margin-bottom: 30px; line-height: 1.6;">
+          <p style="color: #34495e; font-size: 16px; margin: 15px 0;">We are pleased to offer you the position of <strong>Intern Developer</strong> at NexByte Core. This internship opportunity will provide you with valuable hands-on experience in a dynamic technology environment.</p>
+          
+          <p style="color: #34495e; font-size: 16px; margin: 15px 0;"><strong>Internship Details:</strong></p>
+          <ul style="color: #34495e; font-size: 16px; margin: 15px 0; padding-left: 20px;">
+            <li style="margin: 8px 0;"><strong>Position:</strong> Intern Developer</li>
+            <li style="margin: 8px 0;"><strong>Duration:</strong> ${startDate} to ${endDate}</li>
+            <li style="margin: 8px 0;"><strong>Location:</strong> Remote/On-site (as applicable)</li>
+            <li style="margin: 8px 0;"><strong>Department:</strong> Technology & Development</li>
+          </ul>
+          
+          <p style="color: #34495e; font-size: 16px; margin: 15px 0;">During your internship, you will have the opportunity to work on real-world projects, collaborate with experienced developers, and enhance your technical skills in modern web technologies.</p>
+        </div>
+        
+        <div style="margin-bottom: 40px;">
+          <p style="color: #34495e; font-size: 16px; margin: 15px 0;">We are excited to have you join our team and look forward to your contributions to NexByte Core.</p>
+        </div>
+        
+        <div style="margin-top: 50px; border-top: 1px solid #bdc3c7; padding-top: 20px;">
+          <p style="color: #34495e; font-size: 16px; margin: 10px 0;">Sincerely,</p>
+          <p style="color: #2c3e50; font-size: 18px; font-weight: bold; margin: 10px 0;">The NexByte Core Team</p>
+          <p style="color: #7f8c8d; font-size: 14px; margin: 5px 0;">Human Resources Department</p>
+          <p style="color: #7f8c8d; font-size: 14px; margin: 5px 0;">www.nexbytecore.com</p>
+        </div>
       </div>
     `;
 
