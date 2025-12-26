@@ -62,54 +62,54 @@ const InternPanel = () => {
     const headers = { 'x-auth-token': token };
 
     try {
-      // Fetch all data in parallel
-      const [
-        profileRes,
-        tasksRes,
-        diaryRes,
-        reportsRes,
-        notificationsRes,
-        resourcesRes,
-        teamRes
-      ] = await Promise.all([
-        fetch('/api/profile', { headers }),
-        fetch('/api/tasks', { headers }),
-        fetch('/api/diary', { headers }),
-        fetch('/api/reports', { headers }),
-        fetch('/api/notifications', { headers }),
-        fetch('/api/resources', { headers }),
-        fetch('/api/team', { headers })
+      // Fetch all data in parallel with error handling for each endpoint
+      const fetchWithErrorHandling = async (url, fallbackData = []) => {
+        try {
+          const response = await fetch(url, { headers });
+          if (response.ok) {
+            return await response.json();
+          } else {
+            console.warn(`Failed to fetch ${url}, using fallback data`);
+            return fallbackData;
+          }
+        } catch (err) {
+          console.warn(`Error fetching ${url}, using fallback data:`, err.message);
+          return fallbackData;
+        }
+      };
+
+      // Fetch data with fallbacks
+      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, teamData] = await Promise.all([
+        fetchWithErrorHandling('/api/profile', null),
+        fetchWithErrorHandling('/api/tasks', []),
+        fetchWithErrorHandling('/api/diary', []),
+        fetchWithErrorHandling('/api/reports', []),
+        fetchWithErrorHandling('/api/notifications', []),
+        fetchWithErrorHandling('/api/resources', []),
+        fetchWithErrorHandling('/api/team', [])
       ]);
 
-      const data = await Promise.all([
-        profileRes.json(),
-        tasksRes.json(),
-        diaryRes.json(),
-        reportsRes.json(),
-        notificationsRes.json(),
-        resourcesRes.json(),
-        teamRes.json()
-      ]);
-
-      if (profileRes.ok) {
-        setProfile(data[0]);
-        setOfferLetter(data[0].offerLetter);
+      // Set data with fallbacks
+      if (profileData) {
+        setProfile(profileData);
+        setOfferLetter(profileData.offerLetter);
         setProfileForm({
-          firstName: data[0].firstName || '',
-          lastName: data[0].lastName || '',
-          phone: data[0].phone || '',
-          bio: data[0].bio || '',
-          skills: data[0].skills || []
+          firstName: profileData.firstName || '',
+          lastName: profileData.lastName || '',
+          phone: profileData.phone || '',
+          bio: profileData.bio || '',
+          skills: profileData.skills || []
         });
       }
-      if (tasksRes.ok) setTasks(data[1]);
-      if (diaryRes.ok) setDiaryEntries(data[2]);
-      if (reportsRes.ok) setReports(data[3]);
-      if (notificationsRes.ok) setNotifications(data[4]);
-      if (resourcesRes.ok) setResources(data[5]);
-      if (teamRes.ok) setTeamMembers(data[6]);
+      setTasks(tasksData);
+      setDiaryEntries(diaryData);
+      setReports(reportsData);
+      setNotifications(notificationsData);
+      setResources(resourcesData);
+      setTeamMembers(teamData);
 
     } catch (err) {
+      console.error('Error in fetchInternData:', err);
       setError(err.message);
     } finally {
       setDataLoading(false);
