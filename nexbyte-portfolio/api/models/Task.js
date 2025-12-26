@@ -2,11 +2,11 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const TaskSchema = new Schema({
-  task_title: {
+  title: {
     type: String,
     required: true
   },
-  task_description: {
+  description: {
     type: String,
     required: true
   },
@@ -20,7 +20,16 @@ const TaskSchema = new Schema({
   },
   status: {
     type: String,
-    default: 'To Do'
+    enum: ['pending', 'in-progress', 'completed', 'To Do'],
+    default: 'pending'
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium'
+  },
+  dueDate: {
+    type: Date
   },
   client: {
     type: Schema.Types.ObjectId,

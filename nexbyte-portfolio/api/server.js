@@ -13,6 +13,11 @@ const cookieParser = require('cookie-parser');
 
 const User = require('./models/User');
 const Bill = require('./models/Bill');
+const Task = require('./models/Task');
+const Diary = require('./models/Diary');
+const Report = require('./models/Report');
+const Notification = require('./models/Notification');
+const Resource = require('./models/Resource');
 
 
 const app = express();
@@ -1833,6 +1838,203 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
   } catch (err) {
     console.error('Error rejecting offer:', err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Intern Panel API Endpoints
+
+// Middleware to verify token and check if user is intern
+const verifyIntern = (req, res, next) => {
+  const token = req.header('x-auth-token');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    
+    // Check if user is intern
+    User.findById(req.user.id).then(user => {
+      if (!user || user.role !== 'intern') {
+        return res.status(403).json({ message: 'Access denied. Intern role required.' });
+      }
+      req.userObj = user;
+      next();
+    }).catch(err => {
+      res.status(401).json({ message: 'Token is not valid' });
+    });
+  } catch (err) {
+    res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+// Get intern tasks
+app.get('/api/tasks', verifyIntern, async (req, res) => {
+  try {
+    const tasks = await Task.find({ assignedTo: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('assignedTo', 'firstName lastName email')
+      .populate('client', 'companyName email');
+    
+    res.json(tasks);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get intern diary entries
+app.get('/api/diary', verifyIntern, async (req, res) => {
+  try {
+    const diaryEntries = await Diary.find({ intern: req.user.id })
+      .sort({ date: -1 });
+    
+    res.json(diaryEntries);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Create diary entry
+app.post('/api/diary', verifyIntern, async (req, res) => {
+  try {
+    const { content, mood } = req.body;
+    
+    const newDiaryEntry = new Diary({
+      intern: req.user.id,
+      content,
+      mood: mood || 'neutral'
+    });
+    
+    const diaryEntry = await newDiaryEntry.save();
+    res.json(diaryEntry);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get intern reports
+app.get('/api/reports', verifyIntern, async (req, res) => {
+  try {
+    const reports = await Report.find({ intern: req.user.id })
+      .sort({ date: -1 });
+    
+    res.json(reports);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get intern notifications
+app.get('/api/notifications', verifyIntern, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user: req.user.id })
+      .sort({ date: -1 })
+      .limit(20);
+    
+    res.json(notifications);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get resources
+app.get('/api/resources', async (req, res) => {
+  try {
+    const resources = await Resource.find()
+      .sort({ createdAt: -1 })
+      .limit(50);
+    
+    res.json(resources);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get team members (all users except current user)
+app.get('/api/team', verifyIntern, async (req, res) => {
+  try {
+    const teamMembers = await User.find({ 
+      _id: { $ne: req.user.id },
+      role: { $in: ['admin', 'client', 'member'] }
+    })
+      .select('firstName lastName email role')
+      .sort({ lastName: 1, firstName: 1 });
+    
+    res.json(teamMembers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Accept offer
+app.post('/api/intern/accept-offer', verifyIntern, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    user.offerLetter = 'accepted';
+    user.acceptanceDate = new Date();
+    await user.save();
+    
+    // Create notification
+    const notification = new Notification({
+      user: req.user.id,
+      title: 'Offer Accepted',
+      message: 'You have successfully accepted the internship offer!',
+      type: 'offer',
+      read: false
+    });
+    
+    await notification.save();
+    
+    res.json({ message: 'Offer accepted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Reject offer
+app.post('/api/intern/reject-offer', verifyIntern, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    user.offerLetter = 'rejected';
+    await user.save();
+    
+    // Create notification
+    const notification = new Notification({
+      user: req.user.id,
+      title: 'Offer Rejected',
+      message: 'You have rejected the internship offer.',
+      type: 'offer',
+      read: false
+    });
+    
+    await notification.save();
+    
+    res.json({ message: 'Offer rejected successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 });
 
