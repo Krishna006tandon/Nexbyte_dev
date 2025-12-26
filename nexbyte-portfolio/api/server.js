@@ -265,6 +265,58 @@ const transporter = nodemailer.createTransport({
   logger: true // Enable console logging
 });
 
+// @route   POST api/register
+// @desc    Register a new user (public)
+// @access  Public
+app.post('/api/register', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: 'Please enter all fields' });
+  }
+
+  try {
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    user = new User({
+      email,
+      password,
+      role: 'member', // Default role for public registration
+    });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    await user.save();
+
+    const payload = {
+      user: {
+        id: user.id,
+        role: user.role,
+      },
+    };
+
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: 3600 },
+      (err, token) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: 'Error signing token' });
+        }
+        res.json({ token, role: user.role });
+      }
+    );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   POST api/users
 // @desc    Add a new user
 // @access  Private (admin)
