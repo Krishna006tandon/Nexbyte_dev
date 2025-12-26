@@ -9,7 +9,7 @@ const InternPanel = () => {
   const { user, isIntern, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState(null);
   
   // Data states
@@ -112,7 +112,7 @@ const InternPanel = () => {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
@@ -305,6 +305,15 @@ const InternPanel = () => {
       <div className="loading-container">
         <div className="spinner"></div>
         <p>Checking authentication...</p>
+      </div>
+    );
+  }
+
+  if (dataLoading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading Intern Panel...</p>
       </div>
     );
   }
