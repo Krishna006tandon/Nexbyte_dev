@@ -111,6 +111,14 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
+        } else if (location.pathname === '/admin/reports') {
+          const res = await fetch('/api/users', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setMembers(data);
+          } else {
+            console.error(data.message);
+          }
         } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks'].includes(location.pathname)) {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
@@ -1251,7 +1259,91 @@ const Admin = () => {
             </div>
           )}
 
-                    {location.pathname === '/admin/tasks' && (
+          {location.pathname === '/admin/reports' && (
+            <div>
+              <h2>User Performance Reports</h2>
+              <div className="user-reports-container">
+                <div className="user-selection">
+                  <h3>Select User for Detailed Report</h3>
+                  <select 
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleShowInternReport(e.target.value);
+                      }
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Select a user...</option>
+                    {members.filter(member => member.role !== 'admin').map(member => (
+                      <option key={member._id} value={member._id}>
+                        {member.email} - {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                        {member.role === 'intern' && ` (${member.internType === 'free' ? 'Free' : 'Stipend'})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="all-users-summary">
+                  <h3>All Users Summary</h3>
+                  <table className="users-summary-table">
+                    <thead>
+                      <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Intern Type</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {members.filter(member => member.role !== 'admin').map(member => (
+                        <tr key={member._id}>
+                          <td>{member.email}</td>
+                          <td>
+                            <span className={`role-badge ${member.role}`}>
+                              {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                            </span>
+                          </td>
+                          <td>
+                            {member.role === 'intern' ? (
+                              <span className={`intern-type-badge ${member.internType}`}>
+                                {member.internType === 'free' ? 'Free' : 'Stipend'}
+                              </span>
+                            ) : 'N/A'}
+                          </td>
+                          <td>{formatDate(member.internshipStartDate)}</td>
+                          <td>{formatDate(member.internshipEndDate)}</td>
+                          <td>
+                            {member.role === 'intern' && (() => {
+                              const now = new Date();
+                              const endDate = new Date(member.internshipEndDate);
+                              const startDate = new Date(member.internshipStartDate);
+                              if (now < startDate) return 'Not Started';
+                              if (now > endDate) return 'Completed';
+                              return 'Active';
+                            })()}
+                            {member.role !== 'intern' && 'Active'}
+                          </td>
+                          <td>
+                            <button 
+                              onClick={() => handleShowInternReport(member._id)} 
+                              className="btn btn-primary"
+                            >
+                              View Report
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {location.pathname === '/admin/tasks' && (
             <div>
               <TaskGenerator 
                 clients={clients} 
@@ -1295,8 +1387,16 @@ const Admin = () => {
               ) : (
                 <div className="report-content">
                   <div className="report-header">
-                    <h3>{internReport.intern.email}</h3>
-                    <p>Internship Period: {new Date(internReport.intern.internshipStartDate).toLocaleDateString()} - {new Date(internReport.intern.internshipEndDate).toLocaleDateString()}</p>
+                    <h3>{internReport.user.email}</h3>
+                    <p>
+                      {internReport.user.role === 'intern' ? 
+                        `Internship Period: ${new Date(internReport.user.internshipStartDate).toLocaleDateString()} - ${new Date(internReport.user.internshipEndDate).toLocaleDateString()}` :
+                        `User Role: ${internReport.user.role.charAt(0).toUpperCase() + internReport.user.role.slice(1)}`
+                      }
+                    </p>
+                    {internReport.user.role === 'intern' && (
+                      <p>Intern Type: {internReport.user.internType === 'free' ? 'Free' : 'Stipend'}</p>
+                    )}
                   </div>
 
                   <div className="stats-grid">

@@ -22,7 +22,6 @@
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
-
 .main-content .card {
   background-color: var(--surface);
   border-radius: 15px;
@@ -50,8 +49,6 @@ h1 {
 h2 {
   font-size: 2rem;
   margin-bottom: 15px;
-  border-bottom: 2px solid var(--border);
-  padding-bottom: 10px;
 }
 
 h3 {
@@ -219,4 +216,106 @@ tbody tr:hover {
   border-radius: 5px;
   color: var(--primary-text);
   border: 1px solid var(--border);
+}
+
+/* User Reports Styles */
+.user-reports-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.user-selection {
+  background-color: var(--surface);
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.user-selection select {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--background-dark);
+  color: var(--primary-text);
+  font-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.user-selection select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.all-users-summary {
+  background-color: var(--surface);
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.users-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.users-summary-table th,
+.users-summary-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.users-summary-table th {
+  background-color: var(--background-dark);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.users-summary-table tr:hover {
+  background-color: var(--background-dark);
+}
+
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.role-badge.intern {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.role-badge.user {
+  background-color: #2196F3;
+  color: white;
+}
+
+.role-badge.member {
+  background-color: #FF9800;
+  color: white;
+}
+
+.intern-type-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.intern-type-badge.free {
+  background-color: #9E9E9E;
+  color: white;
+}
+
+.intern-type-badge.stipend {
+  background-color: #FFC107;
+  color: black;
 }

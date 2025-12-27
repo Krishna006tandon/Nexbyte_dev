@@ -1493,16 +1493,16 @@ app.put('/api/tasks/:id', auth, admin, async (req, res) => {
 });
 
 // @route   GET api/users/intern-report/:internId
-// @desc    Get intern growth and performance report
+// @desc    Get user growth and performance report (supports all user types)
 // @access  Private (admin)
 app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
     try {
-        const intern = await User.findById(req.params.internId);
-        if (!intern || intern.role !== 'intern') {
-            return res.status(404).json({ message: 'Intern not found' });
+        const user = await User.findById(req.params.internId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        // Get all tasks assigned to this intern
+        // Get all tasks assigned to this user
         const tasks = await Task.find({ assignedTo: req.params.internId })
             .populate('comments.user', 'email')
             .sort({ createdAt: -1 });
@@ -1543,13 +1543,15 @@ app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
         const recentTasks = tasks.slice(0, 5);
 
         const report = {
-            intern: {
-                id: intern._id,
-                email: intern.email,
-                internshipStartDate: intern.internshipStartDate,
-                internshipEndDate: intern.internshipEndDate,
-                acceptanceDate: intern.acceptanceDate,
-                createdAt: intern.createdAt
+            user: {
+                id: user._id,
+                email: user.email,
+                role: user.role,
+                internshipStartDate: user.internshipStartDate,
+                internshipEndDate: user.internshipEndDate,
+                acceptanceDate: user.acceptanceDate,
+                internType: user.internType,
+                createdAt: user.createdAt
             },
             statistics: {
                 totalTasks,
