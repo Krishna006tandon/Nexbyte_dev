@@ -13,6 +13,11 @@ const cookieParser = require('cookie-parser');
 
 const User = require('./models/User');
 const Bill = require('./models/Bill');
+const Task = require('./models/Task');
+const Diary = require('./models/Diary');
+const Report = require('./models/Report');
+const Notification = require('./models/Notification');
+const Resource = require('./models/Resource');
 
 
 const app = express();
@@ -321,7 +326,7 @@ app.post('/api/register', async (req, res) => {
 // @desc    Add a new user
 // @access  Private (admin)
 app.post('/api/users', auth, admin, async (req, res) => {
-  const { email, password, role, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
+  const { email, password, role, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Please enter all fields' });
@@ -344,6 +349,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
       email,
       password,
       role: role || 'member', // Changed default role from 'user' to 'member'
+      internType: role === 'intern' ? internType : undefined,
       offerLetter: offerLetterContent, // Save offer letter HTML if generated
       internshipStartDate: role === 'intern' ? internshipStartDate : undefined,
       internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
@@ -495,6 +501,39 @@ app.get('/api/profile', auth, async (req, res) => {
     }
     
     res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/profile
+// @desc    Update current user profile
+// @access  Private
+app.put('/api/profile', auth, async (req, res) => {
+  try {
+    const { firstName, lastName, phone, bio, skills } = req.body;
+    
+    // Find user and update profile
+    let user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Update profile fields
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+    if (skills !== undefined) user.skills = Array.isArray(skills) ? skills : [];
+    
+    await user.save();
+    
+    // Return updated user without password
+    const updatedUser = await User.findById(req.user.id).select('-password');
+    
+    res.json(updatedUser);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
@@ -1248,8 +1287,6 @@ app.get('/api/messages', auth, admin, async (req, res) => {
 
 
 
-const Task = require('./models/Task');
-
 // @route   POST api/generate-project-description
 // @desc    Generate a project description using AI
 // @access  Private (admin)
@@ -1695,6 +1732,331 @@ app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/intern/accept-offer
+// @desc    Accept internship offer
+// @access  Private (intern)
+app.post('/api/intern/accept-offer', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Find the user and update their offer status
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (user.role !== 'intern') {
+      return res.status(403).json({ message: 'Only interns can accept offers' });
+    }
+    
+    // Update the user's offer status
+    user.offerStatus = 'accepted';
+    user.offerAcceptedDate = new Date();
+    await user.save();
+    
+    // Send confirmation email
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: user.email,
+      subject: 'Internship Offer Accepted - Confirmation',
+      html: `
+        <p>Dear ${user.email},</p>
+        <p>Thank you for accepting your internship offer at NexByte_Dev!</p>
+        <p>We are excited to have you join our team. Your acceptance has been recorded and we will be in touch with next steps.</p>
+        <p>Acceptance Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p>Welcome aboard!</p>
+        <p>Sincerely,</p>
+        <p>The NexByte_Dev Team</p>
+      `,
+    };
+    
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log('Offer acceptance email sent to:', user.email);
+    } catch (emailError) {
+      console.error('Error sending acceptance email:', emailError);
+      // Don't fail the request if email fails
+    }
+    
+    res.json({ 
+      message: 'Offer accepted successfully',
+      offerStatus: 'accepted'
+    });
+    
+  } catch (err) {
+    console.error('Error accepting offer:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/intern/reject-offer
+// @desc    Reject internship offer
+// @access  Private (intern)
+app.post('/api/intern/reject-offer', auth, async (req, res) => {
+  try {
+    const { status, reason } = req.body;
+    
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ message: 'Rejection reason is required' });
+    }
+    
+    // Find the user and update their offer status
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (user.role !== 'intern') {
+      return res.status(403).json({ message: 'Only interns can reject offers' });
+    }
+    
+    // Update the user's offer status
+    user.offerStatus = 'rejected';
+    user.rejectionReason = reason.trim();
+    user.offerRejectedDate = new Date();
+    await user.save();
+    
+    // Send rejection notification email
+    const mailOptions = {
+      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      to: user.email,
+      subject: 'Internship Offer Rejection Received',
+      html: `
+        <p>Dear ${user.email},</p>
+        <p>We have received your decision to decline the internship offer at NexByte_Dev.</p>
+        <p>Rejection Reason: ${reason.trim()}</p>
+        <p>We understand that career decisions are important and we respect your choice. We wish you the best in your future endeavors.</p>
+        <p>Rejection Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p>Thank you for your time and consideration.</p>
+        <p>Sincerely,</p>
+        <p>The NexByte_Dev Team</p>
+      `,
+    };
+    
+    // Also notify admin about the rejection
+    const adminMailOptions = {
+      from: '"NexByte System" <nexbyte.dev@gmail.com>',
+      to: 'nexbyte.dev@gmail.com',
+      subject: 'Internship Offer Rejected - Notification',
+      html: `
+        <p>Admin Notification:</p>
+        <p>The following intern has rejected their offer:</p>
+        <ul>
+          <li><strong>Email:</strong> ${user.email}</li>
+          <li><strong>Rejection Date:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</li>
+          <li><strong>Reason:</strong> ${reason.trim()}</li>
+        </ul>
+      `,
+    };
+    
+    try {
+      await transporter.sendMail(mailOptions);
+      await transporter.sendMail(adminMailOptions);
+      console.log('Rejection emails sent for:', user.email);
+    } catch (emailError) {
+      console.error('Error sending rejection emails:', emailError);
+      // Don't fail the request if email fails
+    }
+    
+    res.json({ 
+      message: 'Offer rejection received. Thank you for your response.',
+      offerStatus: 'rejected'
+    });
+    
+  } catch (err) {
+    console.error('Error rejecting offer:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Intern Panel API Endpoints
+
+// Middleware to verify token and check if user is intern
+const verifyIntern = (req, res, next) => {
+  const token = req.header('x-auth-token');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    
+    // Check if user is intern
+    User.findById(req.user.id).then(user => {
+      if (!user || user.role !== 'intern') {
+        return res.status(403).json({ message: 'Access denied. Intern role required.' });
+      }
+      req.userObj = user;
+      next();
+    }).catch(err => {
+      res.status(401).json({ message: 'Token is not valid' });
+    });
+  } catch (err) {
+    res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+// Get intern tasks
+app.get('/api/tasks', verifyIntern, async (req, res) => {
+  try {
+    const tasks = await Task.find({ assignedTo: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('assignedTo', 'firstName lastName email')
+      .populate('client', 'companyName email');
+    
+    res.json(tasks);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get intern diary entries
+app.get('/api/diary', verifyIntern, async (req, res) => {
+  try {
+    const diaryEntries = await Diary.find({ intern: req.user.id })
+      .sort({ date: -1 });
+    
+    res.json(diaryEntries);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Create diary entry
+app.post('/api/diary', verifyIntern, async (req, res) => {
+  try {
+    const { content, mood } = req.body;
+    
+    const newDiaryEntry = new Diary({
+      intern: req.user.id,
+      content,
+      mood: mood || 'neutral'
+    });
+    
+    const diaryEntry = await newDiaryEntry.save();
+    res.json(diaryEntry);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get intern reports
+app.get('/api/reports', verifyIntern, async (req, res) => {
+  try {
+    const reports = await Report.find({ intern: req.user.id })
+      .sort({ date: -1 });
+    
+    res.json(reports);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get intern notifications
+app.get('/api/notifications', verifyIntern, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user: req.user.id })
+      .sort({ date: -1 })
+      .limit(20);
+    
+    res.json(notifications);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get resources
+app.get('/api/resources', async (req, res) => {
+  try {
+    const resources = await Resource.find()
+      .sort({ createdAt: -1 })
+      .limit(50);
+    
+    res.json(resources);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get team members (all users except current user)
+app.get('/api/team', verifyIntern, async (req, res) => {
+  try {
+    const teamMembers = await User.find({ 
+      _id: { $ne: req.user.id },
+      role: { $in: ['admin', 'client', 'member'] }
+    })
+      .select('firstName lastName email role')
+      .sort({ lastName: 1, firstName: 1 });
+    
+    res.json(teamMembers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/intern-payment/:internId
+// @desc    Calculate intern payment based on type and growth
+// @access  Private
+app.get('/api/intern-payment/:internId', auth, async (req, res) => {
+  try {
+    const intern = await User.findById(req.params.internId);
+    
+    if (!intern || intern.role !== 'intern') {
+      return res.status(404).json({ message: 'Intern not found' });
+    }
+
+    if (intern.internType === 'free') {
+      // Free intern - company gets money
+      res.json({
+        internType: 'free',
+        paymentToIntern: 0,
+        paymentToCompany: 5000, // Example amount
+        description: 'Free intern - Company receives payment'
+      });
+    } else if (intern.internType === 'stipend') {
+      // Stipend intern - intern gets money based on growth
+      // Fetch intern's growth reports to calculate stipend
+      const reports = await Report.find({ user: req.params.internId });
+      const avgPerformance = reports.length > 0 
+        ? reports.reduce((sum, report) => sum + (report.performanceScore || 0), 0) / reports.length 
+        : 0;
+      
+      const baseStipend = 3000;
+      const performanceBonus = avgPerformance > 80 ? 2000 : avgPerformance > 60 ? 1000 : 0;
+      const totalStipend = baseStipend + performanceBonus;
+      
+      res.json({
+        internType: 'stipend',
+        paymentToIntern: totalStipend,
+        paymentToCompany: 0,
+        avgPerformance,
+        description: `Stipend intern - Intern receives ₹${totalStipend} based on performance`
+      });
+    } else {
+      res.json({
+        internType: 'unknown',
+        paymentToIntern: 0,
+        paymentToCompany: 0,
+        description: 'Intern type not specified'
+      });
+    }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 });
 

@@ -17,6 +17,7 @@ const Admin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
+  const [internType, setInternType] = useState('free');
   const [internshipStartDate, setInternshipStartDate] = useState('');
   const [internshipEndDate, setInternshipEndDate] = useState('');
   const [acceptanceDate, setAcceptanceDate] = useState('');
@@ -151,13 +152,14 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password, role, internshipStartDate: role === 'intern' ? internshipStartDate : undefined, internshipEndDate: role === 'intern' ? internshipEndDate : undefined, acceptanceDate: role === 'intern' ? acceptanceDate : undefined }),
+        body: JSON.stringify({ email, password, role, internType: role === 'intern' ? internType : undefined, internshipStartDate: role === 'intern' ? internshipStartDate : undefined, internshipEndDate: role === 'intern' ? internshipEndDate : undefined, acceptanceDate: role === 'intern' ? acceptanceDate : undefined }),
       });
       const data = await res.json();
       if (res.ok) {
         setMembers([...members, data]);
         setEmail('');
         setPassword('');
+        setInternType('free');
         setInternshipStartDate('');
         setInternshipEndDate('');
         setAcceptanceDate('');
@@ -958,6 +960,11 @@ const Admin = () => {
                   </select>
                   {role === 'intern' && (
                     <>
+                      <label>Intern Type:</label>
+                      <select value={internType} onChange={(e) => setInternType(e.target.value)}>
+                        <option value="free">Free Intern (no money in no money out)</option>
+                        <option value="stipend">Stipend Intern (Intern gets money based on growth)</option>
+                      </select>
                       <label>Internship Start Date:</label>
                       <input
                         type="date"
@@ -994,6 +1001,7 @@ const Admin = () => {
                   <tr>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Intern Type</th>
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Acceptance Date</th>
@@ -1005,12 +1013,13 @@ const Admin = () => {
                     <tr key={member._id}>
                       <td>{member.email}</td>
                       <td>{member.role}</td>
+                      <td>{member.role === 'intern' ? (member.internType === 'free' ? 'Free' : 'Stipend') : 'N/A'}</td>
                       <td>{formatDate(member.internshipStartDate)}</td>
                       <td>{formatDate(member.internshipEndDate)}</td>
                       <td>{formatDate(member.acceptanceDate)}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
-                        {member.role === 'intern' && (
+                        {(member.role === 'intern' || member.role === 'user' || member.role === 'member') && (
                           <button onClick={() => handleShowInternReport(member._id)} className="btn btn-info">
                             {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
                           </button>

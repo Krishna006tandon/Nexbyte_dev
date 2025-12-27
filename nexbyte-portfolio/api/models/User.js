@@ -3,12 +3,13 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: 'member', enum: ['admin', 'member', 'client', 'intern'] },
+  role: { type: String, default: 'member', enum: ['admin', 'member', 'client', 'intern', 'user'] },
   credits: { type: Number, default: 0 },
   offerLetter: { type: String },
   internshipStartDate: { type: Date },
   internshipEndDate: { type: Date },
   acceptanceDate: { type: Date },
+  internType: { type: String, enum: ['free', 'stipend'], default: 'free' },
 });
 //admin role added for admin user
 
