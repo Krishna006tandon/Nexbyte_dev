@@ -1022,8 +1022,8 @@ const Admin = () => {
                       <td>{member.email}</td>
                       <td>{member.role}</td>
                       <td>{member.role === 'intern' ? (member.internType === 'free' ? 'Free' : 'Stipend') : 'N/A'}</td>
-                      <td>{formatDate(member.internshipStartDate)}</td>
-                      <td>{formatDate(member.internshipEndDate)}</td>
+                      <td>{member.role === 'intern' ? formatDate(member.internshipStartDate) : 'N/A'}</td>
+                      <td>{member.role === 'intern' ? formatDate(member.internshipEndDate) : 'N/A'}</td>
                       <td>{formatDate(member.acceptanceDate)}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
