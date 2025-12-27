@@ -1313,8 +1313,8 @@ const Admin = () => {
                               </span>
                             ) : 'N/A'}
                           </td>
-                          <td>{member.role === 'intern' ? formatDate(member.internshipStartDate) : 'N/A'}</td>
-                          <td>{member.role === 'intern' ? formatDate(member.internshipEndDate) : 'N/A'}</td>
+                          <td>{member.role === 'intern' && member.internshipStartDate ? formatDate(member.internshipStartDate) : 'N/A'}</td>
+                          <td>{member.role === 'intern' && member.internshipEndDate ? formatDate(member.internshipEndDate) : 'N/A'}</td>
                           <td>
                             {member.role === 'intern' && (() => {
                               const now = new Date();
