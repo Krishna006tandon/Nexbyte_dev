@@ -390,7 +390,8 @@ app.post('/api/users', auth, admin, async (req, res) => {
         <ul>
           <li><strong>Email:</strong> ${email}</li>
           <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
-        </ul>
+        <p>Website link:- https://nexbyte-dev.vercel.app/</p>
+          </ul>
       `;
       
       // Add internship dates information if provided
