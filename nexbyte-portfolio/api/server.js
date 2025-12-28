@@ -1586,9 +1586,11 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
             });
 
             return {
-                ...task,
+                title: task.task_title,
+                description: task.task_description,
+                estimated_effort_hours: task.estimated_effort_hours,
                 reward_amount_in_INR: reward,
-                client: clientId,
+                client: clientId || null,
                 status: 'To Do',
                 isFreeProject: isFreeProject
             };
