@@ -1575,8 +1575,7 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
                 // Round to nearest 50
                 reward = Math.round(equalReward / 50) * 50;
                 
-                // Ensure minimum reward of ₹300 per task
-                reward = Math.max(300, reward);
+                // No minimum reward - use actual calculated amount
             }
 
             console.log(`Task "${task.task_title}":`, {
