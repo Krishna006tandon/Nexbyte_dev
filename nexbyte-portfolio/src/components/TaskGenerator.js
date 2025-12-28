@@ -95,6 +95,21 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
 
     const handlePreview = async (e) => {
         e.preventDefault();
+        
+        // Validate and convert budget values
+        const totalBudgetNum = parseFloat(totalBudget) || 0;
+        const fixedCostsNum = parseFloat(fixedCosts) || 0;
+        
+        if (totalBudgetNum <= 0 || fixedCostsNum < 0) {
+            setError('Total Budget must be greater than 0 and Fixed Costs must be 0 or greater.');
+            return;
+        }
+        
+        if (fixedCostsNum >= totalBudgetNum) {
+            setError('Fixed Costs must be less than Total Budget.');
+            return;
+        }
+        
         setIsLoading(true);
         setError(null);
         setSuccessMessage('');
@@ -107,8 +122,8 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                     clientId: clientId,
                     projectName,
                     projectGoal,
-                    total_budget_in_INR: parseInt(totalBudget),
-                    fixed_costs_in_INR: parseInt(fixedCosts),
+                    total_budget_in_INR: totalBudgetNum,
+                    fixed_costs_in_INR: fixedCostsNum,
                 }),
             });
             if (!response.ok) {
@@ -213,11 +228,27 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                 </div>
                 <div className="form-group">
                     <label htmlFor="totalBudget">Total Budget (INR)</label>
-                    <input type="number" id="totalBudget" value={totalBudget} onChange={(e) => setTotalBudget(e.target.value)} required />
+                    <input 
+                        type="number" 
+                        id="totalBudget" 
+                        value={totalBudget} 
+                        onChange={(e) => setTotalBudget(e.target.value)} 
+                        min="1" 
+                        step="0.01"
+                        required 
+                    />
                 </div>
                 <div className="form-group">
                     <label htmlFor="fixedCosts">Fixed Costs (INR)</label>
-                    <input type="number" id="fixedCosts" value={fixedCosts} onChange={(e) => setFixedCosts(e.target.value)} required />
+                    <input 
+                        type="number" 
+                        id="fixedCosts" 
+                        value={fixedCosts} 
+                        onChange={(e) => setFixedCosts(e.target.value)} 
+                        min="0" 
+                        step="0.01"
+                        required 
+                    />
                 </div>
                 <button type="submit" disabled={isLoading}>{isLoading ? 'Generate Task Preview' : 'Generate Task Preview'}</button>
             </form>

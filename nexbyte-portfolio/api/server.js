@@ -1463,8 +1463,29 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         fixed_costs_in_INR
     } = req.body;
 
-    if (!projectName || !projectGoal || !total_budget_in_INR || !fixed_costs_in_INR) {
-        return res.status(400).json({ message: 'Please provide all required fields for task generation.' });
+    // Validate required fields
+    if (!projectName || !projectGoal) {
+        return res.status(400).json({ message: 'Please provide project name and requirements.' });
+    }
+
+    // Validate budget values
+    const totalBudget = parseFloat(total_budget_in_INR);
+    const fixedCosts = parseFloat(fixed_costs_in_INR);
+
+    if (isNaN(totalBudget) || isNaN(fixedCosts)) {
+        return res.status(400).json({ message: 'Budget values must be valid numbers.' });
+    }
+
+    if (totalBudget <= 0) {
+        return res.status(400).json({ message: 'Total Budget must be greater than 0.' });
+    }
+
+    if (fixedCosts < 0) {
+        return res.status(400).json({ message: 'Fixed Costs must be 0 or greater.' });
+    }
+
+    if (fixedCosts >= totalBudget) {
+        return res.status(400).json({ message: 'Fixed Costs must be less than Total Budget.' });
     }
 
     try {
@@ -1515,8 +1536,16 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         const tasksJson = response.text().replace(/```json|```/g, '').trim();
         let generatedTasks = JSON.parse(tasksJson);
 
-        const remaining_budget = total_budget_in_INR - fixed_costs_in_INR;
+        const remaining_budget = totalBudget - fixedCosts;
         const total_effort = generatedTasks.reduce((sum, task) => sum + task.estimated_effort_hours, 0);
+
+        console.log('Budget Calculation:', {
+            totalBudget,
+            fixedCosts,
+            remaining_budget,
+            total_effort,
+            taskCount: generatedTasks.length
+        });
 
         if (total_effort === 0) {
             return res.status(400).json({ message: 'Total estimated effort is zero, cannot allocate budget.' });
@@ -1526,6 +1555,12 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
             const proportionalReward = (task.estimated_effort_hours / total_effort) * remaining_budget;
             let reward = Math.max(300, proportionalReward);
             reward = Math.round(reward / 50) * 50;
+
+            console.log(`Task "${task.task_title}":`, {
+                effort: task.estimated_effort_hours,
+                proportionalReward,
+                finalReward: reward
+            });
 
             return {
                 ...task,
