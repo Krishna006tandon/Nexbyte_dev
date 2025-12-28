@@ -44,6 +44,10 @@ const Admin = () => {
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
   const [selectedSrsClient, setSelectedSrsClient] = useState(null);
 
+  // Task Management State
+  const [selectedProjectForTasks, setSelectedProjectForTasks] = useState('');
+  const [projectTasks, setProjectTasks] = useState([]);
+  const [selectedTasks, setSelectedTasks] = useState([]);
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -169,6 +173,107 @@ const Admin = () => {
 
   const handleTasksSaved = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Task Management Handlers
+  useEffect(() => {
+    if (selectedProjectForTasks) {
+      fetchProjectTasks(selectedProjectForTasks);
+    }
+  }, [selectedProjectForTasks]);
+
+  const fetchProjectTasks = async (projectId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/tasks?clientId=${projectId}`, {
+        headers: { 'x-auth-token': token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProjectTasks(data);
+      }
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+    }
+  };
+
+  const handleTaskAssignment = async (taskId, userId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/assign`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ userId })
+      });
+      if (res.ok) {
+        fetchProjectTasks(selectedProjectForTasks);
+      }
+    } catch (err) {
+      console.error('Error assigning task:', err);
+    }
+  };
+
+  const handleTaskStatusUpdate = async (taskId, status) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        fetchProjectTasks(selectedProjectForTasks);
+      }
+    } catch (err) {
+      console.error('Error updating task status:', err);
+    }
+  };
+
+  const handleTaskDelete = async (taskId) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`/api/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: { 'x-auth-token': token }
+        });
+        if (res.ok) {
+          fetchProjectTasks(selectedProjectForTasks);
+        }
+      } catch (err) {
+        console.error('Error deleting task:', err);
+      }
+    }
+  };
+
+  const handleBulkAssign = () => {
+    // Implementation for bulk assignment
+    console.log('Bulk assign functionality');
+  };
+
+  const handleBulkStatusUpdate = () => {
+    // Implementation for bulk status update
+    console.log('Bulk status update functionality');
+  };
+
+  const exportTasks = () => {
+    // Export tasks to CSV/Excel
+    const csvContent = projectTasks.map(task => 
+      `${task.title},${task.description},${task.estimated_effort_hours},${task.reward_amount_in_INR},${task.status}`
+    ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tasks.csv';
+    a.click();
   };
 
   const handleAddMember = async (e) => {
@@ -1492,6 +1597,153 @@ const Admin = () => {
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {location.pathname === '/admin/task-management' && (
+            <div className="task-management-section">
+              <h2>Task Management & Assignment</h2>
+              
+              {/* Project Selector */}
+              <div className="project-selector">
+                <h3>Select Project</h3>
+                <select 
+                  value={selectedProjectForTasks || ''} 
+                  onChange={(e) => setSelectedProjectForTasks(e.target.value)}
+                  className="project-select"
+                >
+                  <option value="">Choose a project...</option>
+                  {clients.map(client => (
+                    <option key={client._id} value={client._id}>
+                      {client.projectName} (Client: {client.clientName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedProjectForTasks && (
+                <>
+                  {/* Task Statistics */}
+                  <div className="task-stats">
+                    <h3>Task Overview</h3>
+                    <div className="stats-grid">
+                      <div className="stat-card">
+                        <h4>Total Tasks</h4>
+                        <div className="stat-number">{projectTasks.length}</div>
+                      </div>
+                      <div className="stat-card">
+                        <h4>Completed</h4>
+                        <div className="stat-number">{projectTasks.filter(t => t.status === 'Done').length}</div>
+                      </div>
+                      <div className="stat-card">
+                        <h4>In Progress</h4>
+                        <div className="stat-number">{projectTasks.filter(t => t.status === 'In Progress').length}</div>
+                      </div>
+                      <div className="stat-card">
+                        <h4>Pending</h4>
+                        <div className="stat-number">{projectTasks.filter(t => t.status === 'To Do').length}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Task List with Assignment */}
+                  <div className="task-assignment-section">
+                    <h3>Task Assignment</h3>
+                    <div className="task-list-container">
+                      {projectTasks.map(task => (
+                        <div key={task._id} className="task-assignment-card">
+                          <div className="task-info">
+                            <h4>{task.title}</h4>
+                            <p>{task.description}</p>
+                            <div className="task-meta">
+                              <span className="effort">Effort: {task.estimated_effort_hours}h</span>
+                              <span className="reward">Reward: ₹{task.reward_amount_in_INR}</span>
+                              <span className={`status ${task.status.toLowerCase().replace(' ', '-')}`}>
+                                {task.status}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="assignment-controls">
+                            <div className="assignee-section">
+                              <label>Assigned To:</label>
+                              <select 
+                                value={task.assignedTo?._id || ''} 
+                                onChange={(e) => handleTaskAssignment(task._id, e.target.value)}
+                                className="assignee-select"
+                              >
+                                <option value="">Unassigned</option>
+                                {users.filter(user => user.role === 'intern' || user.role === 'member' || user.role === 'admin').map(user => (
+                                  <option key={user._id} value={user._id}>
+                                    {user.email} ({user.role})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            
+                            <div className="task-actions">
+                              <select 
+                                value={task.status} 
+                                onChange={(e) => handleTaskStatusUpdate(task._id, e.target.value)}
+                                className="status-select"
+                              >
+                                <option value="To Do">To Do</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Done">Done</option>
+                              </select>
+                              
+                              <button 
+                                onClick={() => handleTaskDelete(task._id)}
+                                className="delete-btn"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bulk Operations */}
+                  <div className="bulk-operations">
+                    <h3>Bulk Operations</h3>
+                    <div className="bulk-controls">
+                      <button onClick={handleBulkAssign} className="bulk-btn">
+                        Bulk Assign Selected
+                      </button>
+                      <button onClick={handleBulkStatusUpdate} className="bulk-btn">
+                        Bulk Update Status
+                      </button>
+                      <button onClick={exportTasks} className="bulk-btn export-btn">
+                        Export Tasks
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Task Progress Visualization */}
+                  <div className="task-progress-section">
+                    <h3>Project Progress</h3>
+                    <div className="progress-bar-container">
+                      <div className="progress-bar">
+                        <div 
+                          className="progress-fill completed" 
+                          style={{width: `${(projectTasks.filter(t => t.status === 'Done').length / projectTasks.length) * 100}%`}}
+                        ></div>
+                        <div 
+                          className="progress-fill in-progress" 
+                          style={{width: `${(projectTasks.filter(t => t.status === 'In Progress').length / projectTasks.length) * 100}%`}}
+                        ></div>
+                      </div>
+                      <div className="progress-legend">
+                        <span className="legend-item completed">Completed</span>
+                        <span className="legend-item in-progress">In Progress</span>
+                        <span className="legend-item pending">Pending</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

@@ -289,8 +289,8 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                     <ul className="tasks-list">
                         {generatedTasks.map((task, index) => (
                             <li key={index} className="task-item">
-                                <h4>{task.task_title}</h4>
-                                <p>{task.task_description}</p>
+                                <h4>{task.title || task.task_title}</h4>
+                                <p>{task.description || task.task_description}</p>
                                 <p><strong>Effort:</strong> {task.estimated_effort_hours} hours</p>
                                 {!isFreeProject && <p><strong>Reward:</strong> ₹{task.reward_amount_in_INR}</p>}
                                 {isFreeProject && <p><strong>Type:</strong> Free Project (No Reward)</p>}

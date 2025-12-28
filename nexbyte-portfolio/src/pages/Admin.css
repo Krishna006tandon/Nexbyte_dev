@@ -3,6 +3,224 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* Task Management Styles */
+.task-management-section {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.project-selector {
+  margin-bottom: 30px;
+}
+
+.project-select {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+}
+
+.task-stats {
+  margin-bottom: 30px;
+}
+
+.task-assignment-section {
+  margin-bottom: 30px;
+}
+
+.task-list-container {
+  display: grid;
+  gap: 20px;
+}
+
+.task-assignment-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+.task-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.task-info p {
+  margin: 0 0 12px 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.task-meta {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.task-meta span {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.effort {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.reward {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.status {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.assignment-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.assignee-section label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+}
+
+.assignee-select, .status-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.task-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.delete-btn {
+  padding: 8px 12px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #d32f2f;
+}
+
+.bulk-operations {
+  margin-bottom: 30px;
+}
+
+.bulk-controls {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.bulk-btn {
+  padding: 10px 20px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.bulk-btn:hover {
+  background: #1976d2;
+}
+
+.export-btn {
+  background: #4caf50;
+}
+
+.export-btn:hover {
+  background: #388e3c;
+}
+
+.task-progress-section {
+  margin-bottom: 30px;
+}
+
+.progress-bar-container {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+  height: 30px;
+  background: #f5f5f5;
+  border-radius: 15px;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.completed {
+  background: #4caf50;
+}
+
+.progress-fill.in-progress {
+  background: #ff9800;
+}
+
+.progress-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.legend-item::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-item.completed::before {
+  background: #4caf50;
+}
+
+.legend-item.in-progress::before {
+  background: #ff9800;
+}
+
+.legend-item.pending::before {
+  background: #9e9e9e;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
