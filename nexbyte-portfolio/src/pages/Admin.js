@@ -47,7 +47,6 @@ const Admin = () => {
   // Task Management State
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState('');
   const [projectTasks, setProjectTasks] = useState([]);
-  const [selectedTasks, setSelectedTasks] = useState([]);
 
   const [clientData, setClientData] = useState({
     clientName: '',
