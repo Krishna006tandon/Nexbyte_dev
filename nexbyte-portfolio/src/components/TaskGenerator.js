@@ -15,6 +15,7 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
     const [projects, setProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState('');
     const [useProject, setUseProject] = useState(false);
+    const [isFreeProject, setIsFreeProject] = useState(false);
 
     // Fetch projects
     useEffect(() => {
@@ -96,18 +97,28 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
     const handlePreview = async (e) => {
         e.preventDefault();
         
-        // Validate and convert budget values
-        const totalBudgetNum = parseFloat(totalBudget) || 0;
-        const fixedCostsNum = parseFloat(fixedCosts) || 0;
-        
-        if (totalBudgetNum <= 0 || fixedCostsNum < 0) {
-            setError('Total Budget must be greater than 0 and Fixed Costs must be 0 or greater.');
-            return;
-        }
-        
-        if (fixedCostsNum >= totalBudgetNum) {
-            setError('Fixed Costs must be less than Total Budget.');
-            return;
+        // For free projects, skip budget validation
+        if (!isFreeProject) {
+            // Validate and convert budget values
+            const totalBudgetNum = parseFloat(totalBudget) || 0;
+            const fixedCostsNum = parseFloat(fixedCosts) || 0;
+            
+            if (totalBudgetNum <= 0 || fixedCostsNum < 0) {
+                setError('Total Budget must be greater than 0 and Fixed Costs must be 0 or greater.');
+                return;
+            }
+            
+            if (fixedCostsNum >= totalBudgetNum) {
+                setError('Fixed Costs must be less than Total Budget.');
+                return;
+            }
+            
+            // Check if remaining budget is sufficient for rewards
+            const remainingBudget = totalBudgetNum - fixedCostsNum;
+            if (remainingBudget < 500) {
+                setError('Remaining budget after fixed costs should be at least ₹500 for reward distribution.');
+                return;
+            }
         }
         
         setIsLoading(true);
@@ -122,8 +133,9 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                     clientId: clientId,
                     projectName,
                     projectGoal,
-                    total_budget_in_INR: totalBudgetNum,
-                    fixed_costs_in_INR: fixedCostsNum,
+                    total_budget_in_INR: isFreeProject ? 0 : parseFloat(totalBudget) || 0,
+                    fixed_costs_in_INR: isFreeProject ? 0 : parseFloat(fixedCosts) || 0,
+                    isFreeProject: isFreeProject
                 }),
             });
             if (!response.ok) {
@@ -226,30 +238,46 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                     </div>
                     <textarea id="projectGoal" value={projectGoal} onChange={(e) => setProjectGoal(e.target.value)} required />
                 </div>
+                
                 <div className="form-group">
-                    <label htmlFor="totalBudget">Total Budget (INR)</label>
-                    <input 
-                        type="number" 
-                        id="totalBudget" 
-                        value={totalBudget} 
-                        onChange={(e) => setTotalBudget(e.target.value)} 
-                        min="1" 
-                        step="0.01"
-                        required 
-                    />
+                    <label className="checkbox-label">
+                        <input 
+                            type="checkbox" 
+                            checked={isFreeProject} 
+                            onChange={(e) => setIsFreeProject(e.target.checked)}
+                        />
+                        Free Project (No Rewards)
+                    </label>
                 </div>
-                <div className="form-group">
-                    <label htmlFor="fixedCosts">Fixed Costs (INR)</label>
-                    <input 
-                        type="number" 
-                        id="fixedCosts" 
-                        value={fixedCosts} 
-                        onChange={(e) => setFixedCosts(e.target.value)} 
-                        min="0" 
-                        step="0.01"
-                        required 
-                    />
-                </div>
+                
+                {!isFreeProject && (
+                    <>
+                        <div className="form-group">
+                            <label htmlFor="totalBudget">Total Budget (INR)</label>
+                            <input 
+                                type="number" 
+                                id="totalBudget" 
+                                value={totalBudget} 
+                                onChange={(e) => setTotalBudget(e.target.value)} 
+                                min="1000" 
+                                step="0.01"
+                                required 
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="fixedCosts">Fixed Costs (INR)</label>
+                            <input 
+                                type="number" 
+                                id="fixedCosts" 
+                                value={fixedCosts} 
+                                onChange={(e) => setFixedCosts(e.target.value)} 
+                                min="0" 
+                                step="0.01"
+                                required 
+                            />
+                        </div>
+                    </>
+                )}
                 <button type="submit" disabled={isLoading}>{isLoading ? 'Generate Task Preview' : 'Generate Task Preview'}</button>
             </form>
 
@@ -264,7 +292,8 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                                 <h4>{task.task_title}</h4>
                                 <p>{task.task_description}</p>
                                 <p><strong>Effort:</strong> {task.estimated_effort_hours} hours</p>
-                                <p><strong>Reward:</strong> ₹{task.reward_amount_in_INR}</p>
+                                {!isFreeProject && <p><strong>Reward:</strong> ₹{task.reward_amount_in_INR}</p>}
+                                {isFreeProject && <p><strong>Type:</strong> Free Project (No Reward)</p>}
                             </li>
                         ))}
                     </ul>

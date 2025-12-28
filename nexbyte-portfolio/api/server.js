@@ -1460,7 +1460,8 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         projectName,
         projectGoal,
         total_budget_in_INR,
-        fixed_costs_in_INR
+        fixed_costs_in_INR,
+        isFreeProject = false
     } = req.body;
 
     // Validate required fields
@@ -1468,24 +1469,36 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         return res.status(400).json({ message: 'Please provide project name and requirements.' });
     }
 
-    // Validate budget values
-    const totalBudget = parseFloat(total_budget_in_INR);
-    const fixedCosts = parseFloat(fixed_costs_in_INR);
+    let totalBudget = 0;
+    let fixedCosts = 0;
 
-    if (isNaN(totalBudget) || isNaN(fixedCosts)) {
-        return res.status(400).json({ message: 'Budget values must be valid numbers.' });
-    }
+    // Only validate budget for non-free projects
+    if (!isFreeProject) {
+        // Validate budget values
+        totalBudget = parseFloat(total_budget_in_INR);
+        fixedCosts = parseFloat(fixed_costs_in_INR);
 
-    if (totalBudget <= 0) {
-        return res.status(400).json({ message: 'Total Budget must be greater than 0.' });
-    }
+        if (isNaN(totalBudget) || isNaN(fixedCosts)) {
+            return res.status(400).json({ message: 'Budget values must be valid numbers.' });
+        }
 
-    if (fixedCosts < 0) {
-        return res.status(400).json({ message: 'Fixed Costs must be 0 or greater.' });
-    }
+        if (totalBudget <= 0) {
+            return res.status(400).json({ message: 'Total Budget must be greater than 0.' });
+        }
 
-    if (fixedCosts >= totalBudget) {
-        return res.status(400).json({ message: 'Fixed Costs must be less than Total Budget.' });
+        if (fixedCosts < 0) {
+            return res.status(400).json({ message: 'Fixed Costs must be 0 or greater.' });
+        }
+
+        if (fixedCosts >= totalBudget) {
+            return res.status(400).json({ message: 'Fixed Costs must be less than Total Budget.' });
+        }
+
+        // Check if remaining budget is sufficient
+        const remainingBudget = totalBudget - fixedCosts;
+        if (remainingBudget < 1000) {
+            return res.status(400).json({ message: 'Remaining budget after fixed costs should be at least ₹1000 for proper reward distribution.' });
+        }
     }
 
     try {
@@ -1536,10 +1549,11 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         const tasksJson = response.text().replace(/```json|```/g, '').trim();
         let generatedTasks = JSON.parse(tasksJson);
 
-        const remaining_budget = totalBudget - fixedCosts;
+        const remaining_budget = isFreeProject ? 0 : (totalBudget - fixedCosts);
         const total_effort = generatedTasks.reduce((sum, task) => sum + task.estimated_effort_hours, 0);
 
         console.log('Budget Calculation:', {
+            isFreeProject,
             totalBudget,
             fixedCosts,
             remaining_budget,
@@ -1552,13 +1566,22 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         }
 
         const tasksWithRewards = generatedTasks.map(task => {
-            const proportionalReward = (task.estimated_effort_hours / total_effort) * remaining_budget;
-            let reward = Math.max(300, proportionalReward);
-            reward = Math.round(reward / 50) * 50;
+            let reward = 0;
+            
+            if (!isFreeProject) {
+                // Calculate equal reward for all tasks (not based on effort)
+                const equalReward = remaining_budget / generatedTasks.length;
+                // Round to nearest 50
+                reward = Math.round(equalReward / 50) * 50;
+                
+                // Ensure minimum reward of ₹300 per task
+                reward = Math.max(300, reward);
+            }
 
             console.log(`Task "${task.task_title}":`, {
                 effort: task.estimated_effort_hours,
-                proportionalReward,
+                isFreeProject,
+                equalShare: isFreeProject ? 0 : remaining_budget / generatedTasks.length,
                 finalReward: reward
             });
 
@@ -1566,7 +1589,8 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
                 ...task,
                 reward_amount_in_INR: reward,
                 client: clientId,
-                status: 'To Do'
+                status: 'To Do',
+                isFreeProject: isFreeProject
             };
         });
         
