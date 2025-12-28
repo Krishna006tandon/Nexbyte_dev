@@ -57,8 +57,11 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                 setUseProject(true);
                 
                 // If it's a client project, also set the client
-                if (project.isClientProject && project.associatedClient) {
+                if ((project.isClientProject || project.clientType === 'client') && project.associatedClient) {
                     onClientChange(project.associatedClient);
+                } else if (project.clientType === 'non-client') {
+                    // Clear client selection for non-client projects
+                    onClientChange('');
                 }
             }
         }
@@ -178,19 +181,23 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                         </optgroup>
                     </select>
                 </div>
-                <div className="form-group">
-                    <label htmlFor="client">Select Client</label>
-                    <select id="client" value={clientId} onChange={(e) => {
-                        onClientChange(e.target.value);
-                        setUseProject(false);
-                        setSelectedProject('');
-                    }} required>
-                        <option value="" disabled>-- Select a Client --</option>
-                        {clients.map(client => (
-                            <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
-                        ))}
-                    </select>
-                </div>
+                
+                {/* Only show client selection if no project is selected or if a client project is selected */}
+                {(!selectedProject || (selectedProject && (projects.find(p => p._id === selectedProject)?.clientType === 'client' || projects.find(p => p._id === selectedProject)?.isClientProject))) && (
+                    <div className="form-group">
+                        <label htmlFor="client">Select Client</label>
+                        <select id="client" value={clientId} onChange={(e) => {
+                            onClientChange(e.target.value);
+                            setUseProject(false);
+                            setSelectedProject('');
+                        }} required>
+                            <option value="" disabled>-- Select a Client --</option>
+                            {clients.map(client => (
+                                <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 <div className="form-group">
                     <label htmlFor="projectName">Project Name</label>
                     <input type="text" id="projectName" value={projectName} onChange={(e) => setProjectName(e.target.value)} required />
