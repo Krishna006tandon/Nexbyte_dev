@@ -37,8 +37,8 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   keyGenerator: (req) => {
-    // Use the client's IP address from the X-Forwarded-For header if available
-    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+    // Use the ipKeyGenerator helper for proper IPv6 handling
+    return rateLimit.ipKeyGenerator(req);
   },
   message: 'Too many requests from this IP, please try again after 15 minutes'
 });
@@ -1463,14 +1463,17 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         fixed_costs_in_INR
     } = req.body;
 
-    if (!clientId || !projectName || !projectGoal || !total_budget_in_INR || !fixed_costs_in_INR) {
+    if (!projectName || !projectGoal || !total_budget_in_INR || !fixed_costs_in_INR) {
         return res.status(400).json({ message: 'Please provide all required fields for task generation.' });
     }
 
     try {
-        // Fetch client to get SRS document
-        const client = await Client.findById(clientId);
-        const srsContent = client ? client.srsDocument : 'No SRS provided.';
+        // Fetch client to get SRS document if clientId is provided
+        let srsContent = 'No SRS provided.';
+        if (clientId) {
+            const client = await Client.findById(clientId);
+            srsContent = client ? client.srsDocument : 'No SRS provided.';
+        }
 
         const promptText = `
             You are an expert AI project planner specializing in software development. Your goal is to generate a detailed, practical, and budget-aware task list for a given project.
