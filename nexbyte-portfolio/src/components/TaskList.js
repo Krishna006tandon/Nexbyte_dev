@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TaskList.css';
 
-const TaskList = ({ clientId, refreshTrigger }) => {
+const TaskList = ({ clientId, projectId, refreshTrigger, projectName }) => {
     const navigate = useNavigate();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -11,7 +11,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
 
     useEffect(() => {
         const fetchTasksAndInterns = async () => {
-            if (!clientId) {
+            if (!clientId && !projectId) {
                 setTasks([]);
                 return;
             }
@@ -22,7 +22,14 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                 const headers = { 'x-auth-token': token };
 
                 // Fetch tasks
-                const tasksResponse = await fetch(`/api/tasks?clientId=${clientId}`, { headers });
+                let tasksUrl = '/api/tasks?';
+                if (projectId) {
+                    tasksUrl += `projectId=${projectId}`;
+                } else if (clientId) {
+                    tasksUrl += `clientId=${clientId}`;
+                }
+                
+                const tasksResponse = await fetch(tasksUrl, { headers });
                 if (!tasksResponse.ok) {
                     throw new Error('Failed to fetch tasks');
                 }
@@ -46,7 +53,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
         };
 
         fetchTasksAndInterns();
-    }, [clientId, refreshTrigger]);
+    }, [clientId, projectId, refreshTrigger]);
 
     const handleTaskClick = (taskId) => {
         navigate(`/admin/task/${taskId}`);
@@ -124,8 +131,8 @@ const TaskList = ({ clientId, refreshTrigger }) => {
     const defectTasks = tasks.filter(task => task.status === 'Defect');
     const completedTasks = tasks.filter(task => task.status === 'Done');
 
-    if (!clientId) {
-        return <div className="task-list-container"><h4>Please select a client to view their tasks.</h4></div>;
+    if (!clientId && !projectId) {
+        return <div className="task-list-container"><h4>Please select a client or project to view tasks.</h4></div>;
     }
 
     if (loading) {
@@ -138,7 +145,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
 
     return (
         <div className="task-list-container">
-            <h3>Project Tasks</h3>
+            <h3>{projectName ? `${projectName} Tasks` : 'Project Tasks'}</h3>
             
             <div className="task-section">
                 <h4>Ongoing Tasks</h4>

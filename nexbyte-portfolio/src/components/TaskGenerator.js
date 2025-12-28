@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './TaskGenerator.css';
 
-const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
+const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved, project }) => {
     const [projectName, setProjectName] = useState('');
     const [projectGoal, setProjectGoal] = useState('');
     const [totalBudget, setTotalBudget] = useState('');
@@ -37,15 +37,33 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
     }, []);
 
     useEffect(() => {
-        const client = clients.find(c => c._id === clientId);
-        if (client && !useProject) {
-            setProjectName(client.projectName || '');
-            setTotalBudget(client.totalBudget || '');
-            setProjectGoal(client.projectRequirements || '');
+        // If a project is passed as prop, use it
+        if (project) {
+            setProjectName(project.projectName || '');
+            setTotalBudget(project.totalBudget?.toString() || '');
+            setProjectGoal(project.projectDescription || '');
+            setUseProject(true);
+            setSelectedProject(project._id);
+            
+            // If it's a client project, also set the client
+            if (project.clientType === 'client' && project.associatedClient) {
+                onClientChange && onClientChange(project.associatedClient);
+            } else if (project.clientType === 'non-client') {
+                // Clear client selection for non-client projects
+                onClientChange && onClientChange('');
+            }
+        } else {
+            // Original logic for client-based task generation
+            const client = clients.find(c => c._id === clientId);
+            if (client && !useProject) {
+                setProjectName(client.projectName || '');
+                setTotalBudget(client.totalBudget || '');
+                setProjectGoal(client.projectRequirements || '');
+            }
         }
         setGeneratedTasks([]);
         setSuccessMessage('');
-    }, [clientId, clients, useProject]);
+    }, [clientId, clients, useProject, project, onClientChange]);
 
     // Handle project selection
     useEffect(() => {
@@ -96,41 +114,15 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
 
     const handlePreview = async (e) => {
         e.preventDefault();
-        
-        // For free projects, skip budget validation
-        if (!isFreeProject) {
-            // Validate and convert budget values
-            const totalBudgetNum = parseFloat(totalBudget) || 0;
-            const fixedCostsNum = parseFloat(fixedCosts) || 0;
-            
-            if (totalBudgetNum <= 0 || fixedCostsNum < 0) {
-                setError('Total Budget must be greater than 0 and Fixed Costs must be 0 or greater.');
-                return;
-            }
-            
-            if (fixedCostsNum >= totalBudgetNum) {
-                setError('Fixed Costs must be less than Total Budget.');
-                return;
-            }
-            
-            // Check if remaining budget is sufficient for rewards
-            const remainingBudget = totalBudgetNum - fixedCostsNum;
-            if (remainingBudget < 500) {
-                setError('Remaining budget after fixed costs should be at least ₹500 for reward distribution.');
-                return;
-            }
-        }
-        
         setIsLoading(true);
         setError(null);
-        setSuccessMessage('');
-        setGeneratedTasks([]);
         try {
-            const response = await fetch('/api/preview-tasks', {
+            const response = await fetch('/api/generate-tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     clientId: clientId,
+                    projectId: project ? project._id : selectedProject,
                     projectName,
                     projectGoal,
                     total_budget_in_INR: isFreeProject ? 0 : parseFloat(totalBudget) || 0,
@@ -179,38 +171,41 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
             <h2>AI Project Task Generator</h2>
             {successMessage && <p className="success-message">{successMessage}</p>}
             <form onSubmit={handlePreview} className="task-generator-form">
-                <div className="form-group">
-                    <label htmlFor="project">Select Project (Optional)</label>
-                    <select 
-                        id="project" 
-                        value={selectedProject} 
-                        onChange={(e) => {
-                            setSelectedProject(e.target.value);
-                            if (!e.target.value) {
-                                setUseProject(false);
-                            }
-                        }}
-                    >
-                        <option value="">-- Select a Project --</option>
-                        <optgroup label="Client Projects">
-                            {projects.filter(p => p.clientType === 'client' || p.isClientProject).map(project => (
-                                <option key={project._id} value={project._id}>
-                                    {project.clientName || project.associatedClient?.clientName} - {project.projectName}
-                                </option>
-                            ))}
-                        </optgroup>
-                        <optgroup label="Non-Client Projects">
-                            {projects.filter(p => p.clientType === 'non-client' && !p.isClientProject).map(project => (
-                                <option key={project._id} value={project._id}>
-                                    {project.projectName} ({project.projectType})
-                                </option>
-                            ))}
-                        </optgroup>
-                    </select>
-                </div>
+                {/* Don't show project selection if project is passed as prop */}
+                {!project && (
+                    <div className="form-group">
+                        <label htmlFor="project">Select Project (Optional)</label>
+                        <select 
+                            id="project" 
+                            value={selectedProject} 
+                            onChange={(e) => {
+                                setSelectedProject(e.target.value);
+                                if (!e.target.value) {
+                                    setUseProject(false);
+                                }
+                            }}
+                        >
+                            <option value="">-- Select a Project --</option>
+                            <optgroup label="Client Projects">
+                                {projects.filter(p => p.clientType === 'client' || p.isClientProject).map(project => (
+                                    <option key={project._id} value={project._id}>
+                                        {project.clientName || project.associatedClient?.clientName} - {project.projectName}
+                                    </option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Non-Client Projects">
+                                {projects.filter(p => p.clientType === 'non-client' && !p.isClientProject).map(project => (
+                                    <option key={project._id} value={project._id}>
+                                        {project.projectName} ({project.projectType})
+                                    </option>
+                                ))}
+                            </optgroup>
+                        </select>
+                    </div>
+                )}
                 
-                {/* Only show client selection if no project is selected or if a client project is selected */}
-                {(!selectedProject || (selectedProject && (projects.find(p => p._id === selectedProject)?.clientType === 'client' || projects.find(p => p._id === selectedProject)?.isClientProject))) && (
+                {/* Only show client selection if no project is passed as prop and no project is selected or if a client project is selected */}
+                {!project && (!selectedProject || (selectedProject && (projects.find(p => p._id === selectedProject)?.clientType === 'client' || projects.find(p => p._id === selectedProject)?.isClientProject))) && (
                     <div className="form-group">
                         <label htmlFor="client">Select Client</label>
                         <select id="client" value={clientId} onChange={(e) => {
@@ -227,7 +222,7 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                 )}
                 <div className="form-group">
                     <label htmlFor="projectName">Project Name</label>
-                    <input type="text" id="projectName" value={projectName} onChange={(e) => setProjectName(e.target.value)} required />
+                    <input type="text" id="projectName" value={projectName} onChange={(e) => setProjectName(e.target.value)} disabled={!!project} required />
                 </div>
                 <div className="form-group">
                     <div className="label-with-button">
@@ -236,7 +231,7 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                             {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
                         </button>
                     </div>
-                    <textarea id="projectGoal" value={projectGoal} onChange={(e) => setProjectGoal(e.target.value)} required />
+                    <textarea id="projectGoal" value={projectGoal} onChange={(e) => setProjectGoal(e.target.value)} disabled={!!project} required />
                 </div>
                 
                 <div className="form-group">

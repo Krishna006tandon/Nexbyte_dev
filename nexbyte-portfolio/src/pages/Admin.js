@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import './Admin.css';
-import Sidebar from '../components/Sidebar';
-import { SrsContext } from '../context/SrsContext';
+import { useNavigate, useLocation } from 'react-router-dom';
+import ClientList from '../components/ClientList';
+import ProjectList from '../components/ProjectList';
 import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
-import ProjectTracker from '../components/ProjectTracker';
+import ProjectTaskManagement from '../components/ProjectTaskManagement';
 import Modal from '../components/Modal';
+import ProjectTracker from '../components/ProjectTracker';
+import { SrsContext } from '../context/SrsContext';
+import './Admin.css';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -1603,147 +1605,54 @@ const Admin = () => {
             <div className="task-management-section">
               <h2>Task Management & Assignment</h2>
               
-              {/* Project Selector */}
-              <div className="project-selector">
-                <h3>Select Project</h3>
-                <select 
-                  value={selectedProjectForTasks || ''} 
-                  onChange={(e) => setSelectedProjectForTasks(e.target.value)}
-                  className="project-select"
-                >
-                  <option value="">Choose a project...</option>
-                  {projects.map(project => (
-                    <option key={project._id} value={project._id}>
-                      {project.projectName} ({project.clientType === 'client' ? `Client: ${project.associatedClient?.clientName || 'N/A'}` : 'Non-Client Project'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedProjectForTasks && (
-                <>
-                  {/* Task Statistics */}
-                  <div className="task-stats">
-                    <h3>Task Overview</h3>
-                    <div className="stats-grid">
-                      <div className="stat-card">
-                        <h4>Total Tasks</h4>
-                        <div className="stat-number">{projectTasks.length}</div>
-                      </div>
-                      <div className="stat-card">
-                        <h4>Completed</h4>
-                        <div className="stat-number">{projectTasks.filter(t => t.status === 'Done').length}</div>
-                      </div>
-                      <div className="stat-card">
-                        <h4>In Progress</h4>
-                        <div className="stat-number">{projectTasks.filter(t => t.status === 'In Progress').length}</div>
-                      </div>
-                      <div className="stat-card">
-                        <h4>Pending</h4>
-                        <div className="stat-number">{projectTasks.filter(t => t.status === 'To Do').length}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Task List with Assignment */}
-                  <div className="task-assignment-section">
-                    <h3>Task Assignment</h3>
-                    <div className="task-list-container">
-                      {projectTasks.map(task => (
-                        <div key={task._id} className="task-assignment-card">
-                          <div className="task-info">
-                            <h4>{task.title}</h4>
-                            <p>{task.description}</p>
-                            <div className="task-meta">
-                              <span className="effort">Effort: {task.estimated_effort_hours}h</span>
-                              <span className="reward">Reward: ₹{task.reward_amount_in_INR}</span>
-                              <span className={`status ${task.status.toLowerCase().replace(' ', '-')}`}>
-                                {task.status}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="assignment-controls">
-                            <div className="assignee-section">
-                              <label>Assigned To:</label>
-                              <select 
-                                value={task.assignedTo?._id || ''} 
-                                onChange={(e) => handleTaskAssignment(task._id, e.target.value)}
-                                className="assignee-select"
-                              >
-                                <option value="">Unassigned</option>
-                                {members.filter(user => user.role === 'intern' || user.role === 'member' || user.role === 'admin').map(user => (
-                                  <option key={user._id} value={user._id}>
-                                    {user.email} ({user.role})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            
-                            <div className="task-actions">
-                              <select 
-                                value={task.status} 
-                                onChange={(e) => handleTaskStatusUpdate(task._id, e.target.value)}
-                                className="status-select"
-                              >
-                                <option value="To Do">To Do</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Done">Done</option>
-                              </select>
-                              
-                              <button 
-                                onClick={() => handleTaskDelete(task._id)}
-                                className="delete-btn"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
+              {/* Project List */}
+              <div className="project-list">
+                <h3>Select a Project</h3>
+                <div className="project-grid">
+                  {projects.length > 0 ? (
+                    projects.map(project => (
+                      <div 
+                        key={project._id} 
+                        className="project-card"
+                        onClick={() => navigate(`/admin/task-management/${project._id}`)}
+                      >
+                        <div className="project-header">
+                          <h4>{project.projectName}</h4>
+                          <span className={`project-type ${project.clientType}`}>
+                            {project.clientType === 'client' ? 'Client Project' : 'Non-Client Project'}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bulk Operations */}
-                  <div className="bulk-operations">
-                    <h3>Bulk Operations</h3>
-                    <div className="bulk-controls">
-                      <button onClick={handleBulkAssign} className="bulk-btn">
-                        Bulk Assign Selected
-                      </button>
-                      <button onClick={handleBulkStatusUpdate} className="bulk-btn">
-                        Bulk Update Status
-                      </button>
-                      <button onClick={exportTasks} className="bulk-btn export-btn">
-                        Export Tasks
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Task Progress Visualization */}
-                  <div className="task-progress-section">
-                    <h3>Project Progress</h3>
-                    <div className="progress-bar-container">
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill completed" 
-                          style={{width: `${(projectTasks.filter(t => t.status === 'Done').length / projectTasks.length) * 100}%`}}
-                        ></div>
-                        <div 
-                          className="progress-fill in-progress" 
-                          style={{width: `${(projectTasks.filter(t => t.status === 'In Progress').length / projectTasks.length) * 100}%`}}
-                        ></div>
+                        <div className="project-details">
+                          <p><strong>Type:</strong> {project.projectType}</p>
+                          <p><strong>Description:</strong> {project.projectDescription}</p>
+                          {project.clientType === 'client' && project.associatedClient && (
+                            <p><strong>Client:</strong> {project.associatedClient.clientName}</p>
+                          )}
+                          <p><strong>Budget:</strong> ₹{project.totalBudget ? project.totalBudget.toLocaleString() : 'N/A'}</p>
+                          <p><strong>Deadline:</strong> {project.projectDeadline ? new Date(project.projectDeadline).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                        <div className="project-action">
+                          <button className="view-tasks-btn">
+                            View Tasks →
+                          </button>
+                        </div>
                       </div>
-                      <div className="progress-legend">
-                        <span className="legend-item completed">Completed</span>
-                        <span className="legend-item in-progress">In Progress</span>
-                        <span className="legend-item pending">Pending</span>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="no-projects">
+                      <p>No projects found. Please create a project first.</p>
+                      <button onClick={() => navigate('/admin/projects')} className="btn btn-primary">
+                        Go to Projects
+                      </button>
                     </div>
-                  </div>
-                </>
-              )}
+                  )}
+                </div>
+              </div>
             </div>
+          )}
+
+          {location.pathname.startsWith('/admin/task-management/') && (
+            <ProjectTaskManagement />
           )}
 
           {location.pathname === '/admin/tasks' && (

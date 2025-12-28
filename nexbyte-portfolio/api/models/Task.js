@@ -35,6 +35,10 @@ const TaskSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Client'
   },
+  project: {
+    type: Schema.Types.ObjectId,
+    ref: 'Project'
+  },
   assignedTo: {
     type: Schema.Types.ObjectId,
     ref: 'User'

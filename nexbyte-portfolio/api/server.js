@@ -1624,15 +1624,18 @@ app.post('/api/save-tasks', auth, admin, async (req, res) => {
 });
 
 // @route   GET api/tasks
-// @desc    Get all tasks for a client
+// @desc    Get all tasks for a client or project
 // @access  Private (client or admin)
 app.get('/api/tasks', auth, async (req, res) => {
     try {
         let tasks;
+        const { clientId, projectId } = req.query;
+        
         if (req.user.role === 'admin') {
-            // Admin can see all tasks, or filter by clientId if provided
-            const { clientId } = req.query;
-            if (clientId) {
+            // Admin can see all tasks, or filter by clientId or projectId if provided
+            if (projectId) {
+                tasks = await Task.find({ project: projectId }).sort({ createdAt: -1 });
+            } else if (clientId) {
                 tasks = await Task.find({ client: clientId }).sort({ createdAt: -1 });
             } else {
                 tasks = await Task.find().sort({ createdAt: -1 });

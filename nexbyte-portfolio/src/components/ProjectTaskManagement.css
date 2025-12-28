@@ -1,0 +1,162 @@
+.project-task-management {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.loading-container,
+.error-container {
+    text-align: center;
+    padding: 40px;
+}
+
+.error-message {
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+.back-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 20px;
+    transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+    background: #5a6268;
+}
+
+.project-header {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.header-top h2 {
+    margin: 0;
+    color: #333;
+    font-size: 24px;
+}
+
+.project-info {
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-item strong {
+    color: #555;
+    min-width: 80px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-badge.Active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.Completed {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-badge.On-Hold {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.Cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.project-description {
+    margin-top: 16px;
+}
+
+.project-description strong {
+    color: #555;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.project-description p {
+    margin: 0;
+    color: #666;
+    line-height: 1.5;
+}
+
+.task-management-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+
+.task-generator-section,
+.task-list-section {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.task-generator-section h3,
+.task-list-section h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    .project-task-management {
+        padding: 16px;
+    }
+    
+    .header-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .task-generator-section,
+    .task-list-section {
+        padding: 16px;
+    }
+}
