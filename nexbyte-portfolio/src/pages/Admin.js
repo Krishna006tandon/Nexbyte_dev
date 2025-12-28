@@ -1673,7 +1673,7 @@ const Admin = () => {
                                 className="assignee-select"
                               >
                                 <option value="">Unassigned</option>
-                                {users.filter(user => user.role === 'intern' || user.role === 'member' || user.role === 'admin').map(user => (
+                                {members.filter(user => user.role === 'intern' || user.role === 'member' || user.role === 'admin').map(user => (
                                   <option key={user._id} value={user._id}>
                                     {user.email} ({user.role})
                                   </option>
