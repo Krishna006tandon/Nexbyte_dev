@@ -812,6 +812,45 @@ app.get('/api/projects', auth, admin, async (req, res) => {
   }
 });
 
+// @route   GET api/projects/all
+// @desc    Get all projects for task generator (both client and non-client)
+// @access  Private (admin)
+app.get('/api/projects/all', auth, admin, async (req, res) => {
+  try {
+    console.log('Fetching projects for task generator...');
+    const projects = await Project.find()
+      .populate('associatedClient', 'clientName projectName email')
+      .sort({ createdAt: -1 });
+    
+    console.log('Found projects:', projects.length);
+    
+    // Also include client projects as separate entries for task generator
+    const clients = await Client.find().select('_id clientName projectName projectRequirements totalBudget projectDeadline');
+    console.log('Found clients:', clients.length);
+    
+    const clientProjects = clients.map(client => ({
+      _id: `client-${client._id}`,
+      projectName: client.projectName,
+      projectType: 'Client Project',
+      projectDescription: client.projectRequirements,
+      totalBudget: client.totalBudget,
+      projectDeadline: client.projectDeadline,
+      clientType: 'client',
+      associatedClient: client._id,
+      isClientProject: true,
+      clientName: client.clientName
+    }));
+    
+    const allProjects = [...projects, ...clientProjects];
+    console.log('Total projects for task generator:', allProjects.length);
+    res.json(allProjects);
+  } catch (err) {
+    console.error('Error in /api/projects/all:', err.message);
+    console.error('Full error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET api/projects/:id
 // @desc    Get a single project
 // @access  Private (admin)
@@ -841,39 +880,6 @@ app.delete('/api/projects/:id', auth, admin, async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     res.json({ message: 'Project removed' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   GET api/projects/all
-// @desc    Get all projects for task generator (both client and non-client)
-// @access  Private (admin)
-app.get('/api/projects/all', auth, admin, async (req, res) => {
-  try {
-    const projects = await Project.find()
-      .populate('associatedClient', 'clientName projectName email')
-      .sort({ createdAt: -1 });
-    
-    // Also include client projects as separate entries for task generator
-    const clients = await Client.find().select('_id clientName projectName projectRequirements totalBudget projectDeadline');
-    
-    const clientProjects = clients.map(client => ({
-      _id: `client-${client._id}`,
-      projectName: client.projectName,
-      projectType: 'Client Project',
-      projectDescription: client.projectRequirements,
-      totalBudget: client.totalBudget,
-      projectDeadline: client.projectDeadline,
-      clientType: 'client',
-      associatedClient: client._id,
-      isClientProject: true,
-      clientName: client.clientName
-    }));
-    
-    const allProjects = [...projects, ...clientProjects];
-    res.json(allProjects);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
