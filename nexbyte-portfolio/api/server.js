@@ -1524,12 +1524,13 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
             1. Analyze all provided documents to create a comprehensive task list for the entire software development lifecycle.
             2. IMPORTANT: The tasks must be strictly technical development tasks. DO NOT include project management, client communication, meetings, or any other non-technical administrative tasks. Focus only on the work required to build and deploy the software.
             3. This includes planning, UI/UX design, frontend development, backend development, database management, testing, and deployment.
-            4. Each task must have:
+            4. CRITICAL: Plan tasks to be completed 3 weeks BEFORE the project deadline. This buffer time is for testing, revisions, and deployment.
+            5. Each task must have:
                - task_title (short, action-oriented, max 8 words, e.g., "Develop User Login API")
                - task_description (2-4 meaningful sentences explaining the task)
-               - estimated_effort_hours (a numeric estimate of hours required)
-            5. The tasks should be broken down into logical, manageable chunks.
-            6. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
+               - estimated_effort_hours (a numeric estimate of hours required, considering the 3-week buffer)
+            6. The tasks should be broken down into logical, manageable chunks that can realistically be completed within the timeline (deadline minus 3 weeks).
+            7. Output the list of tasks in valid JSON only. Do not output markdown or any other text.
 
             OUTPUT FORMAT:
             [
