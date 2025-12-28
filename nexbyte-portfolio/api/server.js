@@ -18,6 +18,7 @@ const Diary = require('./models/Diary');
 const Report = require('./models/Report');
 const Notification = require('./models/Notification');
 const Resource = require('./models/Resource');
+const Project = require('./models/Project');
 
 
 const app = express();
@@ -753,6 +754,129 @@ app.get('/api/client/data', auth, client, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server. Please try again later' });
+  }
+});
+
+// Project Management Routes
+
+// @route   POST api/projects
+// @desc    Add a new project
+// @access  Private (admin)
+app.post('/api/projects', auth, admin, async (req, res) => {
+  const {
+    projectName,
+    projectType,
+    projectDescription,
+    totalBudget,
+    projectDeadline,
+    clientType,
+    associatedClient
+  } = req.body;
+
+  try {
+    const newProject = new Project({
+      projectName,
+      projectType,
+      projectDescription,
+      totalBudget,
+      projectDeadline,
+      clientType: clientType || 'non-client',
+      associatedClient: clientType === 'client' ? associatedClient : null
+    });
+
+    await newProject.save();
+    
+    // Populate client data if it's a client project
+    const populatedProject = await Project.findById(newProject._id)
+      .populate('associatedClient', 'clientName projectName email');
+
+    res.json(populatedProject);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/projects
+// @desc    Get all projects
+// @access  Private (admin)
+app.get('/api/projects', auth, admin, async (req, res) => {
+  try {
+    const projects = await Project.find()
+      .populate('associatedClient', 'clientName projectName email')
+      .sort({ createdAt: -1 });
+    res.json(projects);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/projects/:id
+// @desc    Get a single project
+// @access  Private (admin)
+app.get('/api/projects/:id', auth, admin, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id)
+      .populate('associatedClient', 'clientName projectName email');
+    
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    res.json(project);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE api/projects/:id
+// @desc    Delete a project
+// @access  Private (admin)
+app.delete('/api/projects/:id', auth, admin, async (req, res) => {
+  try {
+    const project = await Project.findByIdAndDelete(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.json({ message: 'Project removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/projects/all
+// @desc    Get all projects for task generator (both client and non-client)
+// @access  Private (admin)
+app.get('/api/projects/all', auth, admin, async (req, res) => {
+  try {
+    const projects = await Project.find()
+      .populate('associatedClient', 'clientName projectName email')
+      .sort({ createdAt: -1 });
+    
+    // Also include client projects as separate entries for task generator
+    const clients = await Client.find().select('_id clientName projectName projectRequirements totalBudget projectDeadline');
+    
+    const clientProjects = clients.map(client => ({
+      _id: `client-${client._id}`,
+      projectName: client.projectName,
+      projectType: 'Client Project',
+      projectDescription: client.projectRequirements,
+      totalBudget: client.totalBudget,
+      projectDeadline: client.projectDeadline,
+      clientType: 'client',
+      associatedClient: client._id,
+      isClientProject: true,
+      clientName: client.clientName
+    }));
+    
+    const allProjects = [...projects, ...clientProjects];
+    res.json(allProjects);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

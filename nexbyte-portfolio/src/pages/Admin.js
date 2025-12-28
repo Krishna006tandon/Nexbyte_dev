@@ -13,6 +13,7 @@ const Admin = () => {
   const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
   const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [bills, setBills] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,6 +73,16 @@ const Admin = () => {
     description: '',
   });
 
+  const [projectData, setProjectData] = useState({
+    projectName: '',
+    projectType: '',
+    projectDescription: '',
+    totalBudget: '',
+    projectDeadline: '',
+    clientType: 'non-client', // 'client' or 'non-client'
+    associatedClient: '', // for client projects
+  });
+
   const [localSrsData, setLocalSrsData] = useState({
     projectName: '',
     projectDescription: '',
@@ -119,11 +130,21 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks'].includes(location.pathname)) {
+        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects'].includes(location.pathname)) {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
             setClients(data);
+          } else {
+            console.error(data.message);
+          }
+        }
+
+        if (location.pathname === '/admin/projects') {
+          const res = await fetch('/api/projects', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setProjects(data);
           } else {
             console.error(data.message);
           }
@@ -304,6 +325,71 @@ const Admin = () => {
 
   const handleClientChange = (e) => {
     setClientData({ ...clientData, [e.target.name]: e.target.value });
+  };
+
+  const handleProjectChange = (e) => {
+    setProjectData({ ...projectData, [e.target.name]: e.target.value });
+  };
+
+  const handleAddProject = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(projectData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProjects([...projects, data]);
+        setProjectData({
+          projectName: '',
+          projectType: '',
+          projectDescription: '',
+          totalBudget: '',
+          projectDeadline: '',
+          clientType: 'non-client',
+          associatedClient: '',
+        });
+        const fetchRes = await fetch('/api/projects', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedProjects = await fetchRes.json();
+        if (fetchRes.ok) {
+          setProjects(updatedProjects);
+          setSuccessMessage('Project added successfully!');
+          setTimeout(() => setSuccessMessage(''), 5000);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteProject = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProjects(projects.filter((project) => project._id !== id));
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleBillChange = (e) => {
@@ -1097,6 +1183,72 @@ const Admin = () => {
                       <td>
                         <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
                         <button onClick={() => handleShowTracker(client)} className="btn btn-info">Show Tracker</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/projects' && (
+            <div>
+              <h2>Manage Projects</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddProject}>
+                  <h3>Add New Project</h3>
+                  <input type="text" name="projectName" placeholder="Project Name" value={projectData.projectName} onChange={handleProjectChange} required />
+                  <input type="text" name="projectType" placeholder="Project Type" value={projectData.projectType} onChange={handleProjectChange} />
+                  <textarea name="projectDescription" placeholder="Project Description" value={projectData.projectDescription} onChange={handleProjectChange}></textarea>
+                  <input type="number" name="totalBudget" placeholder="Total Budget" value={projectData.totalBudget} onChange={handleProjectChange} />
+                  <input type="date" name="projectDeadline" placeholder="Project Deadline" value={projectData.projectDeadline} onChange={handleProjectChange} />
+                  <select name="clientType" value={projectData.clientType} onChange={handleProjectChange} required>
+                    <option value="non-client">Non-Client Project</option>
+                    <option value="client">Client Project</option>
+                  </select>
+                  {projectData.clientType === 'client' && (
+                    <select name="associatedClient" value={projectData.associatedClient} onChange={handleProjectChange} required>
+                      <option value="">Select a Client</option>
+                      {clients.map(client => (
+                        <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                      ))}
+                    </select>
+                  )}
+                  <button type="submit" className="btn btn-primary">Add Project</button>
+                </form>
+              </div>
+
+              <h3>All Projects</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Project Name</th>
+                    <th>Project Type</th>
+                    <th>Description</th>
+                    <th>Total Budget</th>
+                    <th>Deadline</th>
+                    <th>Client Type</th>
+                    <th>Associated Client</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projects.map((project) => (
+                    <tr key={project._id}>
+                      <td>{project.projectName}</td>
+                      <td>{project.projectType}</td>
+                      <td>{project.projectDescription}</td>
+                      <td>{project.totalBudget}</td>
+                      <td>{project.projectDeadline ? new Date(project.projectDeadline).toLocaleDateString() : 'N/A'}</td>
+                      <td>{project.clientType}</td>
+                      <td>
+                        {project.associatedClient ? 
+                          (project.associatedClient.clientName || 'Client') : 
+                          'N/A'
+                        }
+                      </td>
+                      <td>
+                        <button onClick={() => handleDeleteProject(project._id)} className="btn btn-danger">Delete</button>
                       </td>
                     </tr>
                   ))}

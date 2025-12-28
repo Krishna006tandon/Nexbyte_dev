@@ -10,6 +10,7 @@ const Sidebar = () => {
     { to: "/admin", text: "Dashboard" },
     { to: "/admin/billing", text: "Billing" },
     { to: "/admin/clients", text: "Clients" },
+    { to: "/admin/projects", text: "Projects" },
     { to: "/admin/messages", text: "Client Messages" },
     { to: "/admin/contacts", text: "Contact Messages" },
     { to: "/admin/members", text: "Members" },

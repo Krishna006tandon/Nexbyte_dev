@@ -12,17 +12,57 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
+    const [projects, setProjects] = useState([]);
+    const [selectedProject, setSelectedProject] = useState('');
+    const [useProject, setUseProject] = useState(false);
+
+    // Fetch projects
+    useEffect(() => {
+        const fetchProjects = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/projects/all', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (response.ok) {
+                    const projectsData = await response.json();
+                    setProjects(projectsData);
+                }
+            } catch (err) {
+                console.error('Failed to fetch projects:', err);
+            }
+        };
+        fetchProjects();
+    }, []);
 
     useEffect(() => {
         const client = clients.find(c => c._id === clientId);
-        if (client) {
+        if (client && !useProject) {
             setProjectName(client.projectName || '');
             setTotalBudget(client.totalBudget || '');
             setProjectGoal(client.projectRequirements || '');
         }
         setGeneratedTasks([]);
         setSuccessMessage('');
-    }, [clientId, clients]);
+    }, [clientId, clients, useProject]);
+
+    // Handle project selection
+    useEffect(() => {
+        if (selectedProject) {
+            const project = projects.find(p => p._id === selectedProject);
+            if (project) {
+                setProjectName(project.projectName || '');
+                setTotalBudget(project.totalBudget?.toString() || '');
+                setProjectGoal(project.projectDescription || '');
+                setUseProject(true);
+                
+                // If it's a client project, also set the client
+                if (project.isClientProject && project.associatedClient) {
+                    onClientChange(project.associatedClient);
+                }
+            }
+        }
+    }, [selectedProject, projects, onClientChange]);
 
     const handleGenerateDescription = async () => {
         if (!projectName && !projectGoal) {
@@ -110,8 +150,41 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
             {successMessage && <p className="success-message">{successMessage}</p>}
             <form onSubmit={handlePreview} className="task-generator-form">
                 <div className="form-group">
+                    <label htmlFor="project">Select Project (Optional)</label>
+                    <select 
+                        id="project" 
+                        value={selectedProject} 
+                        onChange={(e) => {
+                            setSelectedProject(e.target.value);
+                            if (!e.target.value) {
+                                setUseProject(false);
+                            }
+                        }}
+                    >
+                        <option value="">-- Select a Project --</option>
+                        <optgroup label="Client Projects">
+                            {projects.filter(p => p.clientType === 'client' || p.isClientProject).map(project => (
+                                <option key={project._id} value={project._id}>
+                                    {project.clientName || project.associatedClient?.clientName} - {project.projectName}
+                                </option>
+                            ))}
+                        </optgroup>
+                        <optgroup label="Non-Client Projects">
+                            {projects.filter(p => p.clientType === 'non-client' && !p.isClientProject).map(project => (
+                                <option key={project._id} value={project._id}>
+                                    {project.projectName} ({project.projectType})
+                                </option>
+                            ))}
+                        </optgroup>
+                    </select>
+                </div>
+                <div className="form-group">
                     <label htmlFor="client">Select Client</label>
-                    <select id="client" value={clientId} onChange={(e) => onClientChange(e.target.value)} required>
+                    <select id="client" value={clientId} onChange={(e) => {
+                        onClientChange(e.target.value);
+                        setUseProject(false);
+                        setSelectedProject('');
+                    }} required>
                         <option value="" disabled>-- Select a Client --</option>
                         {clients.map(client => (
                             <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
