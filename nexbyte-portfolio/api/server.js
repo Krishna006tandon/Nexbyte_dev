@@ -1572,8 +1572,8 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
             if (!isFreeProject) {
                 // Calculate equal reward for all tasks (not based on effort)
                 const equalReward = remaining_budget / generatedTasks.length;
-                // Round to nearest 50
-                reward = Math.round(equalReward / 50) * 50;
+                // Use exact amount without rounding
+                reward = equalReward;
                 
                 // No minimum reward - use actual calculated amount
             }
