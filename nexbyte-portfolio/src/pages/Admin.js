@@ -184,7 +184,7 @@ const Admin = () => {
   const fetchProjectTasks = async (projectId) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`/api/tasks?clientId=${projectId}`, {
+      const res = await fetch(`/api/tasks?projectId=${projectId}`, {
         headers: { 'x-auth-token': token }
       });
       const data = await res.json();
@@ -1612,9 +1612,9 @@ const Admin = () => {
                   className="project-select"
                 >
                   <option value="">Choose a project...</option>
-                  {clients.map(client => (
-                    <option key={client._id} value={client._id}>
-                      {client.projectName} (Client: {client.clientName})
+                  {projects.map(project => (
+                    <option key={project._id} value={project._id}>
+                      {project.projectName} ({project.clientType === 'client' ? `Client: ${project.associatedClient?.clientName || 'N/A'}` : 'Non-Client Project'})
                     </option>
                   ))}
                 </select>
