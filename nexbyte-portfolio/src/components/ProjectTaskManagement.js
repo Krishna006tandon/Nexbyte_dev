@@ -167,6 +167,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
       setTasks(tasks.map(task => 
         task._id === taskId ? { ...task, assignedTo: interns.find(i => i._id === userId) } : task
       ));
+      console.log('Task assigned successfully:', updatedTask);
     } catch (err) {
       setError(err.message);
     }
