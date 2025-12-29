@@ -1628,7 +1628,7 @@ app.post('/api/save-tasks', auth, admin, async (req, res) => {
                 priority: task.priority || 'medium',
                 status: task.status || 'pending',
                 estimated_effort_hours: task.estimated_effort_hours || 8, // Default 8 hours
-                reward_amount_in_INR: task.reward_amount_in_INR || 500, // Default 500 INR
+                                reward_amount_in_INR: task.reward_amount_in_INR || 0, // Default  0
                 project: task.project || task.projectId, // Handle both field names
                 client: task.client || null,
                 assignedTo: task.assignedTo || null,
@@ -2614,7 +2614,7 @@ app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
       assignedTo,
       status,
       estimated_effort_hours: estimated_effort_hours || 8, // Default 8 hours
-      reward_amount_in_INR: reward_amount_in_INR || 500, // Default 500 INR
+      reward_amount_in_INR: reward_amount_in_INR ?? 500, // Default 500 INR only if undefined
       project: projectId
     });
     
