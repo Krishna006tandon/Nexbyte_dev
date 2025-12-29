@@ -1615,7 +1615,23 @@ app.post('/api/save-tasks', auth, admin, async (req, res) => {
     }
 
     try {
-        await Task.insertMany(tasks);
+        // Fix field names and add missing required fields
+        const fixedTasks = tasks.map(task => ({
+            title: task.title || task.task_title, // Handle both field names
+            description: task.description || task.task_description, // Handle both field names
+            priority: task.priority || 'medium',
+            status: task.status || 'pending',
+            estimated_effort_hours: task.estimated_effort_hours || 8, // Default 8 hours
+            reward_amount_in_INR: task.reward_amount_in_INR || 500, // Default 500 INR
+            project: task.project || task.projectId, // Handle both field names
+            client: task.client || null,
+            assignedTo: task.assignedTo || null,
+            dueDate: task.dueDate || null
+        }));
+
+        console.log('Saving tasks with fixed data:', fixedTasks.length); // Debug log
+        await Task.insertMany(fixedTasks);
+        console.log('Tasks saved successfully'); // Debug log
         res.status(201).json({ message: 'Tasks saved successfully.' });
     } catch (error) {
         console.error('Error saving tasks:', error);
@@ -2428,11 +2444,15 @@ app.get('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
     const { projectId } = req.params;
     console.log('Fetching tasks for projectId:', projectId); // Debug log
     
+    // First check if any tasks exist at all
+    const allTasks = await Task.find({});
+    console.log('Total tasks in database:', allTasks.length); // Debug log
+    
     const tasks = await Task.find({ project: projectId })
       .populate('assignedTo', 'email')
       .sort({ createdAt: -1 });
     
-    console.log('Found tasks:', tasks.length); // Debug log
+    console.log('Found tasks for project:', tasks.length); // Debug log
     
     // Add name field for frontend compatibility
     const tasksWithNames = tasks.map(task => {
@@ -2456,19 +2476,24 @@ app.get('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
 app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { title, description, priority, dueDate, assignedTo, status } = req.body;
+    const { title, description, priority, dueDate, assignedTo, status, estimated_effort_hours, reward_amount_in_INR } = req.body;
+    
+    console.log('Creating task with data:', { title, description, projectId }); // Debug log
     
     const newTask = new Task({
-      task_title: title,
-      task_description: description,
+      title, // Fixed: use 'title' instead of 'task_title'
+      description, // Fixed: use 'description' instead of 'task_description'
       priority,
       dueDate,
       assignedTo,
       status,
+      estimated_effort_hours: estimated_effort_hours || 8, // Default 8 hours
+      reward_amount_in_INR: reward_amount_in_INR || 500, // Default 500 INR
       project: projectId
     });
     
     await newTask.save();
+    console.log('Task saved successfully:', newTask._id); // Debug log
     
     const populatedTask = await Task.findById(newTask._id)
       .populate('assignedTo', 'email');
@@ -2480,7 +2505,7 @@ app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
     
     res.json(populatedTask);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error creating task:', err.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -73,17 +73,23 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     
     try {
       const token = localStorage.getItem('token');
+      console.log('Creating task with data:', { ...newTask, projectId }); // Debug log
       const response = await fetch(`/api/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'x-auth-token': token 
         },
-        body: JSON.stringify(newTask)
+        body: JSON.stringify({
+          ...newTask,
+          estimated_effort_hours: 8, // Default 8 hours
+          reward_amount_in_INR: 500 // Default 500 INR
+        })
       });
       
       if (!response.ok) throw new Error('Failed to create task');
       const createdTask = await response.json();
+      console.log('Task created successfully:', createdTask); // Debug log
       setTasks([...tasks, createdTask]);
       setNewTask({
         title: '',
@@ -94,6 +100,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
         status: 'pending'
       });
     } catch (err) {
+      console.error('Error creating task:', err); // Debug log
       setError(err.message);
     }
   };
