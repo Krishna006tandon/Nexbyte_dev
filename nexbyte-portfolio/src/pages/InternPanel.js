@@ -26,6 +26,10 @@ const InternPanel = () => {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [updateStatus, setUpdateStatus] = useState('');
   const [diaryEntry, setDiaryEntry] = useState('');
   const [profileForm, setProfileForm] = useState({});
   const [settings, setSettings] = useState({
@@ -256,27 +260,38 @@ const InternPanel = () => {
       
       if (response.ok) {
         const task = await response.json();
-        // You can open a modal or navigate to update page
-        console.log('Task details for update:', task);
-        // For now, let's show a simple prompt
-        const newStatus = prompt('Update task status (pending/in-progress/completed):', task.status);
-        if (newStatus && ['pending', 'in-progress', 'completed'].includes(newStatus)) {
-          const updateResponse = await fetch(`/api/tasks/${taskId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-auth-token': token
-            },
-            body: JSON.stringify({ status: newStatus })
-          });
-          
-          if (updateResponse.ok) {
-            toast.success('Task status updated successfully!');
-            fetchInternData(); // Refresh tasks
-          } else {
-            toast.error('Failed to update task status');
-          }
-        }
+        setSelectedTask(task);
+        setUpdateStatus(task.status);
+        setShowUpdateModal(true);
+      }
+    } catch (err) {
+      console.error('Error fetching task:', err);
+      toast.error('Error loading task details');
+    }
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!selectedTask || !updateStatus) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/tasks/${selectedTask._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status: updateStatus })
+      });
+      
+      if (response.ok) {
+        toast.success('Task status updated successfully!');
+        setShowUpdateModal(false);
+        setSelectedTask(null);
+        setUpdateStatus('');
+        fetchInternData(); // Refresh tasks
+      } else {
+        toast.error('Failed to update task status');
       }
     } catch (err) {
       console.error('Error updating task:', err);
@@ -294,8 +309,8 @@ const InternPanel = () => {
       
       if (response.ok) {
         const task = await response.json();
-        // Show task details in a modal or alert
-        alert(`Task Details:\n\nTitle: ${task.title}\nDescription: ${task.description}\nStatus: ${task.status}\nPriority: ${task.priority || 'Medium'}\nDue Date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}`);
+        setSelectedTask(task);
+        setShowViewModal(true);
       }
     } catch (err) {
       console.error('Error viewing task:', err);
@@ -1120,6 +1135,118 @@ const InternPanel = () => {
           )}
         </div>
       </main>
+      
+      {/* View Modal */}
+      {showViewModal && selectedTask && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Task Details</h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => {
+                  setShowViewModal(false);
+                  setSelectedTask(null);
+                }}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="task-info">
+                <h4>{selectedTask.title}</h4>
+                <p><strong>Description:</strong> {selectedTask.description}</p>
+                <p><strong>Status:</strong> <span className="current-status">{selectedTask.status}</span></p>
+                <p><strong>Priority:</strong> <span className="priority-info">{selectedTask.priority || 'Medium'}</span></p>
+                {selectedTask.dueDate && (
+                  <p><strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}</p>
+                )}
+              </div>
+              
+              <div className="modal-actions">
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setSelectedTask(null);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Modal */}
+      {showUpdateModal && selectedTask && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Update Task Status</h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => {
+                  setShowUpdateModal(false);
+                  setSelectedTask(null);
+                  setUpdateStatus('');
+                }}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="task-info">
+                <h4>{selectedTask.title}</h4>
+                <p><strong>Description:</strong> {selectedTask.description}</p>
+                <p><strong>Current Status:</strong> <span className="current-status">{selectedTask.status}</span></p>
+                <p><strong>Priority:</strong> <span className="priority-info">{selectedTask.priority || 'Medium'}</span></p>
+                {selectedTask.dueDate && (
+                  <p><strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}</p>
+                )}
+              </div>
+              
+              <div className="update-form">
+                <label htmlFor="status-select">New Status:</label>
+                <select
+                  id="status-select"
+                  value={updateStatus}
+                  onChange={(e) => setUpdateStatus(e.target.value)}
+                  className="status-select"
+                >
+                  <option value="">Select Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+                
+                <div className="modal-actions">
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setShowUpdateModal(false);
+                      setSelectedTask(null);
+                      setUpdateStatus('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleUpdateSubmit}
+                    disabled={!updateStatus || updateStatus === selectedTask.status}
+                  >
+                    Update Task
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
