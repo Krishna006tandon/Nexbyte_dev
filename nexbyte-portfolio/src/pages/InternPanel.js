@@ -1220,7 +1220,12 @@ const InternPanel = () => {
                   <option value="">Select Status</option>
                   <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
+                  <option value="review">Under Review</option>
+                  <option value="testing">Testing</option>
+                  <option value="approved">Approved</option>
                   <option value="completed">Completed</option>
+                  <option value="on-hold">On Hold</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
                 
                 <div className="modal-actions">

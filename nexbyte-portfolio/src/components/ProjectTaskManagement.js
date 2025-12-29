@@ -322,8 +322,13 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return '#28a745';
+      case 'approved': return '#17a2b8';
       case 'in-progress': return '#007bff';
+      case 'review': return '#fd7e14';
+      case 'testing': return '#6610f2';
       case 'pending': return '#6c757d';
+      case 'on-hold': return '#ffc107';
+      case 'cancelled': return '#dc3545';
       default: return '#888';
     }
   };
@@ -402,7 +407,12 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
             <option value="in-progress">In Progress</option>
+            <option value="review">Under Review</option>
+            <option value="testing">Testing</option>
+            <option value="approved">Approved</option>
             <option value="completed">Completed</option>
+            <option value="on-hold">On Hold</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
         <div className="filter-right">
@@ -415,7 +425,12 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
                 <option value="">Update Status</option>
                 <option value="pending">Pending</option>
                 <option value="in-progress">In Progress</option>
+                <option value="review">Under Review</option>
+                <option value="testing">Testing</option>
+                <option value="approved">Approved</option>
                 <option value="completed">Completed</option>
+                <option value="on-hold">On Hold</option>
+                <option value="cancelled">Cancelled</option>
               </select>
               <button onClick={handleBulkDelete} className="delete-btn">
                 Delete Selected
@@ -471,7 +486,12 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
               >
                 <option value="pending">Pending</option>
                 <option value="in-progress">In Progress</option>
+                <option value="review">Under Review</option>
+                <option value="testing">Testing</option>
+                <option value="approved">Approved</option>
                 <option value="completed">Completed</option>
+                <option value="on-hold">On Hold</option>
+                <option value="cancelled">Cancelled</option>
               </select>
               <span className="assigned-to">
                 {/* DEBUG: Inline Assign Dropdown */}

@@ -84,9 +84,9 @@ const Member = () => {
         setTasks(tasksData);
         
         // Calculate progress data
-        const completedTasks = tasksData.filter(t => t.status === 'Done').length;
-        const inProgressTasks = tasksData.filter(t => t.status === 'In Progress').length;
-        const pendingTasks = tasksData.filter(t => t.status === 'Pending').length;
+        const completedTasks = tasksData.filter(t => t.status === 'Done' || t.status === 'completed' || t.status === 'approved').length;
+        const inProgressTasks = tasksData.filter(t => t.status === 'In Progress' || t.status === 'in-progress' || t.status === 'review' || t.status === 'testing').length;
+        const pendingTasks = tasksData.filter(t => t.status === 'Pending' || t.status === 'pending' || t.status === 'on-hold').length;
         const totalTasks = tasksData.length;
         const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
         
@@ -114,9 +114,21 @@ const Member = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Pending': return '#f39c12';
+      case 'completed': 
+      case 'Done': 
+      case 'approved': return '#27ae60';
+      case 'in-progress': 
       case 'In Progress': return '#3498db';
-      case 'Done': return '#27ae60';
+      case 'review': 
+      case 'Under Review': return '#f39c12';
+      case 'testing': 
+      case 'Testing': return '#6610f2';
+      case 'pending': 
+      case 'Pending': return '#f39c12';
+      case 'on-hold': 
+      case 'On Hold': return '#ffc107';
+      case 'cancelled': 
+      case 'Cancelled': return '#dc3545';
       default: return '#95a5a6';
     }
   };
@@ -236,9 +248,9 @@ const Member = () => {
                   <h3>Task Overview</h3>
                   <div className="task-stats">
                     <p><strong>Total Tasks:</strong> {tasks.length}</p>
-                    <p><strong>Pending:</strong> {tasks.filter(t => t.status === 'Pending').length}</p>
-                    <p><strong>In Progress:</strong> {tasks.filter(t => t.status === 'In Progress').length}</p>
-                    <p><strong>Completed:</strong> {tasks.filter(t => t.status === 'Done').length}</p>
+                    <p><strong>Pending:</strong> {tasks.filter(t => t.status === 'Pending' || t.status === 'pending' || t.status === 'on-hold').length}</p>
+                    <p><strong>In Progress:</strong> {tasks.filter(t => t.status === 'In Progress' || t.status === 'in-progress' || t.status === 'review' || t.status === 'testing').length}</p>
+                    <p><strong>Completed:</strong> {tasks.filter(t => t.status === 'Done' || t.status === 'completed' || t.status === 'approved').length}</p>
                   </div>
                 </div>
 
