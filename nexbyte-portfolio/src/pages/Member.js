@@ -158,6 +158,19 @@ const Member = () => {
         body: JSON.stringify({ status: newStatus })
       });
       
+      // If direct update fails, try member-specific endpoint for backend save
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Direct update failed, trying member endpoint for backend save...');
+        response = await fetch(`/api/member/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
       if (response.ok) {
         setTasks(tasks.map(task => 
           task._id === taskId ? { ...task, status: newStatus } : task

@@ -291,6 +291,19 @@ const InternPanel = () => {
         body: JSON.stringify({ status: updateStatus })
       });
       
+      // If direct update fails, try intern-specific endpoint for backend save
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Direct update failed, trying intern endpoint for backend save...');
+        response = await fetch(`/api/intern/tasks/${selectedTask._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: updateStatus })
+        });
+      }
+      
       if (response.ok) {
         toast.success('Task status updated successfully!');
         setShowUpdateModal(false);
