@@ -296,7 +296,7 @@ const InternPanel = () => {
         setShowUpdateModal(false);
         setSelectedTask(null);
         setUpdateStatus('');
-        fetchInternData(); // Refresh tasks
+        // Don't call fetchInternData - let local state update work
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('All update attempts failed:', response.status, errorData);

@@ -138,61 +138,6 @@ const Member = () => {
     }
   }, [userData]);
 
-  const fetchMemberData = async () => {
-    const token = localStorage.getItem('token');
-    const headers = { 'x-auth-token': token };
-
-    try {
-      // Fetch tasks with fallbacks
-      const fetchWithErrorHandling = async (url, fallbackData = []) => {
-        try {
-          const response = await fetch(url, { headers });
-          if (response.ok) {
-            return await response.json();
-          } else {
-            console.warn(`Failed to fetch ${url}, using fallback data`);
-            return fallbackData;
-          }
-        } catch (err) {
-          console.warn(`Error fetching ${url}, using fallback data:`, err.message);
-          return fallbackData;
-        }
-      };
-
-      // Fetch tasks data
-      const [tasksData] = await Promise.all([
-        fetchWithErrorHandling('/api/tasks', [])
-      ]);
-
-      // Filter tasks assigned to current user
-      const assignedTasks = tasksData.filter(task => {
-        const assignedToId = task.assignedTo?._id || task.assignedTo;
-        const userId = userData?._id || userData.id;
-        return !assignedToId || assignedToId === userId;
-      });
-      
-      setTasks(assignedTasks);
-      
-      // Update progress data
-      const completedTasks = assignedTasks.filter(t => t.status === 'Done' || t.status === 'completed' || t.status === 'approved').length;
-      const inProgressTasks = assignedTasks.filter(t => t.status === 'In Progress' || t.status === 'in-progress' || t.status === 'review' || t.status === 'testing').length;
-      const pendingTasks = assignedTasks.filter(t => t.status === 'Pending' || t.status === 'pending' || t.status === 'on-hold').length;
-      const totalTasks = assignedTasks.length;
-      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-      
-      setProgressData({
-        completedTasks,
-        inProgressTasks,
-        pendingTasks,
-        totalTasks,
-        completionRate
-      });
-
-    } catch (err) {
-      console.error('Error in fetchMemberData:', err);
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -237,7 +182,7 @@ const Member = () => {
         });
         
         alert('Task status updated successfully!');
-        fetchMemberData(); // Refresh data from backend like Intern panel
+        // Don't call fetchMemberData - let local state update work like Intern panel
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('All update attempts failed:', response.status, errorData);
@@ -268,7 +213,7 @@ const Member = () => {
           });
           
           alert('Task status updated locally (changes may not be saved to server)');
-          // Don't call fetchMemberData() here - match Intern panel behavior
+          // Don't call fetchMemberData here - match Intern panel behavior
         } else {
           alert(`Failed to update task: ${errorData.msg || 'Permission denied or endpoint not found'}`);
         }
