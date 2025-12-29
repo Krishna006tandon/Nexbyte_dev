@@ -6,6 +6,7 @@ import TaskList from '../components/TaskList';
 import ProjectTaskManagement from '../components/ProjectTaskManagement';
 import Modal from '../components/Modal';
 import ProjectTracker from '../components/ProjectTracker';
+import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
 import './Admin.css';
 
