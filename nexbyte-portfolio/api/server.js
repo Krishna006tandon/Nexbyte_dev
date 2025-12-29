@@ -2426,10 +2426,13 @@ app.delete('/api/tasks/bulk-delete', auth, admin, async (req, res) => {
 app.get('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
   try {
     const { projectId } = req.params;
+    console.log('Fetching tasks for projectId:', projectId); // Debug log
     
     const tasks = await Task.find({ project: projectId })
       .populate('assignedTo', 'email')
       .sort({ createdAt: -1 });
+    
+    console.log('Found tasks:', tasks.length); // Debug log
     
     // Add name field for frontend compatibility
     const tasksWithNames = tasks.map(task => {
@@ -2439,9 +2442,10 @@ app.get('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
       return task;
     });
     
+    console.log('Sending tasks:', tasksWithNames); // Debug log
     res.json(tasksWithNames);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error fetching tasks:', err.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

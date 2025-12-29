@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './ProjectTaskManagement.css';
 
 const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
+  console.log('ProjectTaskManagement called with:', { projectId, projectName }); // Debug log
   const [tasks, setTasks] = useState([]);
   const [interns, setInterns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      console.log('Fetching tasks for projectId:', projectId); // Debug log
       const response = await fetch(`/api/projects/${projectId}/tasks`, {
         headers: { 'x-auth-token': token }
       });

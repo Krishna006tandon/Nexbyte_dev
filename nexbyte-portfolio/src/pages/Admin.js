@@ -48,12 +48,16 @@ const Admin = () => {
 
   // Check if we have navigation state from TaskGenerator
   useEffect(() => {
+    console.log('Checking navigation state:', location.state); // Debug log
+    console.log('Available projects:', projects); // Debug log
     if (location.state?.fromTaskGenerator && location.state?.selectedProjectId) {
       // Find the project and set it for task management
       const project = projects.find(p => p._id === location.state.selectedProjectId);
+      console.log('Found project:', project); // Debug log
       if (project) {
         setSelectedProjectForTasks(project);
         setShowProjectTaskManagement(true);
+        console.log('Set project for task management'); // Debug log
       }
       // Clear the state to prevent re-triggering
       navigate(location.pathname, { replace: true, state: null });
