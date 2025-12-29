@@ -26,7 +26,10 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/projects/${projectId}/tasks`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/projects/${projectId}/tasks`, {
+        headers: { 'x-auth-token': token }
+      });
       if (!response.ok) throw new Error('Failed to fetch tasks');
       const data = await response.json();
       setTasks(data);
@@ -39,7 +42,10 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
 
   const fetchInterns = async () => {
     try {
-      const response = await fetch('/api/interns');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/interns', {
+        headers: { 'x-auth-token': token }
+      });
       if (!response.ok) throw new Error('Failed to fetch interns');
       const data = await response.json();
       setInterns(data);
@@ -62,9 +68,13 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     if (!newTask.title.trim()) return;
     
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/projects/${projectId}/tasks`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token 
+        },
         body: JSON.stringify(newTask)
       });
       
@@ -88,8 +98,10 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
     
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'x-auth-token': token }
       });
       
       if (!response.ok) throw new Error('Failed to delete task');
@@ -108,10 +120,14 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     if (!internId) return;
     
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/tasks/${taskId}/assign`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignedTo: internId })
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token 
+        },
+        body: JSON.stringify({ userId: internId })
       });
       
       if (!response.ok) throw new Error('Failed to assign task');
@@ -126,9 +142,13 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
 
   const handleTaskStatusUpdate = async (taskId, status) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/tasks/${taskId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token 
+        },
         body: JSON.stringify({ status })
       });
       
@@ -145,9 +165,13 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     if (!bulkAssignIntern || selectedTasks.size === 0) return;
     
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/tasks/bulk-assign', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token 
+        },
         body: JSON.stringify({
           taskIds: Array.from(selectedTasks),
           assignedTo: bulkAssignIntern
@@ -171,9 +195,13 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     if (selectedTasks.size === 0) return;
     
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/tasks/bulk-status', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token 
+        },
         body: JSON.stringify({
           taskIds: Array.from(selectedTasks),
           status
@@ -196,9 +224,13 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     if (!window.confirm(`Are you sure you want to delete ${selectedTasks.size} task(s)?`)) return;
     
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/tasks/bulk-delete', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token 
+        },
         body: JSON.stringify({
           taskIds: Array.from(selectedTasks)
         })
@@ -217,8 +249,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     const csvContent = [
       ['Title', 'Description', 'Priority', 'Status', 'Assigned To', 'Due Date', 'Created At'],
       ...filteredTasks.map(task => [
-        task.title,
-        task.description,
+        task.task_title || task.title,
+        task.task_description || task.description,
         task.priority,
         task.status,
         task.assignedTo?.name || 'Unassigned',
@@ -239,8 +271,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
   // Filtering and searching
   const filteredTasks = tasks.filter(task => {
     const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (task.task_title || task.title).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (task.task_description || task.description).toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -402,8 +434,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
               onChange={() => toggleTaskSelection(task._id)}
             />
             <div className="task-info">
-              <h4>{task.title}</h4>
-              <p>{task.description}</p>
+              <h4>{task.task_title || task.title}</h4>
+              <p>{task.task_description || task.description}</p>
             </div>
             <span
               className="priority"
@@ -460,8 +492,6 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
             <div className="modal-actions">
               <button onClick={() => {
                 if (editingTask) {
-                  handleTaskAssignment(editingTask._id, selectedIntern);
-                } else {
                   handleTaskAssignment(editingTask._id, selectedIntern);
                 }
               }}>

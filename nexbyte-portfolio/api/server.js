@@ -2443,6 +2443,83 @@ app.delete('/api/tasks/bulk-delete', auth, admin, async (req, res) => {
   }
 });
 
+// @route   GET api/projects/:projectId/tasks
+// @desc    Get all tasks for a specific project
+// @access  Private (admin)
+app.get('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    
+    const tasks = await Task.find({ project: projectId })
+      .populate('assignedTo', 'email')
+      .sort({ createdAt: -1 });
+    
+    // Add name field for frontend compatibility
+    const tasksWithNames = tasks.map(task => {
+      if (task.assignedTo) {
+        task.assignedTo.name = task.assignedTo.email.split('@')[0];
+      }
+      return task;
+    });
+    
+    res.json(tasksWithNames);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/projects/:projectId/tasks
+// @desc    Create a new task for a project
+// @access  Private (admin)
+app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { title, description, priority, dueDate, assignedTo, status } = req.body;
+    
+    const newTask = new Task({
+      task_title: title,
+      task_description: description,
+      priority,
+      dueDate,
+      assignedTo,
+      status,
+      project: projectId
+    });
+    
+    await newTask.save();
+    
+    const populatedTask = await Task.findById(newTask._id)
+      .populate('assignedTo', 'email');
+    
+    // Add name field for frontend compatibility
+    if (populatedTask.assignedTo) {
+      populatedTask.assignedTo.name = populatedTask.assignedTo.email.split('@')[0];
+    }
+    
+    res.json(populatedTask);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE api/tasks/:id
+// @desc    Delete a single task
+// @access  Private (admin)
+app.delete('/api/tasks/:id', auth, admin, async (req, res) => {
+  try {
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    res.json({ message: 'Task deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
