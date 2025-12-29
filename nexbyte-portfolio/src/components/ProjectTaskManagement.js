@@ -21,6 +21,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     status: 'pending'
   });
 
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'timeline'
+
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
@@ -119,6 +121,28 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
         newSet.delete(taskId);
         return newSet;
       });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleInlineTaskAssignment = async (taskId, userId) => {
+    if (!userId) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/tasks/${taskId}/assign`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token 
+        },
+        body: JSON.stringify({ userId: userId })
+      });
+      
+      if (!response.ok) throw new Error('Failed to assign task');
+      const updatedTask = await response.json();
+      setTasks(tasks.map(task => task._id === taskId ? updatedTask : task));
     } catch (err) {
       setError(err.message);
     }
@@ -284,10 +308,10 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high': return '#ff4444';
-      case 'medium': return '#ffaa00';
-      case 'low': return '#44ff44';
-      default: return '#888';
+      case 'high': return '#ff4757'; // Red
+      case 'medium': return '#fd7e14'; // Yellow  
+      case 'low': return '#28a745'; // Green
+      default: return '#6c757d'; // Gray
     }
   };
 
@@ -298,6 +322,96 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
       case 'pending': return '#6c757d';
       default: return '#888';
     }
+  };
+
+  const getTimelineView = () => {
+    const sortedTasks = [...filteredTasks].sort((a, b) => {
+      const dateA = new Date(a.dueDate || a.createdAt);
+      const dateB = new Date(b.dueDate || b.createdAt);
+      return dateA - dateB;
+    });
+
+    const today = new Date();
+    const tasksByDate = {};
+
+    // Group tasks by date
+    sortedTasks.forEach(task => {
+      const taskDate = new Date(task.dueDate || task.createdAt);
+      const dateKey = taskDate.toISOString().split('T')[0];
+      
+      if (!tasksByDate[dateKey]) {
+        tasksByDate[dateKey] = [];
+      }
+      tasksByDate[dateKey].push(task);
+    });
+
+    return (
+      <div className="timeline-view">
+        <div className="timeline-header">
+          <h3>Project Timeline</h3>
+          <div className="view-toggle">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={viewMode === 'list' ? 'active' : ''}
+            >
+              List View
+            </button>
+            <button 
+              onClick={() => setViewMode('timeline')}
+              className={viewMode === 'timeline' ? 'active' : ''}
+            >
+              Timeline View
+            </button>
+          </div>
+        </div>
+        
+        <div className="timeline-content">
+          {Object.entries(tasksByDate).map(([date, dateTasks]) => {
+            const taskDate = new Date(date);
+            const isPast = taskDate < today;
+            const isToday = taskDate.toDateString() === today.toDateString();
+            
+            return (
+              <div key={date} className={`timeline-day ${isPast ? 'past' : ''} ${isToday ? 'today' : ''}`}>
+                <div className="date-header">
+                  <div className="date">
+                    {taskDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </div>
+                  <div className="task-count">
+                    {dateTasks.length} task{dateTasks.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                <div className="day-tasks">
+                  {dateTasks.map(task => (
+                    <div key={task._id} className={`timeline-task ${task.status}`}>
+                      <div className="task-header">
+                        <span className="task-title">{task.title}</span>
+                        <span className={`task-priority ${task.priority}`}>
+                          {task.priority}
+                        </span>
+                      </div>
+                      <div className="task-meta">
+                        <span className="task-status">{task.status}</span>
+                        {task.assignedTo && (
+                          <span className="task-assignee">
+                            {task.assignedTo.name}
+                          </span>
+                        )}
+                      </div>
+                      {task.description && (
+                        <div className="task-description">
+                          {task.description}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   if (loading) return <div className="loading">Loading tasks...</div>;
@@ -311,16 +425,35 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
           <h2>{projectName} - Task Management</h2>
         </div>
         <div className="header-right">
+          <div className="view-toggle">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={viewMode === 'list' ? 'active' : ''}
+            >
+              📋 List
+            </button>
+            <button 
+              onClick={() => setViewMode('timeline')}
+              className={viewMode === 'timeline' ? 'active' : ''}
+            >
+              📅 Timeline
+            </button>
+          </div>
+        </div>
+        <div className="header-right">
           <button className="export-btn" onClick={exportTasks}>
             Export CSV
           </button>
         </div>
       </div>
 
-      {/* Task Creation Form */}
-      <div className="task-creation">
-        <h3>Create New Task</h3>
-        <div className="task-form">
+      {/* Task Content - List or Timeline View */}
+      {viewMode === 'timeline' ? getTimelineView() : (
+        <>
+          {/* Task Creation Form */}
+          <div className="task-creation">
+            <h3>Create New Task</h3>
+            <div className="task-form">
           <input
             type="text"
             placeholder="Task title"
@@ -446,17 +579,28 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
                 <option value="completed">Completed</option>
               </select>
               <span className="assigned-to">
-                {task.assignedTo?.name || 'Unassigned'}
+                <select
+                  value={task.assignedTo?._id || ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      // Direct assignment without modal
+                      handleInlineTaskAssignment(task._id, e.target.value);
+                    }
+                  }}
+                  className="assignment-dropdown"
+                >
+                  <option value="">-- Assign to --</option>
+                  {interns.map(intern => (
+                    <option key={intern._id} value={intern._id}>
+                      {intern.name} ({intern.role})
+                    </option>
+                  ))}
+                </select>
               </span>
               <span className="due-date">
                 {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
               </span>
               <div className="task-actions">
-                <button onClick={() => {
-                  // Removed assignment functionality
-                }} className="assign-btn">
-                  Assign
-                </button>
                 <button onClick={() => handleTaskDelete(task._id)} className="delete-btn">
                   Delete
                 </button>
@@ -493,6 +637,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
