@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ClientList from '../components/ClientList';
 import ProjectList from '../components/ProjectList';
 import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
