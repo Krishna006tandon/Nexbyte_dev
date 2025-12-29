@@ -106,6 +106,7 @@ const Admin = () => {
   const [localSrsData, setLocalSrsData] = useState({
     projectName: '',
     projectDescription: '',
+    projectRequirements: '',
     targetAudience: '',
     functionalRequirements: '',
     nonFunctionalRequirements: '',
@@ -956,6 +957,7 @@ const Admin = () => {
       setLocalSrsData({
         projectName: selectedClient.projectName || '',
         projectDescription: selectedClient.projectRequirements || '',
+        projectRequirements: selectedClient.projectRequirements || '',
         targetAudience: '',
         functionalRequirements: '',
         nonFunctionalRequirements: '',
@@ -1419,6 +1421,7 @@ const Admin = () => {
                   </select>
                   <input type="text" name="projectName" placeholder="Project Name" value={localSrsData.projectName} onChange={handleSrsChange} required />
                   <textarea name="projectDescription" placeholder="Project Description" value={localSrsData.projectDescription} onChange={handleSrsChange}></textarea>
+                  <textarea name="projectRequirements" placeholder="Project Requirements" value={localSrsData.projectRequirements} onChange={handleSrsChange}></textarea>
                   <textarea name="targetAudience" placeholder="Target Audience" value={localSrsData.targetAudience} onChange={handleSrsChange}></textarea>
                   <textarea name="functionalRequirements" placeholder="Functional Requirements" value={localSrsData.functionalRequirements} onChange={handleSrsChange}></textarea>
                   <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={localSrsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
