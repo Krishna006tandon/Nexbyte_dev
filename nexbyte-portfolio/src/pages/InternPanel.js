@@ -246,6 +246,63 @@ const InternPanel = () => {
     }
   };
 
+  const handleTaskUpdate = async (taskId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'GET',
+        headers: { 'x-auth-token': token }
+      });
+      
+      if (response.ok) {
+        const task = await response.json();
+        // You can open a modal or navigate to update page
+        console.log('Task details for update:', task);
+        // For now, let's show a simple prompt
+        const newStatus = prompt('Update task status (pending/in-progress/completed):', task.status);
+        if (newStatus && ['pending', 'in-progress', 'completed'].includes(newStatus)) {
+          const updateResponse = await fetch(`/api/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-token': token
+            },
+            body: JSON.stringify({ status: newStatus })
+          });
+          
+          if (updateResponse.ok) {
+            toast.success('Task status updated successfully!');
+            fetchInternData(); // Refresh tasks
+          } else {
+            toast.error('Failed to update task status');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error updating task:', err);
+      toast.error('Error updating task');
+    }
+  };
+
+  const handleTaskView = async (taskId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'GET',
+        headers: { 'x-auth-token': token }
+      });
+      
+      if (response.ok) {
+        const task = await response.json();
+        // Show task details in a modal or alert
+        alert(`Task Details:\n\nTitle: ${task.title}\nDescription: ${task.description}\nStatus: ${task.status}\nPriority: ${task.priority || 'Medium'}\nDue Date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}`);
+      }
+    } catch (err) {
+      console.error('Error viewing task:', err);
+      toast.error('Error loading task details');
+    }
+  };
+
   const handleDiarySubmit = async () => {
     if (!diaryEntry.trim()) {
       toast.error('Please write something in your diary');
@@ -718,10 +775,16 @@ const InternPanel = () => {
                       </div>
                       
                       <div className="task-actions">
-                        <button className="btn btn-sm btn-primary">
+                        <button 
+                          className="btn btn-sm btn-primary"
+                          onClick={() => handleTaskView(task._id)}
+                        >
                           <i className="fas fa-eye"></i> View
                         </button>
-                        <button className="btn btn-sm btn-secondary">
+                        <button 
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handleTaskUpdate(task._id)}
+                        >
                           <i className="fas fa-edit"></i> Update
                         </button>
                       </div>
