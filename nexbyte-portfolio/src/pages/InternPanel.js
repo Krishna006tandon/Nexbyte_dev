@@ -281,7 +281,7 @@ const InternPanel = () => {
       console.log('DEBUG: Token exists:', !!token);
       console.log('DEBUG: User details:', user);
       
-      // First try: Direct task update
+      // Direct task update with task ID
       let response = await fetch(`/api/tasks/${selectedTask._id}`, {
         method: 'PUT',
         headers: {
@@ -290,45 +290,6 @@ const InternPanel = () => {
         },
         body: JSON.stringify({ status: updateStatus })
       });
-      
-      // If direct update fails, try intern-specific endpoint
-      if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Direct update failed, trying intern endpoint...');
-        response = await fetch(`/api/intern/tasks/${selectedTask._id}/status`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify({ status: updateStatus })
-        });
-      }
-      
-      // If still fails, try task status update endpoint
-      if (!response.ok && (response.status === 403 || response.status === 404)) {
-        console.log('DEBUG: Intern endpoint failed, trying status update endpoint...');
-        response = await fetch(`/api/tasks/${selectedTask._id}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify({ status: updateStatus })
-        });
-      }
-      
-      // Final fallback: Try PUT to status endpoint
-      if (!response.ok && (response.status === 403 || response.status === 404)) {
-        console.log('DEBUG: PATCH failed, trying PUT to status endpoint...');
-        response = await fetch(`/api/tasks/${selectedTask._id}/status`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify({ status: updateStatus })
-        });
-      }
       
       if (response.ok) {
         toast.success('Task status updated successfully!');

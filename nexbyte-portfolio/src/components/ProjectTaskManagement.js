@@ -131,7 +131,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
       const token = localStorage.getItem('token');
       console.log('DEBUG: Updating task:', taskId, 'to status:', newStatus);
       
-      // First try: Direct task update
+      // Direct task update with task ID
       let response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
@@ -140,32 +140,6 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
         },
         body: JSON.stringify({ status: newStatus })
       });
-      
-      // If direct update fails, try member-specific endpoint
-      if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Direct update failed, trying member endpoint...');
-        response = await fetch(`/api/member/tasks/${taskId}/status`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify({ status: newStatus })
-        });
-      }
-      
-      // If still fails, try task status update endpoint
-      if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Member endpoint failed, trying status update endpoint...');
-        response = await fetch(`/api/tasks/${taskId}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify({ status: newStatus })
-        });
-      }
       
       if (response.ok) {
         setTasks(tasks.map(task => 
