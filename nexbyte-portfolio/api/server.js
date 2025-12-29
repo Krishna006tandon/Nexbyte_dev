@@ -2284,9 +2284,9 @@ app.get('/api/intern-payment/:internId', auth, async (req, res) => {
 // @access  Private (admin)
 app.get('/api/interns', auth, admin, async (req, res) => {
   try {
-    // Get all users (both interns and members) for task assignment
+    // Get all users (admins, members, and interns) for task assignment
     const users = await User.find({ 
-      role: { $in: ['intern', 'user', 'member'] } // Include all roles that can be assigned tasks
+      role: { $in: ['admin', 'intern', 'user', 'member'] } // Include all roles that can be assigned tasks
     })
       .select('-password')
       .sort({ createdAt: -1 });

@@ -512,13 +512,25 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
               ))}
             </select>
             <div className="modal-actions">
-              <button onClick={() => {
-                if (editingTask) {
-                  handleTaskAssignment(editingTask._id, selectedIntern);
-                }
-              }}>
-                Assign
-              </button>
+              <select
+                value={selectedIntern}
+                onChange={(e) => {
+                  setSelectedIntern(e.target.value);
+                  if (editingTask && e.target.value) {
+                    handleTaskAssignment(editingTask._id, e.target.value);
+                    setShowAssignModal(false);
+                    setEditingTask(null);
+                    setSelectedIntern('');
+                  }
+                }}
+              >
+                <option value="">-- Select User to Assign --</option>
+                {interns.map(intern => (
+                  <option key={intern._id} value={intern._id}>
+                    {intern.name} ({intern.role})
+                  </option>
+                ))}
+              </select>
               <button onClick={() => {
                 setShowAssignModal(false);
                 setEditingTask(null);
