@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 const router = express.Router();
@@ -24,6 +25,19 @@ const authMiddleware = (req, res, next) => {
 // Get current user profile
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      // Return mock data when MongoDB is not connected
+      const mockUser = {
+        _id: req.user.userId,
+        name: 'Admin User',
+        email: 'admin@nexbyte.com',
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      };
+      return res.json(mockUser);
+    }
+
     const user = await User.findById(req.user.userId)
       .select('name email role createdAt');
     

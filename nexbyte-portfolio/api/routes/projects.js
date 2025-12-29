@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const Project = require('../models/Project');
 const Task = require('../models/Task');
 
@@ -25,6 +26,44 @@ const authMiddleware = (req, res, next) => {
 // Get all projects
 router.get('/', authMiddleware, async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      // Return mock data when MongoDB is not connected
+      const mockProjects = [
+        {
+          _id: '1',
+          name: 'Website Development',
+          description: 'Complete website redesign and development',
+          status: 'active',
+          startDate: '2024-01-01',
+          endDate: '2024-03-01',
+          assignedTo: null,
+          tasks: []
+        },
+        {
+          _id: '2',
+          name: 'Mobile App',
+          description: 'iOS and Android mobile application',
+          status: 'active',
+          startDate: '2024-02-01',
+          endDate: '2024-05-01',
+          assignedTo: null,
+          tasks: []
+        },
+        {
+          _id: '3',
+          name: 'API Development',
+          description: 'RESTful API for backend services',
+          status: 'completed',
+          startDate: '2023-12-01',
+          endDate: '2024-01-15',
+          assignedTo: null,
+          tasks: []
+        }
+      ];
+      return res.json(mockProjects);
+    }
+
     const projects = await Project.find().populate('assignedTo', 'name email');
     res.json(projects);
   } catch (error) {
