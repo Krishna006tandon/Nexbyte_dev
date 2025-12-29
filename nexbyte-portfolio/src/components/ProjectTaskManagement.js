@@ -504,9 +504,11 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
               value={selectedIntern}
               onChange={(e) => setSelectedIntern(e.target.value)}
             >
-              <option value="">Select Intern</option>
+              <option value="">-- Select User to Assign --</option>
               {interns.map(intern => (
-                <option key={intern._id} value={intern._id}>{intern.name}</option>
+                <option key={intern._id} value={intern._id}>
+                  {intern.name} ({intern.role})
+                </option>
               ))}
             </select>
             <div className="modal-actions">

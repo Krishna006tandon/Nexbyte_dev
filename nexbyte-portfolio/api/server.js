@@ -2284,17 +2284,21 @@ app.get('/api/intern-payment/:internId', auth, async (req, res) => {
 // @access  Private (admin)
 app.get('/api/interns', auth, admin, async (req, res) => {
   try {
-    const interns = await User.find({ role: 'intern' })
+    // Get all users (both interns and members) for task assignment
+    const users = await User.find({ 
+      role: { $in: ['intern', 'user', 'member'] } // Include all roles that can be assigned tasks
+    })
       .select('-password')
       .sort({ createdAt: -1 });
     
     // Add name field for frontend compatibility
-    const internsWithName = interns.map(intern => ({
-      ...intern.toObject(),
-      name: intern.email.split('@')[0] // Use email prefix as name
+    const usersWithName = users.map(user => ({
+      ...user.toObject(),
+      name: user.email.split('@')[0] // Use email prefix as name
     }));
     
-    res.json(internsWithName);
+    console.log('Found users for assignment:', usersWithName.length); // Debug log
+    res.json(usersWithName);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
