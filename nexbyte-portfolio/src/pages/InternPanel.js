@@ -81,7 +81,7 @@ const InternPanel = () => {
       // Fetch data with fallbacks
       const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, teamData] = await Promise.all([
         fetchWithErrorHandling('/api/profile', null),
-        fetchWithErrorHandling('/api/tasks', []),
+        fetchWithErrorHandling('/api/tasks', []), // Use regular tasks endpoint with auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
         fetchWithErrorHandling('/api/notifications', []),

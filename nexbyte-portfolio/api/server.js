@@ -1660,6 +1660,9 @@ app.get('/api/tasks', auth, async (req, res) => {
             } else {
                 tasks = await Task.find().sort({ createdAt: -1 });
             }
+        } else if (req.user.role === 'intern') {
+            // Intern can only see tasks assigned to them
+            tasks = await Task.find({ assignedTo: req.user.id }).sort({ createdAt: -1 });
         } else {
             // A client can only see their own tasks
             tasks = await Task.find({ client: req.user.id }).sort({ createdAt: -1 });
