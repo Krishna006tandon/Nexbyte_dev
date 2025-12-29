@@ -305,10 +305,23 @@ const InternPanel = () => {
       }
       
       // If still fails, try task status update endpoint
-      if (!response.ok && response.status === 403) {
+      if (!response.ok && (response.status === 403 || response.status === 404)) {
         console.log('DEBUG: Intern endpoint failed, trying status update endpoint...');
         response = await fetch(`/api/tasks/${selectedTask._id}/status`, {
           method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: updateStatus })
+        });
+      }
+      
+      // Final fallback: Try PUT to status endpoint
+      if (!response.ok && (response.status === 403 || response.status === 404)) {
+        console.log('DEBUG: PATCH failed, trying PUT to status endpoint...');
+        response = await fetch(`/api/tasks/${selectedTask._id}/status`, {
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'x-auth-token': token

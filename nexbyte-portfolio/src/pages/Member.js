@@ -171,11 +171,37 @@ const Member = () => {
         });
       }
       
+      // If member endpoint fails, try intern endpoint (some APIs use this)
+      if (!response.ok && (response.status === 403 || response.status === 404)) {
+        console.log('DEBUG: Member endpoint failed, trying intern endpoint...');
+        response = await fetch(`/api/intern/tasks/${taskId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
       // If still fails, try task status update endpoint
-      if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Member endpoint failed, trying status update endpoint...');
+      if (!response.ok && (response.status === 403 || response.status === 404)) {
+        console.log('DEBUG: Intern endpoint failed, trying status update endpoint...');
         response = await fetch(`/api/tasks/${taskId}/status`, {
           method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
+      // Final fallback: Try PUT to status endpoint
+      if (!response.ok && (response.status === 403 || response.status === 404)) {
+        console.log('DEBUG: PATCH failed, trying PUT to status endpoint...');
+        response = await fetch(`/api/tasks/${taskId}/status`, {
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'x-auth-token': token
@@ -211,7 +237,7 @@ const Member = () => {
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('All update attempts failed:', response.status, errorData);
-        alert(`Failed to update task: ${errorData.msg || 'Permission denied'}`);
+        alert(`Failed to update task: ${errorData.msg || 'Permission denied or endpoint not found'}`);
       }
     } catch (err) {
       console.error('Error updating task:', err);
