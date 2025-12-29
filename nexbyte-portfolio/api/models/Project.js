@@ -35,6 +35,11 @@ const ProjectSchema = new mongoose.Schema({
     ref: 'Client',
     default: null
   },
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   status: {
     type: String,
     enum: ['pending', 'in-progress', 'completed', 'on-hold'],

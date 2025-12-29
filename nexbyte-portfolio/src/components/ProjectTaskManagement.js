@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import TaskProgressDashboard from './TaskProgressDashboard';
 import './ProjectTaskManagement.css';
 
 const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
@@ -21,7 +22,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     status: 'pending'
   });
 
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'timeline'
+  const [viewMode, setViewMode] = useState('list'); // 'list', 'timeline', or 'dashboard'
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -438,6 +439,12 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
             >
               📅 Timeline
             </button>
+            <button 
+              onClick={() => setViewMode('dashboard')}
+              className={viewMode === 'dashboard' ? 'active' : ''}
+            >
+              📊 Dashboard
+            </button>
           </div>
         </div>
         <div className="header-right">
@@ -447,8 +454,14 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
         </div>
       </div>
 
-      {/* Task Content - List or Timeline View */}
-      {viewMode === 'timeline' ? getTimelineView() : (
+      {/* Task Content - List, Timeline or Dashboard View */}
+      {viewMode === 'dashboard' ? (
+        <TaskProgressDashboard 
+          tasks={tasks} 
+          interns={interns} 
+          projectName={projectName}
+        />
+      ) : viewMode === 'timeline' ? getTimelineView() : (
         <>
           {/* Task Creation Form */}
           <div className="task-creation">
