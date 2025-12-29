@@ -32,15 +32,16 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
-                if (data.role === 'admin') {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        if (data.user.role === 'admin') {
           setIsAdmin(true);
           navigate('/admin');
-        } else if (data.role === 'client') {
+        } else if (data.user.role === 'client') {
           setIsClient(true);
           navigate('/client-panel');
-        } else if (data.role === 'intern') {
+        } else if (data.user.role === 'intern') {
           navigate('/intern-panel');
-        } else if (data.role === 'member') {
+        } else if (data.user.role === 'member') {
           navigate('/member');
         } else {
           navigate('/');

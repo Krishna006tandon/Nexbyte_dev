@@ -23,12 +23,18 @@ const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const taskRoutes = require('./routes/tasks');
 const internRoutes = require('./routes/interns');
+const profileRoutes = require('./routes/profile');
+const internUserRoutes = require('./routes/intern');
+const userRoutes = require('./routes/user');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/interns', internRoutes);
+app.use('/api', profileRoutes);
+app.use('/api/intern', internUserRoutes);
+app.use('/api/user', userRoutes);
 
 // Direct login endpoint for frontend compatibility
 app.post('/api/login', async (req, res) => {

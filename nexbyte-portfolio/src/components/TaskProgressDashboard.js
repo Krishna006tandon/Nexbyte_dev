@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './TaskProgressDashboard.css';
 
 const TaskProgressDashboard = ({ tasks, interns, projectName }) => {
@@ -17,13 +17,7 @@ const TaskProgressDashboard = ({ tasks, interns, projectName }) => {
   const [internStats, setInternStats] = useState([]);
   const [progressPercentage, setProgressPercentage] = useState(0);
 
-  useEffect(() => {
-    calculateStats();
-    calculatePriorityStats();
-    calculateInternStats();
-  }, [tasks, interns]);
-
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const today = new Date();
     const newStats = {
       total: tasks.length,
@@ -42,18 +36,18 @@ const TaskProgressDashboard = ({ tasks, interns, projectName }) => {
       ? Math.round((newStats.completed / newStats.total) * 100) 
       : 0;
     setProgressPercentage(percentage);
-  };
+  }, [tasks]);
 
-  const calculatePriorityStats = () => {
+  const calculatePriorityStats = useCallback(() => {
     const newPriorityStats = {
       high: tasks.filter(task => task.priority === 'high').length,
       medium: tasks.filter(task => task.priority === 'medium').length,
       low: tasks.filter(task => task.priority === 'low').length
     };
     setPriorityStats(newPriorityStats);
-  };
+  }, [tasks]);
 
-  const calculateInternStats = () => {
+  const calculateInternStats = useCallback(() => {
     const internTaskMap = {};
     
     // Initialize intern stats
@@ -82,7 +76,13 @@ const TaskProgressDashboard = ({ tasks, interns, projectName }) => {
     });
 
     setInternStats(Object.values(internTaskMap));
-  };
+  }, [tasks, interns]);
+
+  useEffect(() => {
+    calculateStats();
+    calculatePriorityStats();
+    calculateInternStats();
+  }, [calculateStats, calculatePriorityStats, calculateInternStats]);
 
   const getProgressColor = (percentage) => {
     if (percentage >= 80) return '#28a745'; // Green

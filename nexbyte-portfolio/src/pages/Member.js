@@ -84,9 +84,9 @@ const Member = () => {
         setTasks(tasksData);
         
         // Calculate progress data
-        const completedTasks = tasksData.filter(t => t.status === 'Done').length;
-        const inProgressTasks = tasksData.filter(t => t.status === 'In Progress').length;
-        const pendingTasks = tasksData.filter(t => t.status === 'Pending').length;
+        const completedTasks = tasksData.filter(t => t.status === 'completed').length;
+        const inProgressTasks = tasksData.filter(t => t.status === 'in-progress').length;
+        const pendingTasks = tasksData.filter(t => t.status === 'pending').length;
         const totalTasks = tasksData.length;
         const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
         

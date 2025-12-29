@@ -46,7 +46,7 @@ function App() {
                 <Route path="/client-panel" element={<ClientPanel />} />
                 <Route path="/intern-panel" element={<InternPanel />} />
                 <Route path="/admin/task/:taskId" element={<TaskDetailPage />} />
-                                <Route path="/member" element={<Member />} />
+                <Route path="/member" element={<Member />} />
               </Routes>
             </SrsProvider>
           </main>
