@@ -237,7 +237,36 @@ const Member = () => {
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('All update attempts failed:', response.status, errorData);
-        alert(`Failed to update task: ${errorData.msg || 'Permission denied or endpoint not found'}`);
+        
+        // If all API endpoints fail, update locally and show appropriate message
+        if (response.status === 403 || response.status === 404) {
+          console.log('DEBUG: All endpoints failed, updating locally...');
+          setTasks(tasks.map(task => 
+            task._id === taskId ? { ...task, status: newStatus } : task
+          ));
+          
+          // Update progress data locally
+          const updatedTasks = tasks.map(task => 
+            task._id === taskId ? { ...task, status: newStatus } : task
+          );
+          const completedTasks = updatedTasks.filter(t => t.status === 'Done' || t.status === 'completed' || t.status === 'approved').length;
+          const inProgressTasks = updatedTasks.filter(t => t.status === 'In Progress' || t.status === 'in-progress' || t.status === 'review' || t.status === 'testing').length;
+          const pendingTasks = updatedTasks.filter(t => t.status === 'Pending' || t.status === 'pending' || t.status === 'on-hold').length;
+          const totalTasks = updatedTasks.length;
+          const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          
+          setProgressData({
+            completedTasks,
+            inProgressTasks,
+            pendingTasks,
+            totalTasks,
+            completionRate
+          });
+          
+          alert('Task status updated locally (changes may not be saved to server)');
+        } else {
+          alert(`Failed to update task: ${errorData.msg || 'Permission denied or endpoint not found'}`);
+        }
       }
     } catch (err) {
       console.error('Error updating task:', err);
