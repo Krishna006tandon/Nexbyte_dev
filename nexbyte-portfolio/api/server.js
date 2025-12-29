@@ -2256,6 +2256,193 @@ app.get('/api/intern-payment/:internId', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/interns
+// @desc    Get all interns (users with role 'intern')
+// @access  Private (admin)
+app.get('/api/interns', auth, admin, async (req, res) => {
+  try {
+    const interns = await User.find({ role: 'intern' })
+      .select('-password')
+      .sort({ createdAt: -1 });
+    
+    // Add name field for frontend compatibility
+    const internsWithName = interns.map(intern => ({
+      ...intern.toObject(),
+      name: intern.email.split('@')[0] // Use email prefix as name
+    }));
+    
+    res.json(internsWithName);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/projects/:projectId/tasks
+// @desc    Get all tasks for a specific project
+// @access  Private (admin)
+app.get('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
+  try {
+    const tasks = await Task.find({ project: req.params.projectId })
+      .populate('assignedTo', 'email')
+      .sort({ createdAt: -1 });
+    
+    // Add name field to assignedTo for frontend compatibility
+    const tasksWithNames = tasks.map(task => {
+      if (task.assignedTo) {
+        task.assignedTo.name = task.assignedTo.email.split('@')[0];
+      }
+      return task;
+    });
+    
+    res.json(tasksWithNames);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/projects/:projectId/tasks
+// @desc    Create a new task for a project
+// @access  Private (admin)
+app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
+  try {
+    const { title, description, priority, dueDate, assignedTo, status } = req.body;
+    
+    const newTask = new Task({
+      title,
+      description,
+      priority,
+      dueDate,
+      assignedTo,
+      status,
+      project: req.params.projectId
+    });
+
+    await newTask.save();
+    
+    const populatedTask = await Task.findById(newTask._id)
+      .populate('assignedTo', 'email');
+    
+    // Add name field for frontend compatibility
+    if (populatedTask.assignedTo) {
+      populatedTask.assignedTo.name = populatedTask.assignedTo.email.split('@')[0];
+    }
+    
+    res.json(populatedTask);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/tasks/:id/status
+// @desc    Update task status
+// @access  Private (admin)
+app.put('/api/tasks/:id/status', auth, admin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate('assignedTo', 'email');
+    
+    if (!updatedTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    
+    // Add name field for frontend compatibility
+    if (updatedTask.assignedTo) {
+      updatedTask.assignedTo.name = updatedTask.assignedTo.email.split('@')[0];
+    }
+    
+    res.json(updatedTask);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/tasks/bulk-assign
+// @desc    Bulk assign tasks to an intern
+// @access  Private (admin)
+app.put('/api/tasks/bulk-assign', auth, admin, async (req, res) => {
+  try {
+    const { taskIds, assignedTo } = req.body;
+    
+    const updatedTasks = await Task.updateMany(
+      { _id: { $in: taskIds } },
+      { assignedTo },
+      { new: true }
+    );
+    
+    const populatedTasks = await Task.find({ _id: { $in: taskIds } })
+      .populate('assignedTo', 'email');
+    
+    // Add name field for frontend compatibility
+    const tasksWithNames = populatedTasks.map(task => {
+      if (task.assignedTo) {
+        task.assignedTo.name = task.assignedTo.email.split('@')[0];
+      }
+      return task;
+    });
+    
+    res.json(tasksWithNames);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/tasks/bulk-status
+// @desc    Bulk update task status
+// @access  Private (admin)
+app.put('/api/tasks/bulk-status', auth, admin, async (req, res) => {
+  try {
+    const { taskIds, status } = req.body;
+    
+    const updatedTasks = await Task.updateMany(
+      { _id: { $in: taskIds } },
+      { status },
+      { new: true }
+    );
+    
+    const populatedTasks = await Task.find({ _id: { $in: taskIds } })
+      .populate('assignedTo', 'email');
+    
+    // Add name field for frontend compatibility
+    const tasksWithNames = populatedTasks.map(task => {
+      if (task.assignedTo) {
+        task.assignedTo.name = task.assignedTo.email.split('@')[0];
+      }
+      return task;
+    });
+    
+    res.json(tasksWithNames);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE api/tasks/bulk-delete
+// @desc    Bulk delete tasks
+// @access  Private (admin)
+app.delete('/api/tasks/bulk-delete', auth, admin, async (req, res) => {
+  try {
+    const { taskIds } = req.body;
+    
+    await Task.deleteMany({ _id: { $in: taskIds } });
+    
+    res.json({ message: 'Tasks deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
