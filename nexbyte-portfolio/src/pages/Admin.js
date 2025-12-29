@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import ProjectList from '../components/ProjectList';
-import TaskGenerator from '../components/TaskGenerator';
-import TaskList from '../components/TaskList';
-import ProjectTaskManagement from '../components/ProjectTaskManagement';
-import Modal from '../components/Modal';
-import ProjectTracker from '../components/ProjectTracker';
+import { useLocation, useNavigate } from 'react-router-dom';
+import './Admin.css';
 import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
-import './Admin.css';
+import TaskGenerator from '../components/TaskGenerator';
+import TaskList from '../components/TaskList';
+import ProjectTracker from '../components/ProjectTracker';
+import ProjectTaskManagement from '../components/ProjectTaskManagement';
+import Modal from '../components/Modal';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -25,15 +24,10 @@ const Admin = () => {
   const [internshipEndDate, setInternshipEndDate] = useState('');
   const [acceptanceDate, setAcceptanceDate] = useState('');
   const [clientPasswords, setClientPasswords] = useState({});
-  const [successMessage, setSuccessMessage] = useState(''); // New state for success message
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { setSrsFullData } = useContext(SrsContext);
-
-  // State for Task Manager Page
-  const [taskPageClientId, setTaskPageClientId] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
+  const [taskPageClientId, setTaskPageClientId] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
   const [milestone, setMilestone] = useState(null);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
@@ -45,10 +39,8 @@ const Admin = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
   const [selectedSrsClient, setSelectedSrsClient] = useState(null);
-
-  // Task Management State
-  const [selectedProjectForTasks, setSelectedProjectForTasks] = useState('');
-  const [projectTasks, setProjectTasks] = useState([]);
+  const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
+  const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -84,8 +76,8 @@ const Admin = () => {
     projectDescription: '',
     totalBudget: '',
     projectDeadline: '',
-    clientType: 'non-client', // 'client' or 'non-client'
-    associatedClient: '', // for client projects
+    clientType: 'non-client',
+    associatedClient: '',
   });
 
   const [localSrsData, setLocalSrsData] = useState({
@@ -95,7 +87,10 @@ const Admin = () => {
     functionalRequirements: '',
     nonFunctionalRequirements: '',
   });
-  const [selectedClientId, setSelectedClientId] = useState('');
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { setSrsFullData } = useContext(SrsContext);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -174,107 +169,6 @@ const Admin = () => {
 
   const handleTasksSaved = () => {
     setRefreshTrigger(prev => prev + 1);
-  };
-
-  // Task Management Handlers
-  useEffect(() => {
-    if (selectedProjectForTasks) {
-      fetchProjectTasks(selectedProjectForTasks);
-    }
-  }, [selectedProjectForTasks]);
-
-  const fetchProjectTasks = async (projectId) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`/api/tasks?projectId=${projectId}`, {
-        headers: { 'x-auth-token': token }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setProjectTasks(data);
-      }
-    } catch (err) {
-      console.error('Error fetching tasks:', err);
-    }
-  };
-
-  const handleTaskAssignment = async (taskId, userId) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/assign`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({ userId })
-      });
-      if (res.ok) {
-        fetchProjectTasks(selectedProjectForTasks);
-      }
-    } catch (err) {
-      console.error('Error assigning task:', err);
-    }
-  };
-
-  const handleTaskStatusUpdate = async (taskId, status) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({ status })
-      });
-      if (res.ok) {
-        fetchProjectTasks(selectedProjectForTasks);
-      }
-    } catch (err) {
-      console.error('Error updating task status:', err);
-    }
-  };
-
-  const handleTaskDelete = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      const token = localStorage.getItem('token');
-      try {
-        const res = await fetch(`/api/tasks/${taskId}`, {
-          method: 'DELETE',
-          headers: { 'x-auth-token': token }
-        });
-        if (res.ok) {
-          fetchProjectTasks(selectedProjectForTasks);
-        }
-      } catch (err) {
-        console.error('Error deleting task:', err);
-      }
-    }
-  };
-
-  const handleBulkAssign = () => {
-    // Implementation for bulk assignment
-    console.log('Bulk assign functionality');
-  };
-
-  const handleBulkStatusUpdate = () => {
-    // Implementation for bulk status update
-    console.log('Bulk status update functionality');
-  };
-
-  const exportTasks = () => {
-    // Export tasks to CSV/Excel
-    const csvContent = projectTasks.map(task => 
-      `${task.title},${task.description},${task.estimated_effort_hours},${task.reward_amount_in_INR},${task.status}`
-    ).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tasks.csv';
-    a.click();
   };
 
   const handleAddMember = async (e) => {
@@ -1603,56 +1497,41 @@ const Admin = () => {
 
           {location.pathname === '/admin/task-management' && (
             <div className="task-management-section">
-              <h2>Task Management & Assignment</h2>
-              
-              {/* Project List */}
-              <div className="project-list">
-                <h3>Select a Project</h3>
-                <div className="project-grid">
-                  {projects.length > 0 ? (
-                    projects.map(project => (
-                      <div 
-                        key={project._id} 
-                        className="project-card"
-                        onClick={() => navigate(`/admin/task-management/${project._id}`)}
-                      >
-                        <div className="project-header">
+              {showProjectTaskManagement && selectedProjectForTasks ? (
+                <ProjectTaskManagement
+                  projectId={selectedProjectForTasks._id}
+                  projectName={selectedProjectForTasks.projectName}
+                  onBack={() => {
+                    setShowProjectTaskManagement(false);
+                    setSelectedProjectForTasks(null);
+                  }}
+                />
+              ) : (
+                <div>
+                  <h2>Project Task Management</h2>
+                  <div className="project-selection">
+                    <h3>Select a project to manage tasks</h3>
+                    <div className="project-grid">
+                      {projects.map(project => (
+                        <div key={project._id} className="project-card">
                           <h4>{project.projectName}</h4>
-                          <span className={`project-type ${project.clientType}`}>
-                            {project.clientType === 'client' ? 'Client Project' : 'Non-Client Project'}
-                          </span>
-                        </div>
-                        <div className="project-details">
-                          <p><strong>Type:</strong> {project.projectType}</p>
-                          <p><strong>Description:</strong> {project.projectDescription}</p>
-                          {project.clientType === 'client' && project.associatedClient && (
-                            <p><strong>Client:</strong> {project.associatedClient.clientName}</p>
-                          )}
-                          <p><strong>Budget:</strong> ₹{project.totalBudget ? project.totalBudget.toLocaleString() : 'N/A'}</p>
-                          <p><strong>Deadline:</strong> {project.projectDeadline ? new Date(project.projectDeadline).toLocaleDateString() : 'N/A'}</p>
-                        </div>
-                        <div className="project-action">
-                          <button className="view-tasks-btn">
-                            View Tasks →
+                          <p>{project.projectDescription}</p>
+                          <button
+                            onClick={() => {
+                              setSelectedProjectForTasks(project);
+                              setShowProjectTaskManagement(true);
+                            }}
+                            className="btn btn-primary"
+                          >
+                            Manage Tasks
                           </button>
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-projects">
-                      <p>No projects found. Please create a project first.</p>
-                      <button onClick={() => navigate('/admin/projects')} className="btn btn-primary">
-                        Go to Projects
-                      </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
-
-          {location.pathname.startsWith('/admin/task-management/') && (
-            <ProjectTaskManagement />
           )}
 
           {location.pathname === '/admin/tasks' && (

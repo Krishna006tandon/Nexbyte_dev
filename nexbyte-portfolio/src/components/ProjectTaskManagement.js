@@ -1,150 +1,512 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import TaskGenerator from './TaskGenerator';
-import TaskList from './TaskList';
 import './ProjectTaskManagement.css';
 
-const ProjectTaskManagement = () => {
-    const { projectId } = useParams();
-    const navigate = useNavigate();
-    const [project, setProject] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
+const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
+  const [tasks, setTasks] = useState([]);
+  const [interns, setInterns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
+  const [selectedIntern, setSelectedIntern] = useState('');
+  const [bulkAssignIntern, setBulkAssignIntern] = useState('');
+  const [editingTask, setEditingTask] = useState(null);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    dueDate: '',
+    assignedTo: '',
+    status: 'pending'
+  });
 
-    useEffect(() => {
-        fetchProjectDetails();
-    }, [projectId]);
-
-    const fetchProjectDetails = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const token = localStorage.getItem('token');
-            const headers = { 'x-auth-token': token };
-
-            const response = await fetch(`/api/projects/${projectId}`, { headers });
-            if (!response.ok) {
-                throw new Error('Failed to fetch project details');
-            }
-            const data = await response.json();
-            setProject(data);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
+  // Fetch tasks and interns
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchTasks();
+      await fetchInterns();
     };
+    fetchData();
+  }, [projectId]);
 
-    const handleTasksSaved = () => {
-        setRefreshTrigger(prev => prev + 1);
-    };
-
-    const handleBackToProjects = () => {
-        navigate('/admin/task-management');
-    };
-
-    if (loading) {
-        return (
-            <div className="project-task-management">
-                <div className="loading-container">
-                    <h4>Loading project details...</h4>
-                </div>
-            </div>
-        );
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/projects/${projectId}/tasks`);
+      if (!response.ok) throw new Error('Failed to fetch tasks');
+      const data = await response.json();
+      setTasks(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (error) {
-        return (
-            <div className="project-task-management">
-                <div className="error-container">
-                    <p className="error-message">{error}</p>
-                    <button onClick={handleBackToProjects} className="back-btn">
-                        ← Back to Projects
-                    </button>
-                </div>
-            </div>
-        );
+  const fetchInterns = async () => {
+    try {
+      const response = await fetch('/api/interns');
+      if (!response.ok) throw new Error('Failed to fetch interns');
+      const data = await response.json();
+      setInterns(data);
+    } catch (err) {
+      console.error('Error fetching interns:', err);
     }
+  };
 
-    if (!project) {
-        return (
-            <div className="project-task-management">
-                <div className="error-container">
-                    <p>Project not found</p>
-                    <button onClick={handleBackToProjects} className="back-btn">
-                        ← Back to Projects
-                    </button>
-                </div>
-            </div>
-        );
+  // Task operations
+  const handleTaskCreate = async () => {
+    if (!newTask.title.trim()) return;
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTask)
+      });
+      
+      if (!response.ok) throw new Error('Failed to create task');
+      const createdTask = await response.json();
+      setTasks([...tasks, createdTask]);
+      setNewTask({
+        title: '',
+        description: '',
+        priority: 'medium',
+        dueDate: '',
+        assignedTo: '',
+        status: 'pending'
+      });
+    } catch (err) {
+      setError(err.message);
     }
+  };
 
-    return (
-        <div className="project-task-management">
-            <div className="project-header">
-                <div className="header-top">
-                    <button onClick={handleBackToProjects} className="back-btn">
-                        ← Back to Projects
-                    </button>
-                    <h2>{project.projectName}</h2>
-                </div>
-                
-                <div className="project-info">
-                    <div className="info-grid">
-                        <div className="info-item">
-                            <strong>Type:</strong> {project.projectType}
-                        </div>
-                        <div className="info-item">
-                            <strong>Status:</strong> 
-                            <span className={`status-badge ${project.status || 'Active'}`}>
-                                {project.status || 'Active'}
-                            </span>
-                        </div>
-                        <div className="info-item">
-                            <strong>Budget:</strong> ₹{project.totalBudget ? project.totalBudget.toLocaleString() : 'N/A'}
-                        </div>
-                        <div className="info-item">
-                            <strong>Deadline:</strong> {project.projectDeadline ? new Date(project.projectDeadline).toLocaleDateString() : 'N/A'}
-                        </div>
-                        <div className="info-item">
-                            <strong>Client Type:</strong> {project.clientType || 'non-client'}
-                        </div>
-                        {project.clientType === 'client' && project.associatedClient && (
-                            <div className="info-item">
-                                <strong>Client:</strong> {project.associatedClient.clientName || 'N/A'}
-                            </div>
-                        )}
-                    </div>
-                    
-                    {project.projectDescription && (
-                        <div className="project-description">
-                            <strong>Description:</strong>
-                            <p>{project.projectDescription}</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+  const handleTaskDelete = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete task');
+      setTasks(tasks.filter(task => task._id !== taskId));
+      setSelectedTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
-            <div className="task-management-content">
-                <div className="task-generator-section">
-                    <h3>Generate Tasks for {project.projectName}</h3>
-                    <TaskGenerator 
-                        project={project}
-                        onTasksSaved={handleTasksSaved}
-                    />
-                </div>
+  const handleTaskAssignment = async (taskId, internId) => {
+    if (!internId) return;
+    
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo: internId })
+      });
+      
+      if (!response.ok) throw new Error('Failed to assign task');
+      const updatedTask = await response.json();
+      setTasks(tasks.map(task => task._id === taskId ? updatedTask : task));
+      setShowAssignModal(false);
+      setSelectedIntern('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
-                <div className="task-list-section">
-                    <TaskList 
-                        projectId={projectId} 
-                        refreshTrigger={refreshTrigger}
-                        projectName={project.projectName}
-                    />
-                </div>
-            </div>
+  const handleTaskStatusUpdate = async (taskId, status) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update task status');
+      const updatedTask = await response.json();
+      setTasks(tasks.map(task => task._id === taskId ? updatedTask : task));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Bulk operations
+  const handleBulkAssign = async () => {
+    if (!bulkAssignIntern || selectedTasks.size === 0) return;
+    
+    try {
+      const response = await fetch('/api/tasks/bulk-assign', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskIds: Array.from(selectedTasks),
+          assignedTo: bulkAssignIntern
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to bulk assign tasks');
+      const updatedTasks = await response.json();
+      setTasks(tasks.map(task => 
+        selectedTasks.has(task._id) ? updatedTasks.find(t => t._id === task._id) : task
+      ));
+      setSelectedTasks(new Set());
+      setShowBulkAssignModal(false);
+      setBulkAssignIntern('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleBulkStatusUpdate = async (status) => {
+    if (selectedTasks.size === 0) return;
+    
+    try {
+      const response = await fetch('/api/tasks/bulk-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskIds: Array.from(selectedTasks),
+          status
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to bulk update status');
+      const updatedTasks = await response.json();
+      setTasks(tasks.map(task => 
+        selectedTasks.has(task._id) ? updatedTasks.find(t => t._id === task._id) : task
+      ));
+      setSelectedTasks(new Set());
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTasks.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedTasks.size} task(s)?`)) return;
+    
+    try {
+      const response = await fetch('/api/tasks/bulk-delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskIds: Array.from(selectedTasks)
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to bulk delete tasks');
+      setTasks(tasks.filter(task => !selectedTasks.has(task._id)));
+      setSelectedTasks(new Set());
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Export functionality
+  const exportTasks = () => {
+    const csvContent = [
+      ['Title', 'Description', 'Priority', 'Status', 'Assigned To', 'Due Date', 'Created At'],
+      ...filteredTasks.map(task => [
+        task.title,
+        task.description,
+        task.priority,
+        task.status,
+        task.assignedTo?.name || 'Unassigned',
+        task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '',
+        new Date(task.createdAt).toLocaleDateString()
+      ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${projectName}-tasks.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Filtering and searching
+  const filteredTasks = tasks.filter(task => {
+    const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         task.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  const toggleTaskSelection = (taskId) => {
+    setSelectedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllTasks = () => {
+    if (selectedTasks.size === filteredTasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(filteredTasks.map(task => task._id)));
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return '#ff4444';
+      case 'medium': return '#ffaa00';
+      case 'low': return '#44ff44';
+      default: return '#888';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed': return '#28a745';
+      case 'in-progress': return '#007bff';
+      case 'pending': return '#6c757d';
+      default: return '#888';
+    }
+  };
+
+  if (loading) return <div className="loading">Loading tasks...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
+
+  return (
+    <div className="project-task-management">
+      <div className="header">
+        <div className="header-left">
+          <button className="back-btn" onClick={onBack}>← Back</button>
+          <h2>{projectName} - Task Management</h2>
         </div>
-    );
+        <div className="header-right">
+          <button className="export-btn" onClick={exportTasks}>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Task Creation Form */}
+      <div className="task-creation">
+        <h3>Create New Task</h3>
+        <div className="task-form">
+          <input
+            type="text"
+            placeholder="Task title"
+            value={newTask.title}
+            onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+          />
+          <textarea
+            placeholder="Task description"
+            value={newTask.description}
+            onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+          />
+          <select
+            value={newTask.priority}
+            onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
+          >
+            <option value="low">Low Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="high">High Priority</option>
+          </select>
+          <input
+            type="date"
+            value={newTask.dueDate}
+            onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
+          />
+          <select
+            value={newTask.assignedTo}
+            onChange={(e) => setNewTask({...newTask, assignedTo: e.target.value})}
+          >
+            <option value="">Select Intern</option>
+            {interns.map(intern => (
+              <option key={intern._id} value={intern._id}>{intern.name}</option>
+            ))}
+          </select>
+          <button onClick={handleTaskCreate}>Create Task</button>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="filters">
+        <div className="filter-left">
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div className="filter-right">
+          {selectedTasks.size > 0 && (
+            <>
+              <button onClick={() => setShowBulkAssignModal(true)}>
+                Assign Selected ({selectedTasks.size})
+              </button>
+              <select onChange={(e) => handleBulkStatusUpdate(e.target.value)}>
+                <option value="">Update Status</option>
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+              <button onClick={handleBulkDelete} className="delete-btn">
+                Delete Selected
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Task List */}
+      <div className="task-list">
+        <div className="task-list-header">
+          <input
+            type="checkbox"
+            checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
+            onChange={selectAllTasks}
+          />
+          <span>Task</span>
+          <span>Priority</span>
+          <span>Status</span>
+          <span>Assigned To</span>
+          <span>Due Date</span>
+          <span>Actions</span>
+        </div>
+        {filteredTasks.map(task => (
+          <div key={task._id} className="task-item">
+            <input
+              type="checkbox"
+              checked={selectedTasks.has(task._id)}
+              onChange={() => toggleTaskSelection(task._id)}
+            />
+            <div className="task-info">
+              <h4>{task.title}</h4>
+              <p>{task.description}</p>
+            </div>
+            <span
+              className="priority"
+              style={{ backgroundColor: getPriorityColor(task.priority) }}
+            >
+              {task.priority}
+            </span>
+            <select
+              value={task.status}
+              onChange={(e) => handleTaskStatusUpdate(task._id, e.target.value)}
+              className="status-select"
+              style={{ color: getStatusColor(task.status) }}
+            >
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+            <span className="assigned-to">
+              {task.assignedTo?.name || 'Unassigned'}
+            </span>
+            <span className="due-date">
+              {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+            </span>
+            <div className="task-actions">
+              <button onClick={() => {
+                setEditingTask(task);
+                setSelectedIntern(task.assignedTo?._id || '');
+                setShowAssignModal(true);
+              }}>
+                Assign
+              </button>
+              <button onClick={() => handleTaskDelete(task._id)} className="delete-btn">
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Assignment Modal */}
+      {showAssignModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h3>{editingTask ? 'Reassign Task' : 'Assign Task'}</h3>
+            <select
+              value={selectedIntern}
+              onChange={(e) => setSelectedIntern(e.target.value)}
+            >
+              <option value="">Select Intern</option>
+              {interns.map(intern => (
+                <option key={intern._id} value={intern._id}>{intern.name}</option>
+              ))}
+            </select>
+            <div className="modal-actions">
+              <button onClick={() => {
+                if (editingTask) {
+                  handleTaskAssignment(editingTask._id, selectedIntern);
+                } else {
+                  handleTaskAssignment(editingTask._id, selectedIntern);
+                }
+              }}>
+                Assign
+              </button>
+              <button onClick={() => {
+                setShowAssignModal(false);
+                setEditingTask(null);
+                setSelectedIntern('');
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Assignment Modal */}
+      {showBulkAssignModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h3>Assign {selectedTasks.size} Task(s)</h3>
+            <select
+              value={bulkAssignIntern}
+              onChange={(e) => setBulkAssignIntern(e.target.value)}
+            >
+              <option value="">Select Intern</option>
+              {interns.map(intern => (
+                <option key={intern._id} value={intern._id}>{intern.name}</option>
+              ))}
+            </select>
+            <div className="modal-actions">
+              <button onClick={handleBulkAssign}>Assign All</button>
+              <button onClick={() => {
+                setShowBulkAssignModal(false);
+                setBulkAssignIntern('');
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default ProjectTaskManagement;
