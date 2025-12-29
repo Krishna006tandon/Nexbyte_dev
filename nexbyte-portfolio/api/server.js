@@ -2199,6 +2199,82 @@ app.get('/api/notifications', verifyIntern, async (req, res) => {
   }
 });
 
+// @route   PUT api/intern/tasks/:id
+// @desc    Update task status (intern only)
+// @access  Private (intern)
+app.put('/api/intern/tasks/:id', verifyIntern, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ message: 'Status is required' });
+    }
+
+    // Find the task and ensure it's assigned to this intern
+    const task = await Task.findById(req.params.id);
+    
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if task is assigned to this intern
+    if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied. Task not assigned to you.' });
+    }
+
+    // Update the task status
+    task.status = status;
+    await task.save();
+
+    // Populate user info for response
+    await task.populate('assignedTo', 'firstName lastName email');
+    await task.populate('client', 'companyName email');
+
+    res.json(task);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/member/tasks/:id
+// @desc    Update task status (member only)
+// @access  Private (member)
+app.put('/api/member/tasks/:id', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ message: 'Status is required' });
+    }
+
+    // Find the task and ensure it's assigned to this member
+    const task = await Task.findById(req.params.id);
+    
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if task is assigned to this member
+    if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied. Task not assigned to you.' });
+    }
+
+    // Update the task status
+    task.status = status;
+    await task.save();
+
+    // Populate user info for response
+    await task.populate('assignedTo', 'firstName lastName email');
+    await task.populate('client', 'companyName email');
+
+    res.json(task);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Get resources
 app.get('/api/resources', async (req, res) => {
   try {

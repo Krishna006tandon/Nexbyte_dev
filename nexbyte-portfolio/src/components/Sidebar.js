@@ -18,6 +18,7 @@ const Sidebar = () => {
     { to: "/admin/srs-generator", text: "SRS Generator" },
     { to: "/admin/tasks", text: "Task Generator" },
     { to: "/admin/task-management", text: "Task Management" },
+    { to: "/admin/task-monitoring", text: "Task Monitoring" },
     
     
     ];

@@ -148,8 +148,8 @@ const Member = () => {
       const token = localStorage.getItem('token');
       console.log('DEBUG: Member updating task:', taskId, 'to status:', newStatus);
       
-      // Direct task update with task ID
-      let response = await fetch(`/api/tasks/${taskId}`, {
+      // Try member-specific endpoint first
+      let response = await fetch(`/api/member/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -158,10 +158,10 @@ const Member = () => {
         body: JSON.stringify({ status: newStatus })
       });
       
-      // If direct update fails, try member-specific endpoint for backend save
+      // If member endpoint fails, try direct task update
       if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Direct update failed, trying member endpoint for backend save...');
-        response = await fetch(`/api/member/tasks/${taskId}`, {
+        console.log('DEBUG: Member endpoint failed, trying direct task update...');
+        response = await fetch(`/api/tasks/${taskId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

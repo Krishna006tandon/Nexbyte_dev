@@ -7,6 +7,7 @@ import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
 import ProjectTracker from '../components/ProjectTracker';
 import ProjectTaskManagement from '../components/ProjectTaskManagement';
+import TaskMonitoringDashboard from '../components/TaskMonitoringDashboard';
 import Modal from '../components/Modal';
 
 const Admin = () => {
@@ -1561,6 +1562,13 @@ const Admin = () => {
                 onTasksSaved={handleTasksSaved}
               />
               <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
+            </div>
+          )}
+
+          {location.pathname === '/admin/task-monitoring' && (
+            <div className="task-monitoring-section">
+              <h2>Task Status Monitoring Dashboard</h2>
+              <TaskMonitoringDashboard />
             </div>
           )}
 

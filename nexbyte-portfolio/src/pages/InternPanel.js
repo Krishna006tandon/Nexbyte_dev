@@ -250,6 +250,60 @@ const InternPanel = () => {
     }
   };
 
+  const handleQuickStatusUpdate = async (taskId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('DEBUG: Intern quick updating task:', taskId, 'to status:', newStatus);
+      
+      // Try intern-specific endpoint first
+      let response = await fetch(`/api/intern/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      // If intern endpoint fails, try direct task update
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Intern endpoint failed, trying direct task update...');
+        response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
+      if (response.ok) {
+        // Update local state
+        setTasks(tasks.map(task => 
+          task._id === taskId ? { ...task, status: newStatus } : task
+        ));
+        toast.success('✅ Task status updated successfully!');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Update failed:', response.status, errorData);
+        
+        // Update locally if server update fails
+        setTasks(tasks.map(task => 
+          task._id === taskId ? { ...task, status: newStatus } : task
+        ));
+        toast.warning('⚠️ Updated locally only - server sync failed');
+      }
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      // Update locally on error
+      setTasks(tasks.map(task => 
+        task._id === taskId ? { ...task, status: newStatus } : task
+      ));
+      toast.warning('⚠️ Updated locally only - network error');
+    }
+  };
+
   const handleTaskUpdate = async (taskId) => {
     try {
       const token = localStorage.getItem('token');
@@ -882,6 +936,21 @@ const InternPanel = () => {
                       </div>
                       
                       <div className="task-actions">
+                        <div className="status-update-group">
+                          <label>Update Status:</label>
+                          <select
+                            value={task.status}
+                            onChange={(e) => handleQuickStatusUpdate(task._id, e.target.value)}
+                            className="status-select"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="review">Under Review</option>
+                            <option value="testing">Testing</option>
+                            <option value="completed">Completed</option>
+                            <option value="on-hold">On Hold</option>
+                          </select>
+                        </div>
                         <button 
                           className="btn btn-sm btn-primary"
                           onClick={() => handleTaskView(task._id)}
@@ -892,7 +961,7 @@ const InternPanel = () => {
                           className="btn btn-sm btn-secondary"
                           onClick={() => handleTaskUpdate(task._id)}
                         >
-                          <i className="fas fa-edit"></i> Update
+                          <i className="fas fa-edit"></i> Details
                         </button>
                       </div>
                     </div>
