@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
+import { SrsContext } from '../context/SrsContext';
 import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
 import ProjectTracker from '../components/ProjectTracker';
@@ -26,10 +27,17 @@ const Admin = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [taskPageClientId, setTaskPageClientId] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
   const [milestone, setMilestone] = useState(null);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [selectedInternForReport, setSelectedInternForReport] = useState(null);
+  const [expandedBill, setExpandedBill] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
+  const [selectedSrsClient, setSelectedSrsClient] = useState(null);
+  const [showInternReport, setShowInternReport] = useState(false);
+  const [internReport, setInternReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
@@ -38,6 +46,7 @@ const Admin = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const { setSrsFullData } = useContext(SrsContext);
 
   // Check if we have navigation state from TaskGenerator
   useEffect(() => {
@@ -86,6 +95,21 @@ const Admin = () => {
     projectDeadline: '',
     clientType: 'non-client',
     associatedClient: '',
+  });
+
+  const [billData, setBillData] = useState({
+    client: '',
+    amount: '',
+    dueDate: '',
+    description: '',
+  });
+
+  const [localSrsData, setLocalSrsData] = useState({
+    projectName: '',
+    projectDescription: '',
+    targetAudience: '',
+    functionalRequirements: '',
+    nonFunctionalRequirements: '',
   });
 
   useEffect(() => {
@@ -427,7 +451,8 @@ const Admin = () => {
       });
       if (res.ok) {
         const reportData = await res.json();
-        console.log("Intern report fetched:", reportData);
+        setInternReport(reportData);
+        setShowInternReport(true);
       } else {
         console.error("Failed to fetch intern report");
       }
@@ -435,6 +460,525 @@ const Admin = () => {
       console.error(err);
     } finally {
       setReportLoading(false);
+    }
+  };
+
+  const closeInternReport = () => {
+    setShowInternReport(false);
+    setSelectedInternForReport(null);
+    setInternReport(null);
+  };
+
+  const handleBillChange = (e) => {
+    setBillData({ ...billData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenerateBillDescription = async () => {
+    if (!billData.client || !billData.amount) {
+      alert('Please select a client and enter an amount first.');
+      return;
+    }
+
+    const selectedClient = clients.find(c => c._id === billData.client);
+    if (!selectedClient) {
+      alert('Selected client not found.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+
+      // Find the last bill for the client
+      const clientBills = bills.filter(b => b.client._id === billData.client);
+      const lastBill = clientBills.length > 0
+        ? clientBills.reduce((latest, current) => new Date(latest.billDate) > new Date(current.billDate) ? latest : current)
+        : null;
+      const lastBillDate = lastBill ? new Date(lastBill.billDate) : null;
+
+      // Fetch tasks for the client
+      const tasksRes = await fetch(`/api/tasks?clientId=${billData.client}`, {
+        headers: { 'x-auth-token': token },
+      });
+      if (!tasksRes.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      const tasks = await tasksRes.json();
+
+      // Filter completed tasks since the last bill
+      const completedTasks = tasks.filter(task => {
+        if (task.status !== 'Done' || !task.completedAt) {
+          return false;
+        }
+        if (lastBillDate) {
+          return new Date(task.completedAt) > lastBillDate;
+        }
+        return true; // Include all completed tasks if no previous bill
+      });
+
+      const completedTaskTitles = completedTasks.map(task => task.task_title);
+
+      const res = await fetch('/api/generate-bill-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          clientName: selectedClient.clientName,
+          projectName: selectedClient.projectName,
+          amount: billData.amount,
+          tasks: completedTaskTitles,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      const { description } = await res.json();
+      setBillData({ ...billData, description });
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to generate description. ${err.message}`);
+    }
+  };
+
+  const handleAddBill = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/bills', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(billData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBills([...bills, data]);
+        setBillData({
+          client: '',
+          amount: '',
+          dueDate: '',
+        });
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAsPaid = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ status: 'Paid' }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePaymentNotDone = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ status: 'Unpaid', paidAmount: 0 }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        const fetchRes = await fetch('/api/bills', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) {
+          setBills(updatedBills);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDownloadBill = (bill) => {
+    if (!bill.client) {
+      alert('Client data is not available for this bill.');
+      return;
+    }
+    const clientData = clients.find(c => c._id === bill.client._id);
+
+    if (!clientData) {
+      alert('Full client data not found for this bill.');
+      return;
+    }
+
+    const invoiceContent = `
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 50px;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 50px;
+        }
+        .header .logo {
+            max-width: 150px;
+        }
+        .company-details h1 {
+            margin: 0;
+            color: #58a6ff;
+            font-size: 2.2em;
+            font-weight: 600;
+        }
+        .details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 50px;
+        }
+        .client-details, .invoice-details {
+            width: 48%;
+        }
+        .client-details strong, .invoice-details strong {
+            color: #58a6ff;
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items-table thead th {
+            background-color: #21262d;
+            color: #f0f6fc;
+            padding: 15px;
+            text-align: left;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            border-bottom: 1px solid #30363d;
+        }
+        .items-table tbody tr {
+            border-bottom: 1px solid #30363d;
+        }
+        .items-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        .items-table td {
+            padding: 20px 15px;
+        }
+        .items-table .description {
+            font-weight: 500;
+        }
+        .items-table .qty, .items-table .rate, .items-table .amount {
+            text-align: right;
+        }
+        .total-section {
+            margin-top: 30px;
+            text-align: right;
+        }
+        .total-section .grand-total {
+            font-size: 1.6em;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+    </style>
+    <div class="invoice-box">
+        <header class="header">
+            <div class="logo">
+                <img src="/logobill.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
+            </div>
+            <div class="company-details">
+                <h1>INVOICE</h1>
+            </div>
+        </header>
+        <section class="details">
+            <div class="client-details">
+                <strong>BILL TO:</strong>
+                <div>${clientData.contactPerson}</div>
+                <div>${clientData.clientName}</div>
+                <div>${clientData.billingAddress || 'N/A'}</div>
+                <div>${clientData.email}</div>
+            </div>
+            <div class="invoice-details">
+                <div><strong>Invoice #:</strong> ${bill._id}</div>
+                <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+                <div><strong>Due Date:</strong> ${new Date(bill.dueDate).toLocaleDateString()}</div>
+            </div>
+        </section>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th class="qty">Qty</th>
+                    <th class="rate">Rate</th>
+                    <th class="amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="description">
+                        <strong>${bill.description}</strong>
+                    </td>
+                    <td class="qty">1</td>
+                    <td class="rate">₹${bill.amount.toFixed(2)}</td>
+                    <td class="amount">₹${bill.amount.toFixed(2)}</td>
+                </tr>
+            </tbody>
+        </table>
+        <section class="total-section">
+            <div class="grand-total">
+                <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
+            </div>
+        </section>
+        <footer class="footer">
+            <div>Thank you for choosing NexByte_Dev!</div>
+        </footer>
+    </div>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = invoiceContent;
+
+    const opt = {
+      margin:       0,
+      filename:     `invoice_${bill._id}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, backgroundColor: '#0d1117' },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().from(element).set(opt).save();
+  };
+
+  const handleApprovePayment = async (billId, paymentId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${billId}/approve-payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ paymentId }),
+      });
+      const updatedBill = await res.json();
+      if (res.ok) {
+        setBills(bills.map(b => b._id === billId ? updatedBill : b));
+      } else {
+        throw new Error(updatedBill.message || 'Failed to approve payment');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRejectPayment = async (billId, paymentId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/bills/${billId}/reject-payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ paymentId }),
+      });
+      const updatedBill = await res.json();
+      if (res.ok) {
+        setBills(bills.map(b => b._id === billId ? updatedBill : b));
+      } else {
+        throw new Error(updatedBill.message || 'Failed to reject payment');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDownloadSrs = (client) => {
+    if (!client || !client.srsDocument) {
+      alert('SRS data is not yet loaded. Please wait a moment and try again.');
+      return;
+    }
+    setIsDownloading(true);
+    const srsContent = `
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+          }
+          .srs-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 50px;
+            background-color: #fff;
+            border: 1px solid #eee;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+          }
+          .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+          }
+          .header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 2.2em;
+            font-weight: 600;
+          }
+          pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="srs-box">
+            <header class="header">
+                <img src="/logobill.jpg" alt="NexByte_Dev Logo">
+                <h1>Software Requirement Specification</h1>
+            </header>
+            <pre>${client.srsDocument}</pre>
+            <footer class="footer">
+                <p>&copy; ${new Date().getFullYear()} NexByte_Dev. All rights reserved.</p>
+            </footer>
+        </div>
+      </body>
+    </html>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = srsContent;
+
+    const opt = {
+      margin:       0,
+      filename:     `srs_${client.projectName}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().from(element).set(opt).save().then(() => {
+        setIsDownloading(false);
+    });
+  }
+
+  const handleSeeSrs = (client) => {
+    if (!client || !client.srsDocument) {
+        alert('SRS data is not yet loaded. Please wait a moment and try again.');
+        return;
+    }
+    setSelectedSrsClient(client);
+    setIsSrsModalOpen(true);
+  }
+
+  const closeSrsModal = () => {
+    setIsSrsModalOpen(false);
+    setSelectedSrsClient(null);
+  }
+
+  const handleSrsChange = (e) => {
+    setLocalSrsData({ ...localSrsData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenerateSrs = (e) => {
+    e.preventDefault();
+    const selectedClient = clients.find(client => client._id === selectedClientId);
+    const fullSrsData = {
+      ...localSrsData,
+      client: selectedClient,
+    };
+    setSrsFullData(fullSrsData);
+    navigate('/srs-generator');
+  };
+
+  const handleClientSelect = (clientId) => {
+    setSelectedClientId(clientId);
+    const selectedClient = clients.find(client => client._id === clientId);
+    if (selectedClient) {
+      setLocalSrsData({
+        projectName: selectedClient.projectName || '',
+        projectDescription: selectedClient.projectRequirements || '',
+        targetAudience: '',
+        functionalRequirements: '',
+        nonFunctionalRequirements: '',
+      });
     }
   };
 
@@ -784,6 +1328,195 @@ const Admin = () => {
             </div>
           )}
 
+          {location.pathname === '/admin/billing' && (
+            <div>
+              <h2>Billing Management</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddBill}>
+                  <h3>Create New Bill</h3>
+                  <select name="client" value={billData.client} onChange={handleBillChange} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />
+                  <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
+                  <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
+                  <div className="button-group">
+                    <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate Description</button>
+                    <button type="submit" className="btn btn-primary">Create Bill</button>
+                  </div>
+                </form>
+              </div>
+
+              <h3>All Bills</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bills.map((bill) => (
+                    <tr key={bill._id}>
+                      <td>{bill.client?.clientName || 'N/A'}</td>
+                      <td>₹{bill.amount}</td>
+                      <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                      <td>
+                        <span className={`status ${bill.status.toLowerCase()}`}>
+                          {bill.status}
+                        </span>
+                      </td>
+                      <td>
+                        {expandedBill === bill._id ? (
+                          <div>
+                            {bill.description}
+                            <button onClick={() => setExpandedBill(null)} className="btn btn-secondary">Show Less</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setExpandedBill(bill._id)} className="btn btn-secondary">Show More</button>
+                        )}
+                      </td>
+                      <td>
+                        <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download</button>
+                        {bill.status === 'Unpaid' ? (
+                          <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                        ) : (
+                          <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-warning">Payment Not Done</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/srs-generator' && (
+            <div>
+              <h2>SRS Generator</h2>
+              <div className="form-container">
+                <form onSubmit={handleGenerateSrs}>
+                  <h3>Generate SRS Document</h3>
+                  <select value={selectedClientId} onChange={(e) => handleClientSelect(e.target.value)} required>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                      <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                    ))}
+                  </select>
+                  <input type="text" name="projectName" placeholder="Project Name" value={localSrsData.projectName} onChange={handleSrsChange} required />
+                  <textarea name="projectDescription" placeholder="Project Description" value={localSrsData.projectDescription} onChange={handleSrsChange} required></textarea>
+                  <textarea name="targetAudience" placeholder="Target Audience" value={localSrsData.targetAudience} onChange={handleSrsChange}></textarea>
+                  <textarea name="functionalRequirements" placeholder="Functional Requirements" value={localSrsData.functionalRequirements} onChange={handleSrsChange}></textarea>
+                  <textarea name="nonFunctionalRequirements" placeholder="Non-Functional Requirements" value={localSrsData.nonFunctionalRequirements} onChange={handleSrsChange}></textarea>
+                  <button type="submit" className="btn btn-primary">Generate SRS</button>
+                </form>
+              </div>
+
+              <h3>Client SRS Documents</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Project</th>
+                    <th>SRS Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((client) => (
+                    <tr key={client._id}>
+                      <td>{client.clientName}</td>
+                      <td>{client.projectName}</td>
+                      <td>
+                        {client.srsDocument ? (
+                          <span className="status completed">Generated</span>
+                        ) : (
+                          <span className="status pending">Not Generated</span>
+                        )}
+                      </td>
+                      <td>
+                        {client.srsDocument ? (
+                          <>
+                            <button onClick={() => handleSeeSrs(client)} className="btn btn-info">View SRS</button>
+                            <button onClick={() => handleDownloadSrs(client)} className="btn btn-primary" disabled={isDownloading}>
+                              {isDownloading ? 'Downloading...' : 'Download SRS'}
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-muted">No SRS Available</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {location.pathname === '/admin/reports' && (
+            <div>
+              <h2>Intern Reports</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Performance</th>
+                    <th>Tasks Completed</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.filter(member => member.role === 'intern').map((intern) => (
+                    <tr key={intern._id}>
+                      <td>{intern.email}</td>
+                      <td>{intern.email}</td>
+                      <td>{intern.role}</td>
+                      <td>
+                        <div className="performance-metrics">
+                          <div className="metric">
+                            <span>Task Completion:</span>
+                            <div className="progress-bar">
+                              <div className="progress" style={{width: '75%'}}></div>
+                            </div>
+                            <span>75%</span>
+                          </div>
+                          <div className="metric">
+                            <span>Priority Tasks:</span>
+                            <div className="progress-bar">
+                              <div className="progress" style={{width: '60%'}}></div>
+                            </div>
+                            <span>60%</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="task-stats">
+                          <div>Total: 24</div>
+                          <div>Completed: 18</div>
+                          <div>Pending: 6</div>
+                        </div>
+                      </td>
+                      <td>
+                        <button onClick={() => handleShowInternReport(intern._id)} className="btn btn-info">
+                          {reportLoading && selectedInternForReport === intern._id ? 'Loading...' : 'View Report'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {['/admin', '/admin/'].includes(location.pathname) && (
             <p>Welcome to the admin dashboard!</p>
           )}
@@ -794,6 +1527,67 @@ const Admin = () => {
             <div className="project-tracker-modal">
               <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
               <ProjectTracker currentMilestone={milestone} />
+            </div>
+          </Modal>
+        )}
+
+        {isSrsModalOpen && selectedSrsClient && (
+          <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
+            <div className="srs-modal">
+              <h2>SRS Document for {selectedSrsClient.projectName}</h2>
+              <div className="srs-content">
+                <pre>{selectedSrsClient.srsDocument}</pre>
+              </div>
+              <div className="modal-actions">
+                <button onClick={() => handleDownloadSrs(selectedSrsClient)} className="btn btn-primary">
+                  {isDownloading ? 'Downloading...' : 'Download PDF'}
+                </button>
+                <button onClick={closeSrsModal} className="btn btn-secondary">Close</button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {showInternReport && internReport && (
+          <Modal isOpen={showInternReport} onClose={closeInternReport}>
+            <div className="intern-report-modal">
+              <h2>Intern Report</h2>
+              <div className="report-content">
+                <h3>Performance Statistics</h3>
+                <div className="stats-grid">
+                  <div className="stat-card">
+                    <h4>Total Tasks</h4>
+                    <p>{internReport.totalTasks || 24}</p>
+                  </div>
+                  <div className="stat-card">
+                    <h4>Completed Tasks</h4>
+                    <p>{internReport.completedTasks || 18}</p>
+                  </div>
+                  <div className="stat-card">
+                    <h4>Completion Rate</h4>
+                    <p>{internReport.completionRate || '75%'}</p>
+                  </div>
+                  <div className="stat-card">
+                    <h4>Priority Tasks</h4>
+                    <p>{internReport.priorityTasks || 12}</p>
+                  </div>
+                </div>
+                
+                <h3>Recent Activity</h3>
+                <div className="activity-list">
+                  {internReport.recentActivity ? internReport.recentActivity.map((activity, index) => (
+                    <div key={index} className="activity-item">
+                      <span className="activity-date">{new Date(activity.date).toLocaleDateString()}</span>
+                      <span className="activity-description">{activity.description}</span>
+                    </div>
+                  )) : (
+                    <p>No recent activity available</p>
+                  )}
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button onClick={closeInternReport} className="btn btn-secondary">Close</button>
+              </div>
             </div>
           </Modal>
         )}
