@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
-import { SrsContext } from '../context/SrsContext';
 import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
 import ProjectTracker from '../components/ProjectTracker';
@@ -27,24 +26,18 @@ const Admin = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [taskPageClientId, setTaskPageClientId] = useState('');
-  const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
   const [milestone, setMilestone] = useState(null);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
-  const [showInternReport, setShowInternReport] = useState(false);
   const [selectedInternForReport, setSelectedInternForReport] = useState(null);
-  const [internReport, setInternReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
-  const [expandedBill, setExpandedBill] = useState(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
-  const [selectedSrsClient, setSelectedSrsClient] = useState(null);
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { setSrsFullData } = useContext(SrsContext);
 
   // Check if we have navigation state from TaskGenerator
   useEffect(() => {
@@ -85,13 +78,6 @@ const Admin = () => {
     content: '',
   });
 
-  const [billData, setBillData] = useState({
-    client: '',
-    amount: '',
-    dueDate: '',
-    description: '',
-  });
-
   const [projectData, setProjectData] = useState({
     projectName: '',
     projectType: '',
@@ -100,14 +86,6 @@ const Admin = () => {
     projectDeadline: '',
     clientType: 'non-client',
     associatedClient: '',
-  });
-
-  const [localSrsData, setLocalSrsData] = useState({
-    projectName: '',
-    projectDescription: '',
-    targetAudience: '',
-    functionalRequirements: '',
-    nonFunctionalRequirements: '',
   });
 
   useEffect(() => {
@@ -179,6 +157,8 @@ const Admin = () => {
         }
       } catch (err) {
         console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -247,34 +227,143 @@ const Admin = () => {
     }
   };
 
-  const handleInternSubmit = async (e) => {
+  const handleAddClient = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
     try {
-      // ... rest of the code remains the same ...
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/auth/register', {
+      const res = await fetch('/api/clients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': token
+          'x-auth-token': token,
         },
-        body: JSON.stringify(internForm)
+        body: JSON.stringify(clientData),
       });
-
-      if (!response.ok) throw new Error('Failed to create intern');
-
-      const newIntern = await response.json();
-      setInterns([...interns, newIntern.user]);
-      setShowInternModal(false);
-      setInternForm({
-        name: '',
-        email: '',
-        password: '',
-        role: 'intern',
-        internType: 'free'
-      });
+      const data = await res.json();
+      if (res.ok) {
+        setClients([...clients, data]);
+        setClientData({
+          clientName: '',
+          contactPerson: '',
+          email: '',
+          phone: '',
+          companyAddress: '',
+          projectName: '',
+          projectType: '',
+          projectRequirements: '',
+          projectDeadline: '',
+          totalBudget: '',
+          billingAddress: '',
+          gstNumber: '',
+          paymentTerms: '',
+          paymentMethod: '',
+          domainRegistrarLogin: '',
+          webHostingLogin: '',
+          logoAndBrandingFiles: '',
+          content: '',
+        });
+        const fetchRes = await fetch('/api/clients', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedClients = await fetchRes.json();
+        if (fetchRes.ok) {
+          setClients(updatedClients);
+        }
+      } else {
+        console.error(data.message);
+      }
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+    }
+  };
+
+  const handleDeleteClient = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setClients(clients.filter((client) => client._id !== id));
+      }
+      else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleShowPassword = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/clients/${id}/password`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setClientPasswords({ ...clientPasswords, [id]: data.password });
+      }
+      else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleClientChange = (e) => {
+    setClientData({ ...clientData, [e.target.name]: e.target.value });
+  };
+
+  const handleProjectChange = (e) => {
+    setProjectData({ ...projectData, [e.target.name]: e.target.value });
+  };
+
+  const handleAddProject = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(projectData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProjects([...projects, data]);
+        setProjectData({
+          projectName: '',
+          projectType: '',
+          projectDescription: '',
+          totalBudget: '',
+          projectDeadline: '',
+          clientType: 'non-client',
+          associatedClient: '',
+        });
+        const fetchRes = await fetch('/api/projects', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedProjects = await fetchRes.json();
+        if (fetchRes.ok) {
+          setProjects(updatedProjects);
+          setSuccessMessage('Project added successfully!');
+          setTimeout(() => setSuccessMessage(''), 5000);
+        }
+      } else {
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -296,122 +385,62 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteIntern = async (internId) => {
-    if (!window.confirm('Are you sure you want to delete this intern?')) return;
+  const formatDate = (dateString) => {
+    if (!dateString) {
+      return 'N/A';
+    }
+    const dateParts = dateString.split('T')[0].split('-');
+    const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    return date.toLocaleDateString();
+  };
 
+  const handleShowTracker = async (client) => {
+    setSelectedClientForTracker(client);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/interns/${internId}`, {
-        method: 'DELETE',
-        headers: { 'x-auth-token': token }
+      const res = await fetch(`/api/clients/${client._id}/milestone`, {
+        headers: {
+          'x-auth-token': token,
+        },
       });
-
-      if (!response.ok) throw new Error('Failed to delete intern');
-
-      setInterns(interns.filter(i => i._id !== internId));
+      if (res.ok) {
+        const clientWithMilestone = await res.json();
+        setMilestone(clientWithMilestone.milestone);
+        setIsTrackerModalOpen(true);
+      } else {
+        console.error("Failed to fetch milestone");
+      }
     } catch (err) {
-      setError(err.message);
+      console.error(err);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
+  const handleShowInternReport = async (internId) => {
+    setSelectedInternForReport(internId);
+    setReportLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/users/intern-report/${internId}`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      if (res.ok) {
+        const reportData = await res.json();
+        console.log("Intern report fetched:", reportData);
+      } else {
+        console.error("Failed to fetch intern report");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
-  const renderDashboard = () => (
-    <div className="dashboard-grid">
-      <div className="stat-card">
-        <h3>Total Projects</h3>
-        <div className="stat-number">{projects.length}</div>
-      </div>
-      <div className="stat-card">
-        <h3>Total Interns</h3>
-        <div className="stat-number">{interns.length}</div>
-      </div>
-      <div className="stat-card">
-        <h3>Total Tasks</h3>
-        <div className="stat-number">{tasks.length}</div>
-      </div>
-      <div className="stat-card">
-        <h3>Completed Tasks</h3>
-        <div className="stat-number">{tasks.filter(t => t.status === 'completed').length}</div>
-      </div>
-    </div>
-  );
-
-  const renderProjects = () => (
-    <div className="projects-section">
-      <div className="section-header">
-        <h2>Projects</h2>
-        <button className="btn-primary" onClick={() => setShowProjectModal(true)}>
-          Add New Project
-        </button>
-      </div>
-      <div className="projects-grid">
-        {projects.map(project => (
-          <div key={project._id} className="project-card">
-            <h3>{project.projectName}</h3>
-            <p><strong>Type:</strong> {project.projectType}</p>
-            <p><strong>Budget:</strong> ₹{project.totalBudget}</p>
-            <p><strong>Deadline:</strong> {new Date(project.projectDeadline).toLocaleDateString()}</p>
-            <p><strong>Status:</strong> <span className={`status ${project.status}`}>{project.status}</span></p>
-            <div className="card-actions">
-              <button 
-                className="btn-primary"
-                onClick={() => navigate(`/admin/projects/${project._id}/tasks`)}
-              >
-                Manage Tasks
-              </button>
-              <button className="btn-danger" onClick={() => handleDeleteProject(project._id)}>
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderInterns = () => (
-    <div className="interns-section">
-      <div className="section-header">
-        <h2>Interns</h2>
-        <button className="btn-primary" onClick={() => setShowInternModal(true)}>
-          Add New Intern
-        </button>
-      </div>
-      <div className="interns-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Intern Type</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {interns.map(intern => (
-              <tr key={intern._id}>
-                <td>{intern.name}</td>
-                <td>{intern.email}</td>
-                <td>{intern.role}</td>
-                <td>{intern.internType || 'N/A'}</td>
-                <td>
-                  <button className="btn-danger" onClick={() => handleDeleteIntern(intern._id)}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  
+  if (loading) return <div className="loading">Loading...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
 
   console.log('Bills:', bills);
 
