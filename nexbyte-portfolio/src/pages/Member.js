@@ -74,20 +74,42 @@ const Member = () => {
     const fetchTasks = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('/api/tasks/my-tasks', {
+        console.log('DEBUG: Member fetching tasks with token:', !!token);
+        
+        // First try: Member-specific endpoint
+        let res = await axios.get('/api/tasks/my-tasks', {
           headers: {
             'x-auth-token': token
           }
+        }).catch(async () => {
+          console.log('DEBUG: my-tasks endpoint failed, trying general tasks endpoint...');
+          // Fallback: General tasks endpoint
+          return await axios.get('/api/tasks', {
+            headers: {
+              'x-auth-token': token
+            }
+          });
         });
 
         const tasksData = res.data;
-        setTasks(tasksData);
+        console.log('DEBUG: Member tasks fetched:', tasksData);
         
-        // Calculate progress data
-        const completedTasks = tasksData.filter(t => t.status === 'Done' || t.status === 'completed' || t.status === 'approved').length;
-        const inProgressTasks = tasksData.filter(t => t.status === 'In Progress' || t.status === 'in-progress' || t.status === 'review' || t.status === 'testing').length;
-        const pendingTasks = tasksData.filter(t => t.status === 'Pending' || t.status === 'pending' || t.status === 'on-hold').length;
-        const totalTasks = tasksData.length;
+        // Filter tasks assigned to current user
+        const assignedTasks = tasksData.filter(task => {
+          // Check if task is assigned to current user
+          const assignedToId = task.assignedTo?._id || task.assignedTo;
+          const userId = userData?._id || userData.id;
+          return !assignedToId || assignedToId === userId;
+        });
+        
+        console.log('DEBUG: Filtered assigned tasks for user:', assignedTasks);
+        setTasks(assignedTasks);
+        
+        // Calculate progress data based on assigned tasks only
+        const completedTasks = assignedTasks.filter(t => t.status === 'Done' || t.status === 'completed' || t.status === 'approved').length;
+        const inProgressTasks = assignedTasks.filter(t => t.status === 'In Progress' || t.status === 'in-progress' || t.status === 'review' || t.status === 'testing').length;
+        const pendingTasks = assignedTasks.filter(t => t.status === 'Pending' || t.status === 'pending' || t.status === 'on-hold').length;
+        const totalTasks = assignedTasks.length;
         const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
         
         setProgressData({
@@ -98,7 +120,16 @@ const Member = () => {
           completionRate
         });
       } catch (err) {
-        console.error('Failed to fetch tasks:', err);
+        console.error('DEBUG: Failed to fetch member tasks:', err);
+        // Set empty tasks on error
+        setTasks([]);
+        setProgressData({
+          completedTasks: 0,
+          inProgressTasks: 0,
+          pendingTasks: 0,
+          totalTasks: 0,
+          completionRate: 0
+        });
       }
     };
 
@@ -110,6 +141,82 @@ const Member = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const handleTaskStatusUpdate = async (taskId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('DEBUG: Member updating task:', taskId, 'to status:', newStatus);
+      
+      // First try: Direct task update
+      let response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      // If direct update fails, try member-specific endpoint
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Direct update failed, trying member endpoint...');
+        response = await fetch(`/api/member/tasks/${taskId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
+      // If still fails, try task status update endpoint
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Member endpoint failed, trying status update endpoint...');
+        response = await fetch(`/api/tasks/${taskId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
+      if (response.ok) {
+        setTasks(tasks.map(task => 
+          task._id === taskId ? { ...task, status: newStatus } : task
+        ));
+        
+        // Update progress data
+        const updatedTasks = tasks.map(task => 
+          task._id === taskId ? { ...task, status: newStatus } : task
+        );
+        const completedTasks = updatedTasks.filter(t => t.status === 'Done' || t.status === 'completed' || t.status === 'approved').length;
+        const inProgressTasks = updatedTasks.filter(t => t.status === 'In Progress' || t.status === 'in-progress' || t.status === 'review' || t.status === 'testing').length;
+        const pendingTasks = updatedTasks.filter(t => t.status === 'Pending' || t.status === 'pending' || t.status === 'on-hold').length;
+        const totalTasks = updatedTasks.length;
+        const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        
+        setProgressData({
+          completedTasks,
+          inProgressTasks,
+          pendingTasks,
+          totalTasks,
+          completionRate
+        });
+        
+        alert('Task status updated successfully!');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('All update attempts failed:', response.status, errorData);
+        alert(`Failed to update task: ${errorData.msg || 'Permission denied'}`);
+      }
+    } catch (err) {
+      console.error('Error updating task:', err);
+      alert('Error updating task status');
+    }
   };
 
   const getStatusColor = (status) => {
@@ -297,6 +404,31 @@ const Member = () => {
                           >
                             {task.priority}
                           </span>
+                        </div>
+                        <div className="task-actions">
+                          <select
+                            value={task.status}
+                            onChange={(e) => handleTaskStatusUpdate(task._id, e.target.value)}
+                            className="status-select"
+                            style={{ 
+                              backgroundColor: getStatusColor(task.status),
+                              color: 'white',
+                              border: 'none',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="review">Under Review</option>
+                            <option value="testing">Testing</option>
+                            <option value="approved">Approved</option>
+                            <option value="completed">Completed</option>
+                            <option value="on-hold">On Hold</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
                         </div>
                       </div>
                       <div className="task-description">

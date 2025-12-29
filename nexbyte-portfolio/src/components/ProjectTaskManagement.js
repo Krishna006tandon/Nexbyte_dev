@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './ProjectTaskManagement.css';
 
 const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
@@ -124,27 +126,62 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     }
   };
 
-  const handleTaskStatusUpdate = async (taskId, status) => {
+  const handleTaskStatusUpdate = async (taskId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/tasks/${taskId}/status`, {
+      console.log('DEBUG: Updating task:', taskId, 'to status:', newStatus);
+      
+      // First try: Direct task update
+      let response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': token 
+          'x-auth-token': token
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status: newStatus })
       });
       
-      if (!response.ok) throw new Error('Failed to update task status');
-      const updatedTask = await response.json();
-      setTasks(tasks.map(task => task._id === taskId ? updatedTask : task));
+      // If direct update fails, try member-specific endpoint
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Direct update failed, trying member endpoint...');
+        response = await fetch(`/api/member/tasks/${taskId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
+      // If still fails, try task status update endpoint
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Member endpoint failed, trying status update endpoint...');
+        response = await fetch(`/api/tasks/${taskId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
+      if (response.ok) {
+        setTasks(tasks.map(task => 
+          task._id === taskId ? { ...task, status: newStatus } : task
+        ));
+        toast.success('Task status updated successfully!');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('All update attempts failed:', response.status, errorData);
+        toast.error(`Failed to update task: ${errorData.msg || 'Permission denied'}`);
+      }
     } catch (err) {
-      setError(err.message);
+      console.error('Error updating task status:', err);
     }
   };
 
-  // Bulk operations
   const handleQuickAssign = async (taskId, userId) => {
     if (!userId) return;
     

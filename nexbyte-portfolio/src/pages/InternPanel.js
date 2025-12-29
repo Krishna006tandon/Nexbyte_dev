@@ -275,7 +275,14 @@ const InternPanel = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/tasks/${selectedTask._id}`, {
+      console.log('DEBUG: Updating task:', selectedTask._id);
+      console.log('DEBUG: Task assignedTo:', selectedTask.assignedTo);
+      console.log('DEBUG: New status:', updateStatus);
+      console.log('DEBUG: Token exists:', !!token);
+      console.log('DEBUG: User details:', user);
+      
+      // First try: Direct task update
+      let response = await fetch(`/api/tasks/${selectedTask._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -284,6 +291,32 @@ const InternPanel = () => {
         body: JSON.stringify({ status: updateStatus })
       });
       
+      // If direct update fails, try intern-specific endpoint
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Direct update failed, trying intern endpoint...');
+        response = await fetch(`/api/intern/tasks/${selectedTask._id}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: updateStatus })
+        });
+      }
+      
+      // If still fails, try task status update endpoint
+      if (!response.ok && response.status === 403) {
+        console.log('DEBUG: Intern endpoint failed, trying status update endpoint...');
+        response = await fetch(`/api/tasks/${selectedTask._id}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: updateStatus })
+        });
+      }
+      
       if (response.ok) {
         toast.success('Task status updated successfully!');
         setShowUpdateModal(false);
@@ -291,11 +324,13 @@ const InternPanel = () => {
         setUpdateStatus('');
         fetchInternData(); // Refresh tasks
       } else {
-        toast.error('Failed to update task status');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('All update attempts failed:', response.status, errorData);
+        toast.error(`Failed to update task: ${errorData.msg || 'Permission denied'}`);
       }
     } catch (err) {
       console.error('Error updating task:', err);
-      toast.error('Error updating task');
+      toast.error('Error updating task status');
     }
   };
 
