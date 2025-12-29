@@ -168,3 +168,18 @@
 .task-item h4:hover {
     color: var(--accent-hover);
 }
+
+.save-tasks-btn, .view-tasks-btn {
+    margin-right: 0.5rem;
+}
+
+.view-tasks-btn {
+    background-color: var(--surface-hover);
+    color: var(--primary-text);
+    border: 1px solid var(--border);
+}
+
+.view-tasks-btn:hover {
+    background-color: var(--border);
+    transform: translateY(-2px);
+}

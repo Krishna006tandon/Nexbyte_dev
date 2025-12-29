@@ -2278,29 +2278,6 @@ app.get('/api/interns', auth, admin, async (req, res) => {
   }
 });
 
-// @route   GET api/projects/:projectId/tasks
-// @desc    Get all tasks for a specific project
-// @access  Private (admin)
-app.get('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
-  try {
-    const tasks = await Task.find({ project: req.params.projectId })
-      .populate('assignedTo', 'email')
-      .sort({ createdAt: -1 });
-    
-    // Add name field to assignedTo for frontend compatibility
-    const tasksWithNames = tasks.map(task => {
-      if (task.assignedTo) {
-        task.assignedTo.name = task.assignedTo.email.split('@')[0];
-      }
-      return task;
-    });
-    
-    res.json(tasksWithNames);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 // @route   POST api/projects/:projectId/tasks
 // @desc    Create a new task for a project

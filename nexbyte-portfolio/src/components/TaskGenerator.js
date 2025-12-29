@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './TaskGenerator.css';
 
 const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
+    const navigate = useNavigate();
     const [projectName, setProjectName] = useState('');
     const [projectGoal, setProjectGoal] = useState('');
     const [totalBudget, setTotalBudget] = useState('');
@@ -174,6 +176,41 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
         }
     };
 
+    const handleViewTasks = () => {
+        // Get the current project ID based on selection
+        let currentProjectId = null;
+        
+        if (selectedProject) {
+            // If a project is selected, use its ID
+            currentProjectId = selectedProject;
+        } else if (clientId) {
+            // If a client is selected, find the associated project
+            const client = clients.find(c => c._id === clientId);
+            if (client) {
+                // Look for project with this client's name
+                const project = projects.find(p => 
+                    (p.associatedClient === clientId) || 
+                    (p.isClientProject && p.projectName === client.projectName)
+                );
+                if (project) {
+                    currentProjectId = project._id;
+                }
+            }
+        }
+        
+        if (currentProjectId) {
+            // Navigate to task management with the project
+            navigate('/admin/task-management', { 
+                state: { 
+                    selectedProjectId: currentProjectId,
+                    fromTaskGenerator: true 
+                } 
+            });
+        } else {
+            alert('Please select a project or client first to view tasks.');
+        }
+    };
+
     return (
         <div className="task-generator-container">
             <h2>AI Project Task Generator</h2>
@@ -299,6 +336,9 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                     </ul>
                     <button onClick={handleSaveTasks} disabled={isSaving} className="save-tasks-btn">
                         {isSaving ? 'Saving...' : 'Save Tasks to Project'}
+                    </button>
+                    <button onClick={handleViewTasks} className="view-tasks-btn">
+                        View Tasks
                     </button>
                 </div>
             )}

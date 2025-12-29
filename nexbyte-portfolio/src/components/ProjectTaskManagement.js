@@ -32,8 +32,10 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
       });
       if (!response.ok) throw new Error('Failed to fetch tasks');
       const data = await response.json();
+      console.log('Fetched tasks:', data); // Debug log
       setTasks(data);
     } catch (err) {
+      console.error('Error fetching tasks:', err); // Debug log
       setError(err.message);
     } finally {
       setLoading(false);
@@ -276,6 +278,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     return matchesStatus && matchesSearch;
   });
 
+  console.log('Total tasks:', tasks.length, 'Filtered tasks:', filteredTasks.length); // Debug log
+
   const toggleTaskSelection = (taskId) => {
     setSelectedTasks(prev => {
       const newSet = new Set(prev);
@@ -426,53 +430,60 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
           <span>Due Date</span>
           <span>Actions</span>
         </div>
-        {filteredTasks.map(task => (
-          <div key={task._id} className="task-item">
-            <input
-              type="checkbox"
-              checked={selectedTasks.has(task._id)}
-              onChange={() => toggleTaskSelection(task._id)}
-            />
-            <div className="task-info">
-              <h4>{task.task_title || task.title}</h4>
-              <p>{task.task_description || task.description}</p>
-            </div>
-            <span
-              className="priority"
-              style={{ backgroundColor: getPriorityColor(task.priority) }}
-            >
-              {task.priority}
-            </span>
-            <select
-              value={task.status}
-              onChange={(e) => handleTaskStatusUpdate(task._id, e.target.value)}
-              className="status-select"
-              style={{ color: getStatusColor(task.status) }}
-            >
-              <option value="pending">Pending</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
-            <span className="assigned-to">
-              {task.assignedTo?.name || 'Unassigned'}
-            </span>
-            <span className="due-date">
-              {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
-            </span>
-            <div className="task-actions">
-              <button onClick={() => {
-                setEditingTask(task);
-                setSelectedIntern(task.assignedTo?._id || '');
-                setShowAssignModal(true);
-              }}>
-                Assign
-              </button>
-              <button onClick={() => handleTaskDelete(task._id)} className="delete-btn">
-                Delete
-              </button>
-            </div>
+        {console.log('About to render tasks:', filteredTasks)} {/* Debug log */}
+        {filteredTasks.length === 0 ? (
+          <div className="no-tasks">
+            <p>No tasks found. Create your first task above!</p>
           </div>
-        ))}
+        ) : (
+          filteredTasks.map(task => (
+            <div key={task._id} className="task-item">
+              <input
+                type="checkbox"
+                checked={selectedTasks.has(task._id)}
+                onChange={() => toggleTaskSelection(task._id)}
+              />
+              <div className="task-info">
+                <h4>{task.task_title || task.title}</h4>
+                <p>{task.task_description || task.description}</p>
+              </div>
+              <span
+                className="priority"
+                style={{ backgroundColor: getPriorityColor(task.priority) }}
+              >
+                {task.priority}
+              </span>
+              <select
+                value={task.status}
+                onChange={(e) => handleTaskStatusUpdate(task._id, e.target.value)}
+                className="status-select"
+                style={{ color: getStatusColor(task.status) }}
+              >
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+              <span className="assigned-to">
+                {task.assignedTo?.name || 'Unassigned'}
+              </span>
+              <span className="due-date">
+                {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+              </span>
+              <div className="task-actions">
+                <button onClick={() => {
+                  setEditingTask(task);
+                  setSelectedIntern(task.assignedTo?._id || '');
+                  setShowAssignModal(true);
+                }}>
+                  Assign
+                </button>
+                <button onClick={() => handleTaskDelete(task._id)} className="delete-btn">
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Assignment Modal */}

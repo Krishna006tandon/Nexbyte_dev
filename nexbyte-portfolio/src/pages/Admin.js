@@ -42,6 +42,24 @@ const Admin = () => {
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { setSrsFullData } = useContext(SrsContext);
+
+  // Check if we have navigation state from TaskGenerator
+  useEffect(() => {
+    if (location.state?.fromTaskGenerator && location.state?.selectedProjectId) {
+      // Find the project and set it for task management
+      const project = projects.find(p => p._id === location.state.selectedProjectId);
+      if (project) {
+        setSelectedProjectForTasks(project);
+        setShowProjectTaskManagement(true);
+      }
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, projects, navigate, location.pathname]);
+
   const [clientData, setClientData] = useState({
     clientName: '',
     contactPerson: '',
@@ -87,10 +105,6 @@ const Admin = () => {
     functionalRequirements: '',
     nonFunctionalRequirements: '',
   });
-
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { setSrsFullData } = useContext(SrsContext);
 
   useEffect(() => {
     const fetchData = async () => {
