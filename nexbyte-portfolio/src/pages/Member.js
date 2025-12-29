@@ -171,6 +171,19 @@ const Member = () => {
         });
       }
       
+      // If member endpoint fails, try status update endpoint
+      if (!response.ok && (response.status === 403 || response.status === 404)) {
+        console.log('DEBUG: Member endpoint failed, trying status update endpoint...');
+        response = await fetch(`/api/tasks/${taskId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+      
       if (response.ok) {
         setTasks(tasks.map(task => 
           task._id === taskId ? { ...task, status: newStatus } : task
@@ -194,8 +207,7 @@ const Member = () => {
           completionRate
         });
         
-        alert('Task status updated successfully!');
-        // Don't call fetchMemberData - let local state update work like Intern panel
+        alert('✅ Task status saved to backend successfully!');
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('All update attempts failed:', response.status, errorData);
@@ -225,15 +237,44 @@ const Member = () => {
             completionRate
           });
           
-          alert('Task status updated locally (changes may not be saved to server)');
-          // Don't call fetchMemberData here - match Intern panel behavior
+          alert('⚠️ Backend save failed - updated locally only');
         } else {
-          alert(`Failed to update task: ${errorData.msg || 'Permission denied or endpoint not found'}`);
+          alert(`❌ Failed to update task: ${errorData.msg || 'Permission denied'}`);
         }
       }
     } catch (err) {
       console.error('Error updating task:', err);
-      alert('Error updating task status');
+      alert('❌ Error updating task status');
+    }
+  };
+
+  const handleBackendSave = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Save all tasks to backend
+      const savePromises = tasks.map(task => 
+        fetch(`/api/tasks/${task._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          body: JSON.stringify({ status: task.status })
+        })
+      );
+      
+      const results = await Promise.all(savePromises);
+      const successful = results.filter(r => r.ok).length;
+      
+      if (successful === tasks.length) {
+        alert(`✅ All ${tasks.length} tasks saved to backend successfully!`);
+      } else {
+        alert(`⚠️ ${successful}/${tasks.length} tasks saved to backend`);
+      }
+    } catch (err) {
+      console.error('Error saving to backend:', err);
+      alert('❌ Error saving to backend');
     }
   };
 
@@ -348,6 +389,22 @@ const Member = () => {
           <div className="user-info">
             <span>Welcome, {userData?.email}</span>
             <span className="role-badge">{userData?.role}</span>
+            <button 
+              onClick={handleBackendSave}
+              className="backend-save-btn"
+              style={{
+                marginLeft: '20px',
+                padding: '8px 16px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              💾 Save All to Backend
+            </button>
           </div>
         </div>
 
