@@ -14,7 +14,8 @@ app.use(cors());
 app.use(express.json());
 
 // Database connection
-mongoose.connect('mongodb://localhost:27017/nexbyte')
+const mongoURI = process.env.MONGODB_URI;
+mongoose.connect(mongoURI)
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
