@@ -7,7 +7,7 @@ import './Auth.css';
 import '../components/HomeSidebar.css';
 
 const Login = () => {
-  const { setIsAdmin, setIsClient } = useContext(AuthContext);
+  const { setIsAdmin, setIsClient, setIsIntern } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,13 +32,16 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
-                if (data.role === 'admin') {
+        
+        // Set auth context states based on role
+        if (data.role === 'admin') {
           setIsAdmin(true);
           navigate('/admin');
         } else if (data.role === 'client') {
           setIsClient(true);
           navigate('/client-panel');
         } else if (data.role === 'intern') {
+          setIsIntern(true);
           navigate('/intern-panel');
         } else if (data.role === 'member') {
           navigate('/member');

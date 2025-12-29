@@ -241,6 +241,23 @@
   color: #333;
 }
 
+.assign-dropdown {
+  padding: 6px 10px;
+  border: 2px solid #e1e8ed;
+  border-radius: 6px;
+  font-size: 12px;
+  background: white;
+  cursor: pointer;
+  min-width: 150px;
+  transition: all 0.3s ease;
+}
+
+.assign-dropdown:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
 .due-date {
   font-size: 14px;
   color: #666;

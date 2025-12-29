@@ -145,6 +145,33 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
   };
 
   // Bulk operations
+  const handleQuickAssign = async (taskId, userId) => {
+    if (!userId) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/tasks/${taskId}/assign`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ userId }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to assign task');
+      }
+      
+      const updatedTask = await response.json();
+      setTasks(tasks.map(task => 
+        task._id === taskId ? { ...task, assignedTo: interns.find(i => i._id === userId) } : task
+      ));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleBulkAssign = async () => {
     if (!bulkAssignIntern || selectedTasks.size === 0) return;
     
@@ -446,17 +473,28 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
                 <option value="completed">Completed</option>
               </select>
               <span className="assigned-to">
-                {task.assignedTo?.name || 'Unassigned'}
+                {/* DEBUG: Inline Assign Dropdown */}
+                <select
+                  value={task.assignedTo?._id || ''}
+                  onChange={(e) => {
+                    console.log('Assigning task', task._id, 'to intern', e.target.value);
+                    handleQuickAssign(task._id, e.target.value);
+                  }}
+                  className="assign-dropdown"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="">Unassigned</option>
+                  {interns.map(intern => (
+                    <option key={intern._id} value={intern._id}>
+                      {intern.name || intern.email}
+                    </option>
+                  ))}
+                </select>
               </span>
               <span className="due-date">
                 {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
               </span>
               <div className="task-actions">
-                <button onClick={() => {
-                  // Removed assignment functionality
-                }} className="assign-btn">
-                  Assign
-                </button>
                 <button onClick={() => handleTaskDelete(task._id)} className="delete-btn">
                   Delete
                 </button>
