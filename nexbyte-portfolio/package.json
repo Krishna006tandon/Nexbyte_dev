@@ -12,6 +12,7 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
+    "bfj": "^9.1.2",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "chrome-aws-lambda": "^10.1.0",
