@@ -43,12 +43,12 @@ const About = () => {
   return (
     <div className="about-page">
       <header className="page-header">
-        <h1 className="page-title">About NexByte_Dev</h1>
+        <h1 className="page-title">About Nexbyte_Core</h1>
         <p className="page-subtitle">
-          Welcome to NexByte_Dev, a hub of innovation where technology meets creativity. We are a collective of passionate developers, designers, and strategists dedicated to building cutting-edge digital solutions. 
+          Welcome to Nexbyte_Core, a hub of innovation where technology meets creativity. We are a collective of passionate developers, designers, and strategists dedicated to building cutting-edge digital solutions. 
           Our mission is to transform complex challenges into elegant, high-performance web applications, AI-driven systems, and secure backend architectures. 
           With a collaborative spirit and a commitment to excellence, we strive to deliver products that are not only functional and scalable but also provide an inspiring user experience. 
-          At NexByte_Dev, we don't just write code; we build the future, one line at a time.
+          At Nexbyte_Core, we don't just write code; we build the future, one line at a time.
         </p>
       </header>
 

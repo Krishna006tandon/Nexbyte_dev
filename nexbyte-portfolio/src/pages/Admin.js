@@ -692,7 +692,7 @@ const Admin = () => {
     <div class="invoice-box">
         <header class="header">
             <div class="logo">
-                <img src="/logobill.jpg" alt="NexByte_Dev Logo" style="max-width: 180px;">
+                <img src="/NexByte_Core Logo .png" alt="Nexbyte_Core Logo" style="max-width: 180px;">
             </div>
             <div class="company-details">
                 <h1>INVOICE</h1>
@@ -738,7 +738,7 @@ const Admin = () => {
             </div>
         </section>
         <footer class="footer">
-            <div>Thank you for choosing NexByte_Dev!</div>
+            <div>Thank you for choosing Nexbyte_Core!</div>
         </footer>
     </div>
     `;
@@ -863,12 +863,12 @@ const Admin = () => {
       <body>
         <div class="srs-box">
             <header class="header">
-                <img src="/logobill.jpg" alt="NexByte_Dev Logo">
+                <img src="/logobill.jpg" alt="Nexbyte_Core Logo">
                 <h1>Software Requirement Specification</h1>
             </header>
             <pre>${client.srsDocument}</pre>
             <footer class="footer">
-                <p>&copy; ${new Date().getFullYear()} NexByte_Dev. All rights reserved.</p>
+                <p>&copy; ${new Date().getFullYear()} Nexbyte_Core. All rights reserved.</p>
             </footer>
         </div>
       </body>

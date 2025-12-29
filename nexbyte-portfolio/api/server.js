@@ -240,15 +240,15 @@ const generateOfferLetter = (email, startDate, endDate, acceptanceDate) => {
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
       <p><strong>Date:</strong> ${date}</p>
-      <p><strong>Subject: Offer of Internship at NexByte_Dev</strong></p>
+      <p><strong>Subject: Offer of Internship at Nexbyte_Core</strong></p>
       <p>Dear ${email},</p>
-      <p>We are pleased to offer you an internship position at NexByte_Dev. We were very impressed with your qualifications and believe you would be a valuable addition to our team.</p>
+      <p>We are pleased to offer you an internship position at Nexbyte_Core. We were very impressed with your qualifications and believe you would be a valuable addition to our team.</p>
       ${durationText}
       <p>This internship will provide you with an excellent opportunity to gain practical experience and contribute to real-world projects. We are excited to have you join us.</p>
       <p>Please confirm your acceptance of this offer by <strong>${acceptanceDateFormatted}</strong>.</p>
-      <p>We look forward to welcoming you to NexByte_Dev!</p>
+      <p>We look forward to welcoming you to Nexbyte_Core!</p>
       <p>Sincerely,</p>
-      <p>The NexByte_Dev Team</p>
+      <p>The Nexbyte_Core Team</p>
     </div>
   `;
 };
@@ -370,7 +370,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
       emailSubject = 'Welcome to NexByte - Admin Account Created';
       emailHtml = `
         <p>Dear ${email},</p>
-        <p>Welcome to NexByte_Dev! Your admin account has been successfully created.</p>
+        <p>Welcome to Nexbyte_Core! Your admin account has been successfully created.</p>
         <p>Please find your login credentials below:</p>
         <ul>
           <li><strong>Email:</strong> ${email}</li>
@@ -386,13 +386,13 @@ app.post('/api/users', auth, admin, async (req, res) => {
         </ul>
         <p>As an admin, you have full access to manage clients, users, bills, and all system features.</p>
         <p>For security reasons, we recommend logging in to your Admin Panel at your earliest convenience and updating your password.</p>
-        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>
+        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The Nexbyte_Core Team</p>
       `;
     } else if (role === 'intern') {
       emailSubject = 'Welcome to NexByte - Intern Account Created';
       emailHtml = `
         <p>Dear ${email},</p>
-        <p>Welcome to NexByte_Dev! Your intern account has been successfully created.</p>
+        <p>Welcome to Nexbyte_Core! Your intern account has been successfully created.</p>
         <p>Please find your login credentials below:</p>
         <ul>
           <li><strong>Email:</strong> ${email}</li>
@@ -423,19 +423,19 @@ app.post('/api/users', auth, admin, async (req, res) => {
         emailHtml += `<p>Your official offer letter is available for review and download within your dedicated Intern Panel once you log in.</p>`;
       }
       
-      emailHtml += `<p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>`;
+      emailHtml += `<p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The Nexbyte_Core Team</p>`;
     } else {
       emailSubject = 'Welcome to NexByte - Account Created';
       emailHtml = `
         <p>Dear ${email},</p>
-        <p>Welcome to NexByte_Dev! Your account has been successfully created.</p>
+        <p>Welcome to Nexbyte_Core! Your account has been successfully created.</p>
         <p>Please find your login credentials below:</p>
         <ul>
           <li><strong>Email:</strong> ${email}</li>
           <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
         </ul>
         <p>For security reasons, we recommend logging in to your account at your earliest convenience and updating your password.</p>
-        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The NexByte_Dev Team</p>
+        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The Nexbyte_Core Team</p>
       `;
     }
 
@@ -2047,12 +2047,12 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
       subject: 'Internship Offer Accepted - Confirmation',
       html: `
         <p>Dear ${user.email},</p>
-        <p>Thank you for accepting your internship offer at NexByte_Dev!</p>
+        <p>Thank you for accepting your internship offer at Nexbyte_Core!</p>
         <p>We are excited to have you join our team. Your acceptance has been recorded and we will be in touch with next steps.</p>
         <p>Acceptance Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         <p>Welcome aboard!</p>
         <p>Sincerely,</p>
-        <p>The NexByte_Dev Team</p>
+        <p>The Nexbyte_Core Team</p>
       `,
     };
     
@@ -2110,13 +2110,13 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
       subject: 'Internship Offer Rejection Received',
       html: `
         <p>Dear ${user.email},</p>
-        <p>We have received your decision to decline the internship offer at NexByte_Dev.</p>
+        <p>We have received your decision to decline the internship offer at Nexbyte_Core.</p>
         <p>Rejection Reason: ${reason.trim()}</p>
         <p>We understand that career decisions are important and we respect your choice. We wish you the best in your future endeavors.</p>
         <p>Rejection Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         <p>Thank you for your time and consideration.</p>
         <p>Sincerely,</p>
-        <p>The NexByte_Dev Team</p>
+        <p>The Nexbyte_Core Team</p>
       `,
     };
     
