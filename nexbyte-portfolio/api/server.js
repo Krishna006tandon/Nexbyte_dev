@@ -2206,6 +2206,12 @@ app.put('/api/intern/tasks/:id', verifyIntern, async (req, res) => {
   try {
     const { status } = req.body;
     
+    console.log('DEBUG: Intern task update request:', {
+      taskId: req.params.id,
+      userId: req.user.id,
+      status: status
+    });
+    
     if (!status) {
       return res.status(400).json({ message: 'Status is required' });
     }
@@ -2214,26 +2220,38 @@ app.put('/api/intern/tasks/:id', verifyIntern, async (req, res) => {
     const task = await Task.findById(req.params.id);
     
     if (!task) {
+      console.log('DEBUG: Task not found:', req.params.id);
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    console.log('DEBUG: Found task:', {
+      taskId: task._id,
+      assignedTo: task.assignedTo,
+      userId: req.user.id,
+      currentStatus: task.status
+    });
+
     // Check if task is assigned to this intern
     if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+      console.log('DEBUG: Access denied - task not assigned to user');
       return res.status(403).json({ message: 'Access denied. Task not assigned to you.' });
     }
 
     // Update the task status
     task.status = status;
-    await task.save();
+    const updatedTask = await task.save();
+    
+    console.log('DEBUG: Task updated successfully:', updatedTask.status);
 
     // Populate user info for response
-    await task.populate('assignedTo', 'firstName lastName email');
-    await task.populate('client', 'companyName email');
+    await updatedTask.populate('assignedTo', 'firstName lastName email');
+    await updatedTask.populate('client', 'companyName email');
 
-    res.json(task);
+    res.json(updatedTask);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('ERROR in intern task update:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 });
 
@@ -2244,6 +2262,12 @@ app.put('/api/member/tasks/:id', auth, async (req, res) => {
   try {
     const { status } = req.body;
     
+    console.log('DEBUG: Member task update request:', {
+      taskId: req.params.id,
+      userId: req.user.id,
+      status: status
+    });
+    
     if (!status) {
       return res.status(400).json({ message: 'Status is required' });
     }
@@ -2252,26 +2276,38 @@ app.put('/api/member/tasks/:id', auth, async (req, res) => {
     const task = await Task.findById(req.params.id);
     
     if (!task) {
+      console.log('DEBUG: Task not found:', req.params.id);
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    console.log('DEBUG: Found task:', {
+      taskId: task._id,
+      assignedTo: task.assignedTo,
+      userId: req.user.id,
+      currentStatus: task.status
+    });
+
     // Check if task is assigned to this member
     if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+      console.log('DEBUG: Access denied - task not assigned to user');
       return res.status(403).json({ message: 'Access denied. Task not assigned to you.' });
     }
 
     // Update the task status
     task.status = status;
-    await task.save();
+    const updatedTask = await task.save();
+    
+    console.log('DEBUG: Task updated successfully:', updatedTask.status);
 
     // Populate user info for response
-    await task.populate('assignedTo', 'firstName lastName email');
-    await task.populate('client', 'companyName email');
+    await updatedTask.populate('assignedTo', 'firstName lastName email');
+    await updatedTask.populate('client', 'companyName email');
 
-    res.json(task);
+    res.json(updatedTask);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('ERROR in member task update:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 });
 

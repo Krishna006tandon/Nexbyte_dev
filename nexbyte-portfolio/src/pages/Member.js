@@ -158,6 +158,8 @@ const Member = () => {
         body: JSON.stringify({ status: newStatus })
       });
       
+      console.log('DEBUG: Member endpoint response status:', response.status);
+      
       // If member endpoint fails, try direct task update
       if (!response.ok && response.status === 403) {
         console.log('DEBUG: Member endpoint failed, trying direct task update...');
@@ -169,6 +171,7 @@ const Member = () => {
           },
           body: JSON.stringify({ status: newStatus })
         });
+        console.log('DEBUG: Direct update response status:', response.status);
       }
       
       // If member endpoint fails, try status update endpoint
@@ -182,6 +185,7 @@ const Member = () => {
           },
           body: JSON.stringify({ status: newStatus })
         });
+        console.log('DEBUG: Status update endpoint response status:', response.status);
       }
       
       if (response.ok) {
@@ -239,7 +243,7 @@ const Member = () => {
           
           alert('⚠️ Backend save failed - updated locally only');
         } else {
-          alert(`❌ Failed to update task: ${errorData.msg || 'Permission denied'}`);
+          alert(`❌ Failed to update task: ${errorData.message || errorData.error || 'Permission denied'}`);
         }
       }
     } catch (err) {
