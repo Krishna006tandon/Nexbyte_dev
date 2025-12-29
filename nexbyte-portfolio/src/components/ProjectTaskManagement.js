@@ -10,11 +10,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
-  const [selectedIntern, setSelectedIntern] = useState('');
   const [bulkAssignIntern, setBulkAssignIntern] = useState('');
-  const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -122,30 +119,6 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
         newSet.delete(taskId);
         return newSet;
       });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleTaskAssignment = async (taskId, internId) => {
-    if (!internId) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/tasks/${taskId}/assign`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-auth-token': token 
-        },
-        body: JSON.stringify({ userId: internId })
-      });
-      
-      if (!response.ok) throw new Error('Failed to assign task');
-      const updatedTask = await response.json();
-      setTasks(tasks.map(task => task._id === taskId ? updatedTask : task));
-      setShowAssignModal(false);
-      setSelectedIntern('');
     } catch (err) {
       setError(err.message);
     }
@@ -480,10 +453,8 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
               </span>
               <div className="task-actions">
                 <button onClick={() => {
-                  setEditingTask(task);
-                  setSelectedIntern(task.assignedTo?._id || '');
-                  setShowAssignModal(true);
-                }}>
+                  // Removed assignment functionality
+                }} className="assign-btn">
                   Assign
                 </button>
                 <button onClick={() => handleTaskDelete(task._id)} className="delete-btn">
