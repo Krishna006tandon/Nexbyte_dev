@@ -495,53 +495,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
         )}
       </div>
 
-      {/* Assignment Modal */}
-      {showAssignModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <h3>{editingTask ? 'Reassign Task' : 'Assign Task'}</h3>
-            <select
-              value={selectedIntern}
-              onChange={(e) => setSelectedIntern(e.target.value)}
-            >
-              <option value="">-- Select User to Assign --</option>
-              {interns.map(intern => (
-                <option key={intern._id} value={intern._id}>
-                  {intern.name} ({intern.role})
-                </option>
-              ))}
-            </select>
-            <div className="modal-actions">
-              <select
-                value={selectedIntern}
-                onChange={(e) => {
-                  setSelectedIntern(e.target.value);
-                  if (editingTask && e.target.value) {
-                    handleTaskAssignment(editingTask._id, e.target.value);
-                    setShowAssignModal(false);
-                    setEditingTask(null);
-                    setSelectedIntern('');
-                  }
-                }}
-              >
-                <option value="">-- Select User to Assign --</option>
-                {interns.map(intern => (
-                  <option key={intern._id} value={intern._id}>
-                    {intern.name} ({intern.role})
-                  </option>
-                ))}
-              </select>
-              <button onClick={() => {
-                setShowAssignModal(false);
-                setEditingTask(null);
-                setSelectedIntern('');
-              }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Assignment Modal - REMOVED */}
 
       {/* Bulk Assignment Modal */}
       {showBulkAssignModal && (
