@@ -381,3 +381,98 @@
   color: var(--primary-text);
   border: 1px solid var(--border);
 }
+
+/* Profile View Styles */
+.profile-view {
+  color: var(--primary-text);
+}
+
+.profile-info {
+  background-color: var(--surface);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+
+.profile-info p {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.password-section {
+  background-color: var(--surface);
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.change-password-btn {
+  background-color: var(--accent);
+  color: var(--background-dark);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.change-password-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+/* Password Change Modal Styles */
+.password-change-modal {
+  color: var(--primary-text);
+}
+
+.password-change-modal h2 {
+  margin-top: 0;
+  color: var(--primary-text);
+}
+
+.password-input {
+  margin-bottom: 15px;
+}
+
+.password-input label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--secondary-text);
+  font-weight: 500;
+}
+
+.password-input input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background-color: var(--surface);
+  color: var(--primary-text);
+  font-size: 14px;
+}
+
+.password-input input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-focus);
+}
+
+.message {
+  padding: 10px;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.message.success {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.message.error {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border: 1px solid #f44336;
+}
