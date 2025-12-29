@@ -18,6 +18,10 @@ const ClientPanel = () => {
   const [milestone, setMilestone] = useState(null); // Add state for milestone
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handlePayNow = (bill) => {
     setSelectedBill(bill);
@@ -29,6 +33,46 @@ const ClientPanel = () => {
     setSelectedBill(null);
     setTransactionId('');
     setPaidAmount('');
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setMessage('New passwords do not match');
+      setMessageStatus('error');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/client/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('Password changed successfully');
+        setMessageStatus('success');
+        setShowPasswordChange(false);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setMessage(data.message || 'Failed to change password');
+        setMessageStatus('error');
+      }
+    } catch (err) {
+      setMessage('Server error. Please try again.');
+      setMessageStatus('error');
+    }
   };
 
   useEffect(() => {
@@ -421,6 +465,29 @@ const ClientPanel = () => {
     );
   };
 
+  const renderProfile = () => (
+    <div className="profile-view">
+      <h2>Profile Information</h2>
+      <div className="profile-info">
+        <p><strong>Client Name:</strong> {data.clientData.name}</p>
+        <p><strong>Contact Person:</strong> {data.clientData.contactPerson}</p>
+        <p><strong>Email:</strong> {data.clientData.email}</p>
+        <p><strong>Project:</strong> {data.clientData.project}</p>
+      </div>
+      <div className="password-section">
+        <h3>Change Password</h3>
+        <button onClick={() => setShowPasswordChange(true)} className="change-password-btn">
+          Change Password
+        </button>
+      </div>
+      {message && (
+        <div className={`message ${messageStatus}`}>
+          {message}
+        </div>
+      )}
+    </div>
+  );
+
   const handleDownloadSrs = () => {
     if (!data || !data.clientData || !data.clientData.srsDocument) {
       alert('SRS data is not yet loaded. Please wait a moment and try again.');
@@ -570,6 +637,9 @@ const ClientPanel = () => {
           <li onClick={() => setActiveView('billing')} className={activeView === 'billing' ? 'active' : ''}>
             Billing
           </li>
+          <li onClick={() => setActiveView('profile')} className={activeView === 'profile' ? 'active' : ''}>
+            Profile
+          </li>
         </ul>
       </div>
       <div className="main-content">
@@ -577,6 +647,7 @@ const ClientPanel = () => {
         {activeView === 'dashboard' && renderDashboard()}
         {activeView === 'srs' && renderSrs()}
         {activeView === 'billing' && renderBilling()}
+        {activeView === 'profile' && renderProfile()}
         {isSrsModalOpen && (
           <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
             <div className="srs-modal">
@@ -626,6 +697,49 @@ const ClientPanel = () => {
                   Confirm Payment</button>
                 <button onClick={closeModal}>Cancel</button>
               </div>
+            </div>
+          </Modal>
+        )}
+        {showPasswordChange && (
+          <Modal isOpen={showPasswordChange} onClose={() => setShowPasswordChange(false)}>
+            <div className="password-change-modal">
+              <h2>Change Password</h2>
+              <form onSubmit={handlePasswordChange}>
+                <div className="password-input">
+                  <label htmlFor="currentPassword">Current Password</label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="password-input">
+                  <label htmlFor="newPassword">New Password</label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="password-input">
+                  <label htmlFor="confirmPassword">Confirm New Password</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="submit">Change Password</button>
+                  <button type="button" onClick={() => setShowPasswordChange(false)}>Cancel</button>
+                </div>
+              </form>
             </div>
           </Modal>
         )}

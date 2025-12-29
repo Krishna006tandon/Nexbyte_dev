@@ -658,8 +658,10 @@ app.post('/api/clients', auth, admin, async (req, res) => {
         <h2>Login Credentials:</h2>
         <ul>
           <li><strong>Email:</strong> ${email}</li>
-          <li>Please reset your password on the first login.</li>
+          <li><strong>Password:</strong> ${password}</li>
+          <li><strong>website link:</strong>https://nexbyte-dev.vercel.app/ </li>
         </ul>
+        <p><strong>Please save these credentials and change your password after first login.</strong></p>
       `,
     };
 
@@ -726,6 +728,32 @@ app.delete('/api/clients/:id', auth, admin, async (req, res) => {
 // @route   GET api/clients/:id/password
 // @desc    Get client password
 // @access  Private (admin)
+app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
+  try {
+    const client = await Client.findById(req.params.id).select('password');
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    // Since passwords are hashed, we can't retrieve the original
+    // Instead, we'll generate a new temporary password
+    const tempPassword = generatePassword();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(tempPassword, salt);
+    
+    // Update client with new temporary password
+    await Client.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+    
+    res.json({ password: tempPassword });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/client/data
+// @desc    Get client data for client panel
+// @access  Private (client)
 app.get('/api/client/data', auth, client, async (req, res) => {
   try {
     const client = await Client.findById(req.user.id).select('-password');
@@ -754,6 +782,38 @@ app.get('/api/client/data', auth, client, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server. Please try again later' });
+  }
+});
+
+// @route   PUT api/client/change-password
+// @desc    Change client password
+// @access  Private (client)
+app.put('/api/client/change-password', auth, client, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const clientRecord = await Client.findById(req.user.id);
+    if (!clientRecord) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, clientRecord.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await Client.findByIdAndUpdate(req.user.id, { password: hashedPassword });
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
