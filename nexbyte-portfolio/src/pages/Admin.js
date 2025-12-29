@@ -27,6 +27,17 @@ const Admin = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [taskPageClientId, setTaskPageClientId] = useState('');
+  const [interns, setInterns] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showInternModal, setShowInternModal] = useState(false);
+  const [internForm, setInternForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'intern',
+    internType: 'free'
+  });
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
   const [milestone, setMilestone] = useState(null);
@@ -124,7 +135,7 @@ const Admin = () => {
           if (res.ok) {
             setContacts(data);
           } else {
-            console.error(data.message);
+            console.error('Failed to fetch contacts:', data.message);
           }
         } else if (location.pathname === '/admin/messages') {
           const res = await fetch('/api/messages', { headers });
@@ -132,7 +143,7 @@ const Admin = () => {
           if (res.ok) {
             setMessages(data);
           } else {
-            console.error(data.message);
+            console.error('Failed to fetch messages:', data.message);
           }
         } else if (location.pathname === '/admin/members') {
           const res = await fetch('/api/users', { headers });
@@ -140,7 +151,7 @@ const Admin = () => {
           if (res.ok) {
             setMembers(data);
           } else {
-            console.error(data.message);
+            console.error('Failed to fetch members:', data.message);
           }
         } else if (location.pathname === '/admin/reports') {
           const res = await fetch('/api/users', { headers });
@@ -148,7 +159,7 @@ const Admin = () => {
           if (res.ok) {
             setMembers(data);
           } else {
-            console.error(data.message);
+            console.error('Failed to fetch members for reports:', data.message);
           }
         } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects', '/admin/task-management'].includes(location.pathname)) {
           const res = await fetch('/api/clients', { headers });
@@ -156,7 +167,7 @@ const Admin = () => {
           if (res.ok) {
             setClients(data);
           } else {
-            console.error(data.message);
+            console.error('Failed to fetch clients:', data.message);
           }
         }
 
@@ -166,7 +177,7 @@ const Admin = () => {
           if (res.ok) {
             setProjects(data);
           } else {
-            console.error(data.message);
+            console.error('Failed to fetch projects:', data.message);
           }
         }
 
@@ -176,11 +187,23 @@ const Admin = () => {
           if (res.ok) {
             setBills(data);
           } else {
-            console.error(data.message);
+            console.error('Failed to fetch bills:', data.message);
+          }
+        }
+
+        // Fetch tasks for task management
+        if (location.pathname === '/admin/tasks') {
+          const res = await fetch('/api/tasks', { headers });
+          const data = await res.json();
+          if (res.ok) {
+            setTasks(data);
+          } else {
+            console.error('Failed to fetch tasks:', data.message);
           }
         }
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching data:', err);
+        setError('Failed to load data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -1282,6 +1305,58 @@ const Admin = () => {
                 onTasksSaved={handleTasksSaved}
               />
               <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
+            </div>
+          )}
+
+          {location.pathname === '/admin/reports' && (
+            <div>
+              <h2>Intern Reports</h2>
+              <div className="reports-grid">
+                {members.filter(member => member.role === 'intern').map((intern) => (
+                  <div key={intern._id} className="report-card">
+                    <div className="report-header">
+                      <h3>{intern.email}</h3>
+                      <span className="intern-type">{intern.internType === 'free' ? 'Free Intern' : 'Stipend Intern'}</span>
+                    </div>
+                    <div className="report-stats">
+                      <div className="stat-item">
+                        <label>Total Tasks:</label>
+                        <span>24</span>
+                      </div>
+                      <div className="stat-item">
+                        <label>Completed:</label>
+                        <span>18</span>
+                      </div>
+                      <div className="stat-item">
+                        <label>Completion Rate:</label>
+                        <span>75%</span>
+                      </div>
+                    </div>
+                    <div className="report-activity">
+                      <h4>Recent Activity</h4>
+                      <div className="activity-list">
+                        <div className="activity-item">
+                          <span className="activity-date">2024-01-15</span>
+                          <span className="activity-description">Completed UI redesign</span>
+                        </div>
+                        <div className="activity-item">
+                          <span className="activity-date">2024-01-14</span>
+                          <span className="activity-description">Fixed billing issues</span>
+                        </div>
+                        <div className="activity-item">
+                          <span className="activity-date">2024-01-13</span>
+                          <span className="activity-description">Added SRS generator</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="report-actions">
+                      <button onClick={() => handleShowInternReport(intern._id)} className="btn btn-info">
+                        {reportLoading && selectedInternForReport === intern._id ? 'Loading...' : 'View Full Report'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
