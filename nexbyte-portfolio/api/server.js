@@ -1461,7 +1461,8 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
         projectGoal,
         total_budget_in_INR,
         fixed_costs_in_INR,
-        isFreeProject = false
+        isFreeProject = false,
+        selectedProject // ✅ Add selectedProject from request
     } = req.body;
 
     // Validate required fields
@@ -1591,6 +1592,7 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
                 estimated_effort_hours: task.estimated_effort_hours,
                 reward_amount_in_INR: reward,
                 client: clientId || null,
+                project: selectedProject || null, // ✅ Add project field
                 status: 'To Do',
                 isFreeProject: isFreeProject
             };
@@ -1615,23 +1617,28 @@ app.post('/api/save-tasks', auth, admin, async (req, res) => {
     }
 
     try {
+        console.log('Raw tasks received:', tasks); // Debug log
+        
         // Fix field names and add missing required fields
-        const fixedTasks = tasks.map(task => ({
-            title: task.title || task.task_title, // Handle both field names
-            description: task.description || task.task_description, // Handle both field names
-            priority: task.priority || 'medium',
-            status: task.status || 'pending',
-            estimated_effort_hours: task.estimated_effort_hours || 8, // Default 8 hours
-            reward_amount_in_INR: task.reward_amount_in_INR || 500, // Default 500 INR
-            project: task.project || task.projectId, // Handle both field names
-            client: task.client || null,
-            assignedTo: task.assignedTo || null,
-            dueDate: task.dueDate || null
-        }));
+        const fixedTasks = tasks.map(task => {
+            console.log('Processing task:', task); // Debug log
+            return {
+                title: task.title || task.task_title, // Handle both field names
+                description: task.description || task.task_description, // Handle both field names
+                priority: task.priority || 'medium',
+                status: task.status || 'pending',
+                estimated_effort_hours: task.estimated_effort_hours || 8, // Default 8 hours
+                reward_amount_in_INR: task.reward_amount_in_INR || 500, // Default 500 INR
+                project: task.project || task.projectId, // Handle both field names
+                client: task.client || null,
+                assignedTo: task.assignedTo || null,
+                dueDate: task.dueDate || null
+            };
+        });
 
-        console.log('Saving tasks with fixed data:', fixedTasks.length); // Debug log
-        await Task.insertMany(fixedTasks);
-        console.log('Tasks saved successfully'); // Debug log
+        console.log('Fixed tasks to save:', fixedTasks); // Debug log
+        const savedTasks = await Task.insertMany(fixedTasks);
+        console.log('Tasks saved successfully:', savedTasks.length); // Debug log
         res.status(201).json({ message: 'Tasks saved successfully.' });
     } catch (error) {
         console.error('Error saving tasks:', error);

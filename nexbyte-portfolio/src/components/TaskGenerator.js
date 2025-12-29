@@ -137,7 +137,8 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
                     projectGoal,
                     total_budget_in_INR: isFreeProject ? 0 : parseFloat(totalBudget) || 0,
                     fixed_costs_in_INR: isFreeProject ? 0 : parseFloat(fixedCosts) || 0,
-                    isFreeProject: isFreeProject
+                    isFreeProject: isFreeProject,
+                    selectedProject: selectedProject // ✅ Pass selectedProject
                 }),
             });
             if (!response.ok) {
