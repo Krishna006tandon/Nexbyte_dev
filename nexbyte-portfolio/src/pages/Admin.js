@@ -27,17 +27,6 @@ const Admin = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [taskPageClientId, setTaskPageClientId] = useState('');
-  const [interns, setInterns] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [showInternModal, setShowInternModal] = useState(false);
-  const [internForm, setInternForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'intern',
-    internType: 'free'
-  });
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedClientForTracker, setSelectedClientForTracker] = useState(null);
   const [milestone, setMilestone] = useState(null);
@@ -196,7 +185,7 @@ const Admin = () => {
           const res = await fetch('/api/tasks', { headers });
           const data = await res.json();
           if (res.ok) {
-            setTasks(data);
+            // Tasks are handled by TaskList component
           } else {
             console.error('Failed to fetch tasks:', data.message);
           }
