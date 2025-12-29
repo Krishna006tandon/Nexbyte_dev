@@ -805,50 +805,7 @@ const Admin = () => {
     window.html2pdf().from(element).set(opt).save();
   };
 
-  const handleApprovePayment = async (billId, paymentId) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`/api/bills/${billId}/approve-payment`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-        body: JSON.stringify({ paymentId }),
-      });
-      const updatedBill = await res.json();
-      if (res.ok) {
-        setBills(bills.map(b => b._id === billId ? updatedBill : b));
-      } else {
-        throw new Error(updatedBill.message || 'Failed to approve payment');
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRejectPayment = async (billId, paymentId) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`/api/bills/${billId}/reject-payment`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-        body: JSON.stringify({ paymentId }),
-      });
-      const updatedBill = await res.json();
-      if (res.ok) {
-        setBills(bills.map(b => b._id === billId ? updatedBill : b));
-      } else {
-        throw new Error(updatedBill.message || 'Failed to reject payment');
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
+  
   const handleDownloadSrs = (client) => {
     if (!client || !client.srsDocument) {
       alert('SRS data is not yet loaded. Please wait a moment and try again.');
