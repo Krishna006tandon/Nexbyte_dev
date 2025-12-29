@@ -130,7 +130,7 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects'].includes(location.pathname)) {
+        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects', '/admin/task-management'].includes(location.pathname)) {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -140,7 +140,7 @@ const Admin = () => {
           }
         }
 
-        if (location.pathname === '/admin/projects') {
+        if (['/admin/projects', '/admin/task-management'].includes(location.pathname)) {
           const res = await fetch('/api/projects', { headers });
           const data = await res.json();
           if (res.ok) {
