@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ProjectTaskManagement.css';
 
 const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
@@ -23,16 +23,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     status: 'pending'
   });
 
-  // Fetch tasks and interns
-  useEffect(() => {
-    const fetchData = async () => {
-      await fetchTasks();
-      await fetchInterns();
-    };
-    fetchData();
-  }, [projectId]);
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/projects/${projectId}/tasks`);
@@ -44,7 +35,7 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   const fetchInterns = async () => {
     try {
@@ -56,6 +47,15 @@ const ProjectTaskManagement = ({ projectId, projectName, onBack }) => {
       console.error('Error fetching interns:', err);
     }
   };
+
+  // Fetch tasks and interns
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchTasks();
+      await fetchInterns();
+    };
+    fetchData();
+  }, [projectId, fetchTasks]);
 
   // Task operations
   const handleTaskCreate = async () => {
