@@ -1,3 +1,16 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /client-panel
+Disallow: /intern-panel
+Disallow: /login
+Disallow: /signup
+
+# Allow all other pages
+Allow: /
+
+# Sitemap location
+Sitemap: https://nexbyte-dev.vercel.app/sitemap.xml

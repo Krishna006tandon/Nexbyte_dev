@@ -21,7 +21,7 @@ const Navbar = () => {
   return (
     <header className="header">
       <nav className="navbar">
-        <NavLink className="nav-logo" to="/">Nexbyte</NavLink>
+        <NavLink className="nav-logo" to="/">Nexbyte_Core</NavLink>
         <div className={`nav-menu collapse ${!isNavCollapsed ? 'show' : ''}`}>
           <NavLink className="nav-link" to="/" end>Home</NavLink>
           <NavLink className="nav-link" to="/about">About</NavLink>
