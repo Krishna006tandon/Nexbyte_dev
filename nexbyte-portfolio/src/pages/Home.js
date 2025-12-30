@@ -6,12 +6,18 @@ import { FaCode, FaMobileAlt, FaPaintBrush } from 'react-icons/fa';
 import './Home.css';
 import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
 
+export const metadata = {
+  title: "Web Development & SEO Services | NexByte_Core",
+  description:
+    "NexByte_Core offers web development, SEO, and UI/UX services. Fast, secure, and scalable websites for startups & businesses.",
+};
+
 const Home = () => {
   return (
     <>
       <Helmet>
-        <title>Web Development Services in India | NexByte Studio</title>
-        <meta name="description" content="Professional web development & SEO services. Fast, secure & mobile-friendly websites by NexByte Studio." />
+        <title>{metadata.title}</title>
+        <meta name="description" content={metadata.description} />
         <meta name="keywords" content="web development services, website development, web design, SEO services, nexbyte, nexbyte studio, nexbyte core" />
         <link rel="canonical" href="https://nexbyte-dev.vercel.app/" />
       </Helmet>
@@ -21,7 +27,7 @@ const Home = () => {
         <div className="home-page">
           {/* Hero Section */}
           <section className="hero-section">
-            <h1 className="hero-title">Build Your Digital Future</h1>
+            <h1 className="hero-title">NexByte_Core – Web Development & Digital Solutions</h1>
             <p className="hero-subtitle">We create stunning and powerful web and mobile applications, designed for the modern world.</p>
             <Link to="/contact" className="btn btn-primary">Get in Touch</Link>
           </section>
@@ -51,7 +57,7 @@ const Home = () => {
           {/* Extended Content for SEO */}
           <section className="about-services">
             <h2>Why Choose Our Web Development Services?</h2>
-            <p>At NexByte Studio, we specialize in delivering high-quality web development services that help businesses establish a strong online presence. Our team of experienced developers and designers work together to create custom solutions tailored to your specific needs.</p>
+            <p>At NexByte_Core, we specialize in delivering high-quality web development services that help businesses establish a strong online presence. Our team of experienced developers and designers work together to create custom solutions tailored to your specific needs.</p>
             
             <h3>Custom Web Development Solutions</h3>
             <p>Our web development services cover everything from simple static websites to complex web applications. We use modern technologies like React, Node.js, and Python to ensure your website is fast, secure, and scalable. Whether you need an e-commerce platform, a content management system, or a custom business application, our web development team has the expertise to deliver.</p>

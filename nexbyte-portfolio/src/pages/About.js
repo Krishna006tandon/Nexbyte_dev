@@ -5,6 +5,12 @@ import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import './About.css';
 // import HomeSidebar from '../components/HomeSidebar';
 import '../components/HomeSidebar.css';
+
+export const metadata = {
+  title: "About Web Development Company | NexByte_Core",
+  description:
+    "Learn about NexByte_Core - a leading web development company providing innovative digital solutions, custom web applications, and expert development services.",
+};
 const teamMembers = [
   {
     name: 'Krishna Tandon',
@@ -44,32 +50,32 @@ const About = () => {
   return (
     <>
       <Helmet>
-        <title>About Web Development Company | NexByte Studio</title>
-        <meta name="description" content="Learn about NexByte Studio - a leading web development company providing innovative digital solutions, custom web applications, and expert development services." />
+        <title>{metadata.title}</title>
+        <meta name="description" content={metadata.description} />
         <meta name="keywords" content="web development company, web development team, software development company, web developers, nexbyte, nexbyte core" />
         <link rel="canonical" href="https://nexbyte-dev.vercel.app/about" />
       </Helmet>
       
       <div className="about-page">
         <header className="page-header">
-          <h1 className="page-title">About Nexbyte_Core - Web Development Company</h1>
+          <h1 className="page-title">About NexByte_Core - Web Development Company</h1>
           <p className="page-subtitle">
-            Welcome to Nexbyte_Core, a hub of innovation where technology meets creativity. We are a collective of passionate developers, designers, and strategists dedicated to building cutting-edge digital solutions. 
+            Welcome to NexByte_Core, a hub of innovation where technology meets creativity. We are a collective of passionate developers, designers, and strategists dedicated to building cutting-edge digital solutions. 
             Our mission is to transform complex challenges into elegant, high-performance web applications, AI-driven systems, and secure backend architectures. 
             With a collaborative spirit and a commitment to excellence, we strive to deliver products that are not only functional and scalable but also provide an inspiring user experience. 
-            At Nexbyte_Core, we don't just write code; we build the future, one line at a time.
+            At NexByte_Core, we don't just write code; we build the future, one line at a time.
           </p>
         </header>
 
         <section className="company-story">
           <h2>Our Story as a Web Development Company</h2>
-          <p>Nexbyte_Core was founded with a simple vision: to become a web development company that bridges the gap between innovative ideas and practical implementation. As a growing web development company, we understand the challenges businesses face in today's digital landscape. Our team combines technical expertise with creative problem-solving to deliver solutions that drive real business value.</p>
+          <p>NexByte_Core was founded with a simple vision: to become a web development company that bridges the gap between innovative ideas and practical implementation. As a growing web development company, we understand the challenges businesses face in today's digital landscape. Our team combines technical expertise with creative problem-solving to deliver solutions that drive real business value.</p>
           
           <h3>Web Development Company Philosophy</h3>
           <p>As a client-focused web development company, we believe in transparency, collaboration, and continuous learning. Our approach to web development is rooted in understanding your business objectives and translating them into technical solutions. Every project we undertake as a web development company is an opportunity to push boundaries and set new standards in digital innovation.</p>
           
           <h3>Why Choose Our Web Development Company?</h3>
-          <p>Choosing the right web development company is crucial for your project's success. At Nexbyte_Core, we differentiate ourselves through our commitment to quality, innovation, and client satisfaction. Our web development company offers comprehensive services that cover the entire development lifecycle - from initial consultation and strategy to deployment and ongoing support.</p>
+          <p>Choosing the right web development company is crucial for your project's success. At NexByte_Core, we differentiate ourselves through our commitment to quality, innovation, and client satisfaction. Our web development company offers comprehensive services that cover the entire development lifecycle - from initial consultation and strategy to deployment and ongoing support.</p>
           
           <h3>Web Development Company Expertise</h3>
           <p>Our web development company specializes in modern technologies and frameworks. We stay ahead of industry trends to ensure our clients receive cutting-edge solutions. As a versatile web development company, we work across various domains including e-commerce, healthcare, education, and enterprise applications. Our team's diverse skill set allows us to tackle complex challenges and deliver robust, scalable solutions.</p>
@@ -112,7 +118,7 @@ const About = () => {
 
         <section className="company-values">
           <h2>Web Development Company Values</h2>
-          <p>At Nexbyte_Core, our values guide everything we do as a web development company. We believe in innovation, integrity, and excellence. These core values shape our approach to web development and define our relationships with clients and team members. As a responsible web development company, we prioritize security, performance, and user experience in every project we undertake.</p>
+          <p>At NexByte_Core, our values guide everything we do as a web development company. We believe in innovation, integrity, and excellence. These core values shape our approach to web development and define our relationships with clients and team members. As a responsible web development company, we prioritize security, performance, and user experience in every project we undertake.</p>
           
           <h3>Future Vision for Our Web Development Company</h3>
           <p>Looking ahead, our web development company aims to expand our services and impact more businesses through digital transformation. We continue to invest in learning and adopting new technologies to stay at the forefront of web development. Our vision is to be recognized as a leading web development company that consistently delivers exceptional results and drives digital innovation.</p>
