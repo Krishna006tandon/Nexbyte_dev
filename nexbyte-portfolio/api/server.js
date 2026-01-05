@@ -19,6 +19,7 @@ const Report = require('./models/Report');
 const Notification = require('./models/Notification');
 const Resource = require('./models/Resource');
 const Project = require('./models/Project');
+const internshipRoutes = require('./internship');
 
 
 const app = express();
@@ -2711,6 +2712,9 @@ app.delete('/api/tasks/:id', auth, admin, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Use internship routes
+app.use('/api/internship', internshipRoutes);
 
 module.exports = app;
 

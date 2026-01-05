@@ -8,6 +8,11 @@ import TaskList from '../components/TaskList';
 import ProjectTracker from '../components/ProjectTracker';
 import ProjectTaskManagement from '../components/ProjectTaskManagement';
 import TaskMonitoringDashboard from '../components/TaskMonitoringDashboard';
+import InternshipDashboard from './InternshipDashboard';
+import ApplicationList from './ApplicationList';
+import ApplicationDetail from './ApplicationDetail';
+import EmailAutomation from './EmailAutomation';
+import RoleManagement from './RoleManagement';
 import Modal from '../components/Modal';
 
 const Admin = () => {
@@ -1573,6 +1578,26 @@ const Admin = () => {
               <h2>Task Status Monitoring Dashboard</h2>
               <TaskMonitoringDashboard />
             </div>
+          )}
+
+          {location.pathname === '/admin/internship-dashboard' && (
+            <InternshipDashboard />
+          )}
+
+          {location.pathname === '/admin/application-list' && (
+            <ApplicationList />
+          )}
+
+          {location.pathname.startsWith('/admin/application-detail/') && (
+            <ApplicationDetail />
+          )}
+
+          {location.pathname === '/admin/email-automation' && (
+            <EmailAutomation />
+          )}
+
+          {location.pathname === '/admin/role-management' && (
+            <RoleManagement />
           )}
 
           {['/admin', '/admin/'].includes(location.pathname) && (

@@ -19,6 +19,10 @@ const Sidebar = () => {
     { to: "/admin/tasks", text: "Task Generator" },
     { to: "/admin/task-management", text: "Task Management" },
     { to: "/admin/task-monitoring", text: "Task Monitoring" },
+    { to: "/admin/internship-dashboard", text: "Internship Dashboard" },
+    { to: "/admin/application-list", text: "Application List" },
+    { to: "/admin/email-automation", text: "Email Automation" },
+    { to: "/admin/role-management", text: "Role Management" },
     
     
     ];
