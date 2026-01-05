@@ -26,7 +26,6 @@ const Navbar = () => {
           <NavLink className="nav-link" to="/" end>Home</NavLink>
           <NavLink className="nav-link" to="/about">About</NavLink>
           <NavLink className="nav-link" to="/services">Services</NavLink>
-          <NavLink className="nav-link" to="/internship">Internship</NavLink>
           <NavLink className="nav-link" to="/contact">Contact</NavLink>
           {isAdmin && <NavLink className="nav-link" to="/admin">Admin</NavLink>}
           {isClient && <NavLink className="nav-link" to="/client-panel">Client Panel</NavLink>}

@@ -1,6 +1,6 @@
 .internship-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1a1a1a;
 }
 
 .container {
@@ -14,7 +14,7 @@
   padding: 100px 0;
   text-align: center;
   color: white;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #2d2d2d;
 }
 
 .hero-title {
@@ -55,7 +55,7 @@ section {
 }
 
 section:nth-child(even) {
-  background: rgba(255, 255, 255, 0.05);
+  background: #242424;
 }
 
 section h2 {
@@ -68,7 +68,7 @@ section h2 {
 
 /* Internship Type Section */
 .internship-type {
-  background: rgba(255, 255, 255, 0.1);
+  background: #2d2d2d;
 }
 
 .type-grid {
@@ -79,14 +79,13 @@ section h2 {
 }
 
 .type-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   padding: 25px;
   border-radius: 15px;
   text-align: center;
   color: white;
   font-size: 1.1rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
 }
 
 .honest-line {
@@ -107,14 +106,13 @@ section h2 {
 }
 
 .eligibility-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   padding: 20px;
   border-radius: 10px;
   text-align: center;
   color: white;
   font-size: 1.1rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
 }
 
 /* Available Roles Section */
@@ -125,12 +123,11 @@ section h2 {
 }
 
 .role-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   padding: 30px;
   border-radius: 15px;
   text-align: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
   transition: transform 0.3s ease;
 }
 
@@ -169,14 +166,13 @@ section h2 {
 }
 
 .learning-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   padding: 25px;
   border-radius: 15px;
   text-align: center;
   color: white;
   font-size: 1.1rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
   transition: transform 0.3s ease;
 }
 
@@ -192,12 +188,11 @@ section h2 {
 }
 
 .benefit-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   padding: 30px;
   border-radius: 15px;
   text-align: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
   transition: transform 0.3s ease;
 }
 
@@ -228,29 +223,27 @@ section h2 {
 }
 
 .rule-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   padding: 20px;
   border-radius: 10px;
   margin-bottom: 15px;
   color: white;
   font-size: 1.1rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
 }
 
 /* Application Form */
 .application-form {
-  background: rgba(255, 255, 255, 0.05);
+  background: #242424;
 }
 
 .internship-form {
   max-width: 600px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   padding: 40px;
   border-radius: 20px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
 }
 
 .form-group {
@@ -269,9 +262,9 @@ section h2 {
 .form-group textarea {
   width: 100%;
   padding: 12px 15px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid #555555;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #2d2d2d;
   color: white;
   font-size: 1rem;
   transition: all 0.3s ease;
@@ -287,7 +280,7 @@ section h2 {
 .form-group textarea:focus {
   outline: none;
   border-color: #4ecdc4;
-  background: rgba(255, 255, 255, 0.15);
+  background: #3a3a3a;
 }
 
 .form-group select option {
@@ -319,11 +312,10 @@ section h2 {
 }
 
 .faq-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: #333333;
   border-radius: 10px;
   margin-bottom: 15px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #444444;
 }
 
 .faq-question {
@@ -352,7 +344,7 @@ section h2 {
 .faq-answer {
   padding: 0 20px 20px;
   color: rgba(255, 255, 255, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #444444;
 }
 
 .faq-answer p {
@@ -363,7 +355,7 @@ section h2 {
 /* Contact Section */
 .contact-section {
   text-align: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: #1a1a1a;
 }
 
 .contact-section h2 {

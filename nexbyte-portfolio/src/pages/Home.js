@@ -54,6 +54,27 @@ const Home = () => {
             </div>
           </section>
 
+          {/* Internship Section */}
+          <section className="internship-section">
+            <h2 className="section-title">Start Your Tech Journey with NexByte</h2>
+            <p className="internship-subtitle">Join our free internship program and learn by building real-world projects with a growing startup.</p>
+            <div className="internship-features">
+              <div className="internship-feature">
+                <h3>🎓 Free Learning</h3>
+                <p>No cost internship focused on skill development</p>
+              </div>
+              <div className="internship-feature">
+                <h3>💼 Real Projects</h3>
+                <p>Work on actual startup projects and build your portfolio</p>
+              </div>
+              <div className="internship-feature">
+                <h3>🏆 Certificate</h3>
+                <p>Earn certificate and letter of recommendation</p>
+              </div>
+            </div>
+            <Link to="/internship" className="btn btn-internship">Apply for Internship</Link>
+          </section>
+
           {/* Extended Content for SEO */}
           <section className="about-services">
             <h2>Why Choose Our Web Development Services?</h2>
