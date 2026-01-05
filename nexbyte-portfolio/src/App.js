@@ -19,6 +19,7 @@ import TaskDetailPage from './pages/TaskDetailPage';
 import Member from './pages/Member';
 import InternPanel from './pages/InternPanel';
 import SrsGenerator from './pages/SrsGenerator';
+import Internship from './pages/Internship';
 
 import { SrsProvider } from './context/SrsContext';
 import { AuthProvider } from './context/AuthContext';
@@ -51,6 +52,7 @@ function App() {
                   <Route path="/admin/task/:taskId" element={<TaskDetailPage />} />
                   <Route path="/srs-generator" element={<SrsGenerator />} />
                   <Route path="/member" element={<Member />} />
+                  <Route path="/internship" element={<Internship />} />
                 </Routes>
               </SrsProvider>
             </main>
