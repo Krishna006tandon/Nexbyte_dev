@@ -54,10 +54,20 @@ const ApplicationDetail = () => {
       }
     };
 
-    if (id) {
+    console.log('ID from useParams:', id);
+    console.log('Full URL:', window.location.href);
+    
+    // Extract ID from URL if useParams doesn't work
+    const urlId = window.location.pathname.split('/').pop();
+    console.log('Extracted ID from URL:', urlId);
+    
+    const finalId = id || urlId;
+    console.log('Final ID to use:', finalId);
+    
+    if (finalId && finalId !== 'undefined') {
       fetchApplication();
     } else {
-      console.error('No ID provided');
+      console.error('No valid ID provided');
       setLoading(false);
     }
   }, [id]);
