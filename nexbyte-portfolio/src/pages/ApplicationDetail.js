@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './ApplicationDetail.css';
 
 const ApplicationDetail = () => {
@@ -11,48 +12,56 @@ const ApplicationDetail = () => {
   const [notes, setNotes] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  const getMockApplication = () => ({
-    id: 1,
-    name: 'Rahul Sharma',
-    email: 'rahul@example.com',
-    phone: '+91 9876543210',
-    role: 'Web Development Intern',
-    college: 'Delhi University',
-    degree: 'B.Tech Computer Science',
-    year: '3rd Year',
-    dateApplied: '2024-01-15',
-    status: 'new',
-    message: 'I want to learn modern web development with React and Node.js. I have basic knowledge of HTML, CSS, and JavaScript, and I\'m eager to build real-world projects with a growing startup like NexByte.',
-    resume: 'rahul_sharma_resume.pdf',
-    portfolio: 'https://rahulportfolio.example.com',
-    github: 'https://github.com/rahulsharma',
-    linkedin: 'https://linkedin.com/in/rahulsharma',
-    skills: ['HTML', 'CSS', 'JavaScript', 'React Basics', 'Node.js Basics'],
-    experience: 'Worked on 2 college projects using HTML, CSS, and JavaScript. Created a simple e-commerce website and a personal portfolio.',
-    availability: 'Available for 3 months internship',
-    whyNexByte: 'I want to learn from industry experts and work on real projects that will help me build my skills and portfolio.',
-    adminNotes: '',
-    lastUpdated: '2024-01-15T10:30:00Z'
-  });
+  // const getMockApplication = () => ({
+  //   id: 1,
+  //   name: 'Rahul Sharma',
+  //   email: 'rahul@example.com',
+  //   phone: '+91 9876543210',
+  //   role: 'Web Development Intern',
+  //   college: 'Delhi University',
+  //   degree: 'B.Tech Computer Science',
+  //   year: '3rd Year',
+  //   dateApplied: '2024-01-15',
+  //   status: 'new',
+  //   message: 'I want to learn modern web development with React and Node.js. I have basic knowledge of HTML, CSS, and JavaScript, and I\'m eager to build real-world projects with a growing startup like NexByte.',
+  //   resume: 'rahul_sharma_resume.pdf',
+  //   portfolio: 'https://rahulportfolio.example.com',
+  //   github: 'https://github.com/rahulsharma',
+  //   linkedin: 'https://linkedin.com/in/rahulsharma',
+  //   skills: ['HTML', 'CSS', 'JavaScript', 'React Basics', 'Node.js Basics'],
+  //   experience: 'Worked on 2 college projects using HTML, CSS, and JavaScript. Created a simple e-commerce website and a personal portfolio.',
+  //   availability: 'Available for 3 months internship',
+  //   whyNexByte: 'I want to learn from industry experts and work on real projects that will help me build my skills and portfolio.',
+  //   adminNotes: '',
+  //   lastUpdated: '2024-01-15T10:30:00Z'
+  // });
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockApplication = getMockApplication();
-      setApplication(mockApplication);
-      setNotes(mockApplication.adminNotes);
-      setLoading(false);
-    }, 1000);
+    const fetchApplication = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/internship/applications/${id}`);
+        const applicationData = response.data;
+        setApplication(applicationData);
+        setNotes(applicationData.notes || '');
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching application:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchApplication();
   }, [id]);
 
   const getStatusColor = (status) => {
     const colors = {
       new: '#ff6b6b',
-      under_review: '#feca57',
-      shortlisted: '#48dbfb',
+      reviewing: '#feca57',
+      interview: '#48dbfb',
       approved: '#1dd1a1',
       rejected: '#ee5a6f',
-      completed: '#00d2d3'
+      hired: '#00d2d3'
     };
     return colors[status] || '#747d8c';
   };
@@ -60,24 +69,36 @@ const ApplicationDetail = () => {
   const getStatusLabel = (status) => {
     const labels = {
       new: 'New',
-      under_review: 'Under Review',
-      shortlisted: 'Shortlisted',
+      reviewing: 'Under Review',
+      interview: 'Interview',
       approved: 'Approved',
       rejected: 'Rejected',
-      completed: 'Completed'
+      hired: 'Hired'
     };
     return labels[status] || status;
   };
 
-  const handleStatusChange = (newStatus) => {
-    setApplication({ ...application, status: newStatus });
-    // In real app, this would update the backend
+  const handleStatusChange = async (newStatus) => {
+    try {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
+        status: newStatus
+      });
+      setApplication(response.data);
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
   };
 
-  const handleSaveNotes = () => {
-    setApplication({ ...application, adminNotes: notes });
-    setIsEditing(false);
-    // In real app, this would save to backend
+  const handleSaveNotes = async () => {
+    try {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
+        notes: notes
+      });
+      setApplication(response.data);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving notes:', error);
+    }
   };
 
   const handleDownloadResume = () => {
@@ -197,16 +218,8 @@ const ApplicationDetail = () => {
                 <div className="detail-group">
                   <h3>Academic Information</h3>
                   <div className="detail-item">
-                    <label>College:</label>
-                    <span>{application.college}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Degree:</label>
-                    <span>{application.degree}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Year:</label>
-                    <span>{application.year}</span>
+                    <label>Education:</label>
+                    <span>{application.education || 'N/A'}</span>
                   </div>
                 </div>
 
@@ -221,17 +234,17 @@ const ApplicationDetail = () => {
                     <span>{new Date(application.dateApplied).toLocaleDateString()}</span>
                   </div>
                   <div className="detail-item">
-                    <label>Availability:</label>
-                    <span>{application.availability}</span>
+                    <label>Phone:</label>
+                    <span>{application.phone || 'N/A'}</span>
                   </div>
                 </div>
 
                 <div className="detail-group">
                   <h3>Skills</h3>
                   <div className="skills-list">
-                    {application.skills.map((skill, index) => (
-                      <span key={index} className="skill-tag">{skill}</span>
-                    ))}
+                    {application.skills ? application.skills.split(',').map((skill, index) => (
+                      <span key={index} className="skill-tag">{skill.trim()}</span>
+                    )) : <span>No skills listed</span>}
                   </div>
                 </div>
 
@@ -245,9 +258,9 @@ const ApplicationDetail = () => {
 
           {activeTab === 'message' && (
             <div className="message-section">
-              <h3>Why do you want to learn with NexByte?</h3>
+              <h3>Cover Letter</h3>
               <div className="message-content">
-                <p>{application.whyNexByte}</p>
+                <p>{application.coverLetter || 'No cover letter provided'}</p>
               </div>
             </div>
           )}
