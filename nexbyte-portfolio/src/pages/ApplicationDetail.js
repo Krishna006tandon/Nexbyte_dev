@@ -54,18 +54,7 @@ const ApplicationDetail = () => {
       }
     };
 
-    console.log('ID from useParams:', id);
-    console.log('Full URL:', window.location.href);
-    
-    // Extract ID from URL if useParams doesn't work
-    const urlId = window.location.pathname.split('/').pop();
-    console.log('Extracted ID from URL:', urlId);
-    
-    // Use URL ID if useParams ID is undefined
-    const finalId = id || urlId;
-    console.log('Final ID to use:', finalId);
-    
-    if (finalId && finalId !== 'undefined') {
+    if (id) {
       fetchApplication();
     } else {
       console.error('No valid ID provided');
@@ -98,11 +87,6 @@ const ApplicationDetail = () => {
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (!id) {
-      console.error('No valid application ID available');
-      return;
-    }
-    
     try {
       const response = await axios.put(`/api/internship/applications/${id}/status`, {
         status: newStatus
@@ -120,7 +104,7 @@ const ApplicationDetail = () => {
     }
     
     try {
-      const response = await axios.put(`/api/internship/applications/${id}/status`, {
+      const response = await axios.put(`/api/internship/applications/${id}/notes`, {
         notes: notes
       });
       setApplication(response.data);
@@ -130,20 +114,25 @@ const ApplicationDetail = () => {
     }
   };
 
-  const handleDownloadResume = () => {
+  const handleDownloadResume = async () => {
     if (!id) {
       console.error('No valid application ID available');
       return;
     }
     
-    // In real app, this would download actual resume file
-    console.log('Downloading resume:', application.resume);
-    alert('Resume download started!');
+    try {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
+        resume: application.resume
+      });
+      setApplication(response.data);
+    } catch (error) {
+      console.error('Error updating resume download status:', error);
+    }
   };
 
   const handleSendEmail = () => {
-    if (!id) {
-      console.error('No valid application ID available');
+    if (!application) {
+      console.error('No application data available');
       return;
     }
     
