@@ -6,7 +6,8 @@ const path = require('path');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/resumes/');
+    const uploadsDir = path.join(__dirname, '../uploads/resumes');
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
@@ -289,9 +290,23 @@ function sendEmail(to, template, data) {
 
 // Create uploads directory if it doesn't exist
 const fs = require('fs');
+const path = require('path');
+
+// Create the full uploads directory path recursively
 const uploadsDir = path.join(__dirname, '../uploads/resumes');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+const uploadsParentDir = path.join(__dirname, '../uploads');
+
+try {
+  // Create parent uploads directory first
+  if (!fs.existsSync(uploadsParentDir)) {
+    fs.mkdirSync(uploadsParentDir, { recursive: true });
+  }
+  // Create resumes directory
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (error) {
+  console.error('Error creating upload directories:', error);
 }
 
 module.exports = router;
