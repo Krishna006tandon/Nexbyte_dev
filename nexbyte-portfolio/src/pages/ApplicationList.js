@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './ApplicationList.css';
 
 const ApplicationList = () => {
@@ -13,7 +14,7 @@ const ApplicationList = () => {
   const [dateFilter, setDateFilter] = useState('');
 
   const roles = ['Web Development Intern', 'Frontend Intern', 'Backend Intern', 'UI/UX Intern', 'Digital Marketing Intern'];
-  const statuses = ['new', 'under_review', 'shortlisted', 'approved', 'rejected', 'completed'];
+  const statuses = ['new', 'reviewing', 'interview', 'approved', 'rejected', 'hired'];
 
   // const getMockApplications = () => [
   //   {
@@ -96,10 +97,21 @@ const ApplicationList = () => {
   // ];
 
   useEffect(() => {
-    const mockApplications = getMockApplications();
-    setApplications(mockApplications);
-    setFilteredApplications(mockApplications);
-    setLoading(false);
+    const fetchApplications = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('/api/internship/applications');
+        const applicationsData = response.data;
+        setApplications(applicationsData);
+        setFilteredApplications(applicationsData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
   }, []);
 
   useEffect(() => {
