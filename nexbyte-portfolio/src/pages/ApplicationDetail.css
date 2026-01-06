@@ -1,21 +1,21 @@
 .application-detail {
   padding: 2rem;
-  background: #1a1a1a;
+  background: #ffffff;
   min-height: 100vh;
-  color: white;
+  color: #1a1a1a;
 }
 
 .loading {
   text-align: center;
   padding: 4rem;
-  color: white;
+  color: #1a1a1a;
   font-size: 1.2rem;
 }
 
 .not-found {
   text-align: center;
   padding: 4rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(26, 26, 26, 0.6);
   font-size: 1.2rem;
 }
 
@@ -26,7 +26,7 @@
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #444444;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .header-left {
@@ -36,8 +36,8 @@
 }
 
 .back-btn {
-  background: #444444;
-  color: white;
+  background: #f8f9fa;
+  color: #1a1a1a;
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -48,12 +48,12 @@
 }
 
 .back-btn:hover {
-  background: #555555;
+  background: #e9ecef;
   transform: translateX(-3px);
 }
 
 .detail-header h1 {
-  color: white;
+  color: #1a1a1a;
   font-size: 2.5rem;
   margin: 0;
 }
@@ -76,16 +76,16 @@
 }
 
 .application-id {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(26, 26, 26, 0.6);
   font-size: 0.9rem;
 }
 
 /* Quick Actions */
 .quick-actions {
-  background: #2d2d2d;
+  background: #f8f9fa;
   padding: 1.5rem;
   border-radius: 15px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
   margin-bottom: 2rem;
   display: flex;
   justify-content: space-between;
@@ -101,16 +101,16 @@
 }
 
 .action-group label {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(26, 26, 26, 0.8);
   font-weight: 500;
 }
 
 .status-select {
   padding: 8px 12px;
-  background: #333333;
-  border: 1px solid #555555;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 8px;
-  color: white;
+  color: #1a1a1a;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -122,8 +122,8 @@
 }
 
 .status-select option {
-  background: #333333;
-  color: white;
+  background: #ffffff;
+  color: #1a1a1a;
 }
 
 .action-buttons {
@@ -158,16 +158,16 @@
 
 /* Tabs */
 .tabs-container {
-  background: #2d2d2d;
+  background: #f8f9fa;
   border-radius: 15px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
   overflow: hidden;
 }
 
 .tabs {
   display: flex;
-  background: #333333;
-  border-bottom: 1px solid #444444;
+  background: #ffffff;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .tab {
@@ -175,7 +175,7 @@
   background: none;
   border: none;
   padding: 1rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(26, 26, 26, 0.7);
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
@@ -184,12 +184,12 @@
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+  background: rgba(26, 26, 26, 0.05);
+  color: #1a1a1a;
 }
 
 .tab.active {
-  color: white;
+  color: #1a1a1a;
   background: rgba(78, 205, 196, 0.1);
   border-bottom-color: #4ecdc4;
 }
@@ -210,10 +210,10 @@
 }
 
 .detail-group {
-  background: #333333;
+  background: #ffffff;
   padding: 1.5rem;
   border-radius: 10px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
 }
 
 .detail-group h3 {
@@ -228,7 +228,7 @@
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #444444;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .detail-item:last-child {
@@ -237,12 +237,12 @@
 }
 
 .detail-item label {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(26, 26, 26, 0.7);
   font-weight: 500;
 }
 
 .detail-item span {
-  color: white;
+  color: #1a1a1a;
   text-align: right;
 }
 
@@ -268,12 +268,12 @@
 }
 
 .skill-tag {
-  background: #444444;
-  color: white;
+  background: #e9ecef;
+  color: #1a1a1a;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.8rem;
-  border: 1px solid #555555;
+  border: 1px solid #ced4da;
 }
 
 /* Message Section */
@@ -284,14 +284,14 @@
 }
 
 .message-content {
-  background: #333333;
+  background: #ffffff;
   padding: 1.5rem;
   border-radius: 10px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
 }
 
 .message-content p {
-  color: white;
+  color: #1a1a1a;
   line-height: 1.6;
   font-size: 1rem;
 }
@@ -310,23 +310,23 @@
 }
 
 .file-info {
-  background: #333333;
+  background: #ffffff;
   padding: 1.5rem;
   border-radius: 10px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .file-name {
-  color: white;
+  color: #1a1a1a;
   font-size: 1rem;
 }
 
 .download-resume-btn {
   background: #48dbfb;
-  color: #1a1a1a;
+  color: #ffffff;
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
@@ -348,11 +348,11 @@
 }
 
 .portfolio-link {
-  background: #333333;
-  color: white;
+  background: #ffffff;
+  color: #1a1a1a;
   padding: 1rem;
   border-radius: 10px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -361,9 +361,9 @@
 }
 
 .portfolio-link:hover {
-  background: #444444;
+  background: #f8f9fa;
   transform: translateY(-2px);
-  color: #4ecdc4;
+  color: #1a1a1a;
 }
 
 /* Notes Section */
@@ -374,20 +374,20 @@
 }
 
 .notes-editor {
-  background: #333333;
+  background: #ffffff;
   padding: 1.5rem;
   border-radius: 10px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
 }
 
 .notes-textarea {
   width: 100%;
   min-height: 200px;
   padding: 1rem;
-  background: #2d2d2d;
-  border: 1px solid #555555;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 8px;
-  color: white;
+  color: #1a1a1a;
   font-size: 1rem;
   resize: vertical;
   transition: all 0.3s ease;
@@ -396,11 +396,11 @@
 .notes-textarea:focus {
   outline: none;
   border-color: #4ecdc4;
-  background: #3a3a3a;
+  background: #ffffff;
 }
 
 .notes-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(26, 26, 26, 0.5);
 }
 
 .notes-actions {
@@ -411,7 +411,7 @@
 
 .save-btn {
   background: #1dd1a1;
-  color: #1a1a1a;
+  color: #ffffff;
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -428,7 +428,7 @@
 
 .cancel-btn {
   background: #ff6b6b;
-  color: white;
+  color: #ffffff;
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -444,14 +444,14 @@
 }
 
 .notes-display {
-  background: #333333;
+  background: #ffffff;
   padding: 1.5rem;
   border-radius: 10px;
-  border: 1px solid #444444;
+  border: 1px solid #e9ecef;
 }
 
 .notes-display p {
-  color: white;
+  color: #1a1a1a;
   line-height: 1.6;
   margin-bottom: 1rem;
   min-height: 100px;
@@ -459,7 +459,7 @@
 
 .edit-notes-btn {
   background: #feca57;
-  color: #1a1a1a;
+  color: #ffffff;
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
@@ -478,12 +478,12 @@
 .footer-info {
   margin-top: 2rem;
   padding-top: 1rem;
-  border-top: 1px solid #444444;
+  border-top: 1px solid #e9ecef;
   text-align: center;
 }
 
 .footer-info p {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(26, 26, 26, 0.6);
   font-size: 0.9rem;
 }
 
