@@ -15,85 +15,85 @@ const ApplicationList = () => {
   const roles = ['Web Development Intern', 'Frontend Intern', 'Backend Intern', 'UI/UX Intern', 'Digital Marketing Intern'];
   const statuses = ['new', 'under_review', 'shortlisted', 'approved', 'rejected', 'completed'];
 
-  const getMockApplications = () => [
-    {
-      id: 1,
-      name: 'Rahul Sharma',
-      email: 'rahul@example.com',
-      role: 'Web Development Intern',
-      college: 'Delhi University',
-      dateApplied: '2024-01-15',
-      status: 'new',
-      message: 'I want to learn modern web development with React and Node.js',
-      resume: null
-    },
-    {
-      id: 2,
-      name: 'Priya Patel',
-      email: 'priya@example.com',
-      role: 'Frontend Intern',
-      college: 'IIT Bombay',
-      dateApplied: '2024-01-14',
-      status: 'under_review',
-      message: 'Passionate about creating beautiful user interfaces',
-      resume: 'resume.pdf'
-    },
-    {
-      id: 3,
-      name: 'Amit Kumar',
-      email: 'amit@example.com',
-      role: 'Backend Intern',
-      college: 'NIT Trichy',
-      dateApplied: '2024-01-13',
-      status: 'approved',
-      message: 'Want to learn server-side development and databases',
-      resume: 'amit_resume.pdf'
-    },
-    {
-      id: 4,
-      name: 'Sneha Reddy',
-      email: 'sneha@example.com',
-      role: 'UI/UX Intern',
-      college: 'NID Ahmedabad',
-      dateApplied: '2024-01-12',
-      status: 'rejected',
-      message: 'Interested in user experience design',
-      resume: null
-    },
-    {
-      id: 5,
-      name: 'Vikram Singh',
-      email: 'vikram@example.com',
-      role: 'Digital Marketing Intern',
-      college: 'MBA Delhi',
-      dateApplied: '2024-01-11',
-      status: 'shortlisted',
-      message: 'Want to learn digital marketing strategies',
-      resume: 'vikram_cv.pdf'
-    },
-    {
-      id: 6,
-      name: 'Anjali Gupta',
-      email: 'anjali@example.com',
-      role: 'Web Development Intern',
-      college: 'Pune University',
-      dateApplied: '2024-01-10',
-      status: 'new',
-      message: 'Interested in full-stack development',
-      resume: null
-    },
-    {
-      id: 7,
-      name: 'Rohit Verma',
-      email: 'rohit@example.com',
-      role: 'Frontend Intern',
-      college: 'JNU Delhi',
-      dateApplied: '2024-01-09',
-      status: 'under_review',
-      message: 'Love working with React and modern CSS',
-      resume: 'rohit_resume.pdf'
-    }
-  ];
+  // const getMockApplications = () => [
+  //   {
+  //     id: 1,
+  //     name: 'Rahul Sharma',
+  //     email: 'rahul@example.com',
+  //     role: 'Web Development Intern',
+  //     college: 'Delhi University',
+  //     dateApplied: '2024-01-15',
+  //     status: 'new',
+  //     message: 'I want to learn modern web development with React and Node.js',
+  //     resume: null
+  //   },
+  //   {
+  //     id: 2,
+  //     name: 'Priya Patel',
+  //     email: 'priya@example.com',
+  //     role: 'Frontend Intern',
+  //     college: 'IIT Bombay',
+  //     dateApplied: '2024-01-14',
+  //     status: 'under_review',
+  //     message: 'Passionate about creating beautiful user interfaces',
+  //     resume: 'resume.pdf'
+  //   },
+  //   {
+  //     id: 3,
+  //     name: 'Amit Kumar',
+  //     email: 'amit@example.com',
+  //     role: 'Backend Intern',
+  //     college: 'NIT Trichy',
+  //     dateApplied: '2024-01-13',
+  //     status: 'approved',
+  //     message: 'Want to learn server-side development and databases',
+  //     resume: 'amit_resume.pdf'
+  //   },
+  //   {
+  //     id: 4,
+  //     name: 'Sneha Reddy',
+  //     email: 'sneha@example.com',
+  //     role: 'UI/UX Intern',
+  //     college: 'NID Ahmedabad',
+  //     dateApplied: '2024-01-12',
+  //     status: 'rejected',
+  //     message: 'Interested in user experience design',
+  //     resume: null
+  //   },
+  //   {
+  //     id: 5,
+  //     name: 'Vikram Singh',
+  //     email: 'vikram@example.com',
+  //     role: 'Digital Marketing Intern',
+  //     college: 'MBA Delhi',
+  //     dateApplied: '2024-01-11',
+  //     status: 'shortlisted',
+  //     message: 'Want to learn digital marketing strategies',
+  //     resume: 'vikram_cv.pdf'
+  //   },
+  //   {
+  //     id: 6,
+  //     name: 'Anjali Gupta',
+  //     email: 'anjali@example.com',
+  //     role: 'Web Development Intern',
+  //     college: 'Pune University',
+  //     dateApplied: '2024-01-10',
+  //     status: 'new',
+  //     message: 'Interested in full-stack development',
+  //     resume: null
+  //   },
+  //   {
+  //     id: 7,
+  //     name: 'Rohit Verma',
+  //     email: 'rohit@example.com',
+  //     role: 'Frontend Intern',
+  //     college: 'JNU Delhi',
+  //     dateApplied: '2024-01-09',
+  //     status: 'under_review',
+  //     message: 'Love working with React and modern CSS',
+  //     resume: 'rohit_resume.pdf'
+  //   }
+  // ];
 
   useEffect(() => {
     const mockApplications = getMockApplications();
