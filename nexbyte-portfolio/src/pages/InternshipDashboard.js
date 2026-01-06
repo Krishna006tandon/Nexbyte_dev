@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import './InternshipDashboard.css';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import './InternshipDashboard.css';
 
 const InternshipDashboard = () => {
+  const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -87,6 +89,15 @@ const InternshipDashboard = () => {
       hired: 'Hired'
     };
     return labels[status] || status;
+  };
+
+  const handleViewApplication = (appId) => {
+    navigate(`/admin/application-detail/${appId}`);
+  };
+
+  const handleEditApplication = (appId) => {
+    console.log('Edit application:', appId);
+    // Open edit modal or navigate to edit page
   };
 
   if (loading) {
@@ -248,8 +259,18 @@ const InternshipDashboard = () => {
                         </span>
                       </td>
                       <td>
-                        <button className="action-btn view">View</button>
-                        <button className="action-btn edit">Edit</button>
+                        <button 
+                          onClick={() => handleViewApplication(app._id)}
+                          className="action-btn view"
+                        >
+                          View
+                        </button>
+                        <button 
+                          onClick={() => handleEditApplication(app._id)}
+                          className="action-btn edit"
+                        >
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   ))

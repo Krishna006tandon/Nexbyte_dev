@@ -330,13 +330,13 @@ const ApplicationList = () => {
                   </td>
                   <td className="actions-cell">
                     <button
-                      onClick={() => handleViewApplication(app.id)}
+                      onClick={() => handleViewApplication(app._id)}
                       className="action-btn view-btn"
                     >
                       View
                     </button>
                     <button
-                      onClick={() => handleEditApplication(app.id)}
+                      onClick={() => handleEditApplication(app._id)}
                       className="action-btn edit-btn"
                     >
                       Edit
