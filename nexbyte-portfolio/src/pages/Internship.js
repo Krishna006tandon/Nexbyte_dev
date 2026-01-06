@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import './Internship.css';
+import axios from 'axios';
 
 const Internship = () => {
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '',
     email: '',
-    college: '',
+    phone: '',
     role: '',
+    education: '',
+    experience: '',
+    skills: '',
     resume: null,
-    message: ''
+    coverLetter: ''
   });
 
   const [showFAQ, setShowFAQ] = useState({});
@@ -37,18 +41,46 @@ const Internship = () => {
     setFormData(prev => ({ ...prev, resume: e.target.files[0] }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Application submitted:', formData);
-    alert('Application submitted successfully! We will contact you soon.');
-    setFormData({
-      fullName: '',
-      email: '',
-      college: '',
-      role: '',
-      resume: null,
-      message: ''
-    });
+    
+    const formDataToSend = new FormData();
+    formDataToSend.append('name', formData.name);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('phone', formData.phone);
+    formDataToSend.append('role', formData.role);
+    formDataToSend.append('education', formData.education);
+    formDataToSend.append('experience', formData.experience);
+    formDataToSend.append('skills', formData.skills);
+    formDataToSend.append('coverLetter', formData.coverLetter);
+    
+    if (formData.resume) {
+      formDataToSend.append('resume', formData.resume);
+    }
+
+    try {
+      const response = await axios.post('/api/internship/applications', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      alert('Application submitted successfully! We will contact you soon.');
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        role: '',
+        education: '',
+        experience: '',
+        skills: '',
+        resume: null,
+        coverLetter: ''
+      });
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      alert('Error submitting application. Please try again.');
+    }
   };
 
   const toggleFAQ = (index) => {
@@ -190,8 +222,8 @@ const Internship = () => {
               <label>Full Name *</label>
               <input
                 type="text"
-                name="fullName"
-                value={formData.fullName}
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 required
               />
@@ -207,18 +239,23 @@ const Internship = () => {
               />
             </div>
             <div className="form-group">
-              <label>College / Background *</label>
+              <label>Phone *</label>
               <input
-                type="text"
-                name="college"
-                value={formData.college}
+                type="tel"
+                name="phone"
+                value={formData.phone}
                 onChange={handleInputChange}
                 required
               />
             </div>
             <div className="form-group">
-              <label>Internship Role *</label>
-              <select name="role" value={formData.role} onChange={handleInputChange} required>
+              <label>Role *</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                required
+              >
                 <option value="">Select a role</option>
                 {roles.map((role, index) => (
                   <option key={index} value={role}>{role}</option>
@@ -226,23 +263,53 @@ const Internship = () => {
               </select>
             </div>
             <div className="form-group">
-              <label>Resume (Optional)</label>
+              <label>Education *</label>
+              <input
+                type="text"
+                name="education"
+                value={formData.education}
+                onChange={handleInputChange}
+                placeholder="e.g., B.Tech Computer Science, 3rd Year"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Experience *</label>
+              <textarea
+                name="experience"
+                value={formData.experience}
+                onChange={handleInputChange}
+                placeholder="Describe any relevant experience or projects"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Skills *</label>
+              <textarea
+                name="skills"
+                value={formData.skills}
+                onChange={handleInputChange}
+                placeholder="List your technical skills (e.g., React, Node.js, Python)"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Resume (PDF only, max 5MB)</label>
               <input
                 type="file"
                 name="resume"
                 onChange={handleFileChange}
-                accept=".pdf,.doc,.docx"
+                accept=".pdf"
               />
             </div>
             <div className="form-group">
-              <label>Why do you want to learn with NexByte? *</label>
+              <label>Cover Letter</label>
               <textarea
-                name="message"
-                value={formData.message}
+                name="coverLetter"
+                value={formData.coverLetter}
                 onChange={handleInputChange}
-                required
-                rows="4"
-              ></textarea>
+                placeholder="Tell us why you're interested in this internship"
+              />
             </div>
             <button type="submit" className="submit-btn">Apply Now</button>
           </form>
