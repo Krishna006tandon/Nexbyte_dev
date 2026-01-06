@@ -70,7 +70,7 @@ const ApplicationDetail = () => {
       console.error('No valid ID provided');
       setLoading(false);
     }
-  }, []); // Remove [id] dependency to prevent re-renders with undefined
+  }, [id]); // Add id back to dependency array
 
   const getStatusColor = (status) => {
     const colors = {
