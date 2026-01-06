@@ -39,9 +39,9 @@ const ApplicationDetail = () => {
   useEffect(() => {
     const fetchApplication = async () => {
       try {
-        console.log('Fetching application with ID:', id);
+        console.log('Fetching application with ID:', finalId);
         setLoading(true);
-        const response = await axios.get(`/api/internship/applications/${id}`);
+        const response = await axios.get(`/api/internship/applications/${finalId}`);
         const applicationData = response.data;
         console.log('Application data received:', applicationData);
         setApplication(applicationData);
@@ -70,7 +70,7 @@ const ApplicationDetail = () => {
       console.error('No valid ID provided');
       setLoading(false);
     }
-  }, [id]);
+  }, []); // Remove [id] dependency to prevent re-renders with undefined
 
   const getStatusColor = (status) => {
     const colors = {
