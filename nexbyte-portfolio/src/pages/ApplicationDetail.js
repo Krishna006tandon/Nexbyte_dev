@@ -39,9 +39,9 @@ const ApplicationDetail = () => {
   useEffect(() => {
     const fetchApplication = async () => {
       try {
-        console.log('Fetching application with ID:', finalId);
+        console.log('Fetching application with ID:', id);
         setLoading(true);
-        const response = await axios.get(`/api/internship/applications/${finalId}`);
+        const response = await axios.get(`/api/internship/applications/${id}`);
         const applicationData = response.data;
         console.log('Application data received:', applicationData);
         setApplication(applicationData);
@@ -61,6 +61,7 @@ const ApplicationDetail = () => {
     const urlId = window.location.pathname.split('/').pop();
     console.log('Extracted ID from URL:', urlId);
     
+    // Use URL ID if useParams ID is undefined
     const finalId = id || urlId;
     console.log('Final ID to use:', finalId);
     
@@ -70,7 +71,7 @@ const ApplicationDetail = () => {
       console.error('No valid ID provided');
       setLoading(false);
     }
-  }, [id]); // Add id back to dependency array
+  }, [id]);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -97,13 +98,13 @@ const ApplicationDetail = () => {
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (!finalId) {
+    if (!id) {
       console.error('No valid application ID available');
       return;
     }
     
     try {
-      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
         status: newStatus
       });
       setApplication(response.data);
@@ -113,8 +114,13 @@ const ApplicationDetail = () => {
   };
 
   const handleSaveNotes = async () => {
+    if (!id) {
+      console.error('No valid application ID available');
+      return;
+    }
+    
     try {
-      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
         notes: notes
       });
       setApplication(response.data);
@@ -125,12 +131,22 @@ const ApplicationDetail = () => {
   };
 
   const handleDownloadResume = () => {
-    // In real app, this would download the actual resume file
+    if (!id) {
+      console.error('No valid application ID available');
+      return;
+    }
+    
+    // In real app, this would download actual resume file
     console.log('Downloading resume:', application.resume);
     alert('Resume download started!');
   };
 
   const handleSendEmail = () => {
+    if (!id) {
+      console.error('No valid application ID available');
+      return;
+    }
+    
     // In real app, this would open email client or send email
     window.location.href = `mailto:${application.email}`;
   };
@@ -156,7 +172,7 @@ const ApplicationDetail = () => {
           <div className="status-badge" style={{ backgroundColor: getStatusColor(application.status) }}>
             {getStatusLabel(application.status)}
           </div>
-          <div className="application-id">ID: #{application.id}</div>
+          <div className="application-id">ID: #{id}</div>
         </div>
       </div>
 
@@ -170,11 +186,11 @@ const ApplicationDetail = () => {
             className="status-select"
           >
             <option value="new">New</option>
-            <option value="under_review">Under Review</option>
-            <option value="shortlisted">Shortlisted</option>
+            <option value="reviewing">Under Review</option>
+            <option value="interview">Interview</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
-            <option value="completed">Completed</option>
+            <option value="hired">Hired</option>
           </select>
         </div>
 
