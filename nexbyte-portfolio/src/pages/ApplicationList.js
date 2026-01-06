@@ -151,11 +151,11 @@ const ApplicationList = () => {
   const getStatusColor = (status) => {
     const colors = {
       new: '#ff6b6b',
-      under_review: '#feca57',
-      shortlisted: '#48dbfb',
+      reviewing: '#feca57',
+      interview: '#48dbfb',
       approved: '#1dd1a1',
       rejected: '#ee5a6f',
-      completed: '#00d2d3'
+      hired: '#00d2d3'
     };
     return colors[status] || '#747d8c';
   };
@@ -163,11 +163,11 @@ const ApplicationList = () => {
   const getStatusLabel = (status) => {
     const labels = {
       new: 'New',
-      under_review: 'Under Review',
-      shortlisted: 'Shortlisted',
+      reviewing: 'Under Review',
+      interview: 'Interview',
       approved: 'Approved',
       rejected: 'Rejected',
-      completed: 'Completed'
+      hired: 'Hired'
     };
     return labels[status] || status;
   };
@@ -183,7 +183,7 @@ const ApplicationList = () => {
 
   const handleStatusChange = (appId, newStatus) => {
     setApplications(applications.map(app => 
-      app.id === appId ? { ...app, status: newStatus } : app
+      app._id === appId ? { ...app, status: newStatus } : app
     ));
   };
 
@@ -293,7 +293,7 @@ const ApplicationList = () => {
               </tr>
             ) : (
               filteredApplications.map(app => (
-                <tr key={app.id} className="application-row">
+                <tr key={app._id} className="application-row">
                   <td className="name-cell">
                     <div className="applicant-name">{app.name}</div>
                   </td>
@@ -303,14 +303,14 @@ const ApplicationList = () => {
                   <td className="role-cell">
                     <span className="role-badge">{app.role}</span>
                   </td>
-                  <td className="college-cell">{app.college}</td>
+                  <td className="education-cell">{app.education || 'N/A'}</td>
                   <td className="date-cell">
                     {new Date(app.dateApplied).toLocaleDateString()}
                   </td>
                   <td className="status-cell">
                     <select
                       value={app.status}
-                      onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                      onChange={(e) => handleStatusChange(app._id, e.target.value)}
                       className="status-select"
                       style={{ backgroundColor: getStatusColor(app.status) }}
                     >

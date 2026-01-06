@@ -39,19 +39,27 @@ const ApplicationDetail = () => {
   useEffect(() => {
     const fetchApplication = async () => {
       try {
+        console.log('Fetching application with ID:', id);
         setLoading(true);
         const response = await axios.get(`/api/internship/applications/${id}`);
         const applicationData = response.data;
+        console.log('Application data received:', applicationData);
         setApplication(applicationData);
         setNotes(applicationData.notes || '');
         setLoading(false);
       } catch (error) {
         console.error('Error fetching application:', error);
+        console.error('Error response:', error.response);
         setLoading(false);
       }
     };
 
-    fetchApplication();
+    if (id) {
+      fetchApplication();
+    } else {
+      console.error('No ID provided');
+      setLoading(false);
+    }
   }, [id]);
 
   const getStatusColor = (status) => {

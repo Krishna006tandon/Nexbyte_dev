@@ -202,7 +202,7 @@ const InternshipDashboard = () => {
             <div className="recent-list">
               {applications.length > 0 ? (
                 applications.slice(0, 5).map(app => (
-                  <div key={app.id} className="recent-item">
+                  <div key={app._id} className="recent-item">
                     <div className="applicant-info">
                       <div className="applicant-name">{app.name}</div>
                       <div className="applicant-role">{app.role}</div>
@@ -244,7 +244,7 @@ const InternshipDashboard = () => {
               <tbody>
                 {applications.length > 0 ? (
                   applications.map(app => (
-                    <tr key={app.id}>
+                    <tr key={app._id}>
                       <td>{app.name}</td>
                       <td>{app.email}</td>
                       <td>{app.role}</td>
