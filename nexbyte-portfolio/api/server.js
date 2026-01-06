@@ -72,10 +72,22 @@ connection.once('open', () => {
 
 connection.on('error', (err) => {
   console.error('MongoDB connection error:', err.message);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
   if (err.message.includes('Authentication failed')) {
     console.error('MongoDB Authentication failed. Check your MONGODB_URI environment variable.');
     console.error('Ensure the username and password are correct in MongoDB Atlas.');
   }
+  process.exit(1);
 });
 
 const loginLimiter = rateLimit({
@@ -86,6 +98,9 @@ const loginLimiter = rateLimit({
 
 app.post('/api/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
+
+  // Set content type to JSON
+  res.setHeader('Content-Type', 'application/json');
 
   try {
     let user = await User.findOne({ email });

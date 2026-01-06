@@ -290,7 +290,6 @@ function sendEmail(to, template, data) {
 
 // Create uploads directory if it doesn't exist
 const fs = require('fs');
-const path = require('path');
 
 // Create the full uploads directory path recursively
 const uploadsDir = path.join(__dirname, '../uploads/resumes');
