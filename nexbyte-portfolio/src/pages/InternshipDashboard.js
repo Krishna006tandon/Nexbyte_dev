@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './InternshipDashboard.css';
+import axios from 'axios';
 
 const InternshipDashboard = () => {
   const [applications, setApplications] = useState([]);
@@ -15,103 +16,63 @@ const InternshipDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('visual'); // 'visual' or 'list'
 
-  // Mock data for demonstration
+  // Fetch real data from backend
   useEffect(() => {
-    const mockApplications = [
-      {
-        id: 1,
-        name: 'Rahul Sharma',
-        email: 'rahul@example.com',
-        role: 'Web Development Intern',
-        college: 'Delhi University',
-        dateApplied: '2024-01-15',
-        status: 'new',
-        message: 'I want to learn modern web development with React and Node.js'
-      },
-      {
-        id: 2,
-        name: 'Priya Patel',
-        email: 'priya@example.com',
-        role: 'Frontend Intern',
-        college: 'IIT Bombay',
-        dateApplied: '2024-01-14',
-        status: 'under_review',
-        message: 'Passionate about creating beautiful user interfaces'
-      },
-      {
-        id: 3,
-        name: 'Amit Kumar',
-        email: 'amit@example.com',
-        role: 'Backend Intern',
-        college: 'NIT Trichy',
-        dateApplied: '2024-01-13',
-        status: 'approved',
-        message: 'Want to learn server-side development and databases'
-      },
-      {
-        id: 4,
-        name: 'Sneha Reddy',
-        email: 'sneha@example.com',
-        role: 'UI/UX Intern',
-        college: 'NID Ahmedabad',
-        dateApplied: '2024-01-12',
-        status: 'rejected',
-        message: 'Interested in user experience design'
-      },
-      {
-        id: 5,
-        name: 'Vikram Singh',
-        email: 'vikram@example.com',
-        role: 'Digital Marketing Intern',
-        college: 'MBA Delhi',
-        dateApplied: '2024-01-11',
-        status: 'shortlisted',
-        message: 'Want to learn digital marketing strategies'
+    const fetchApplications = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('/api/internship/applications');
+        const applicationsData = response.data;
+        
+        setApplications(applicationsData);
+        
+        // Calculate stats
+        const newCount = applicationsData.filter(app => app.status === 'new').length;
+        const pendingCount = applicationsData.filter(app => app.status === 'reviewing' || app.status === 'interview').length;
+        const approvedCount = applicationsData.filter(app => app.status === 'approved').length;
+        const rejectedCount = applicationsData.filter(app => app.status === 'rejected').length;
+
+        setStats({
+          total: applicationsData.length,
+          new: newCount,
+          pending: pendingCount,
+          approved: approvedCount,
+          rejected: rejectedCount
+        });
+
+        // Calculate role-wise stats
+        const roleWise = {};
+        applicationsData.forEach(app => {
+          roleWise[app.role] = (roleWise[app.role] || 0) + 1;
+        });
+        setRoleStats(roleWise);
+
+        // Calculate monthly stats
+        const monthly = {};
+        applicationsData.forEach(app => {
+          const month = new Date(app.dateApplied).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          monthly[month] = (monthly[month] || 0) + 1;
+        });
+        setMonthlyStats(monthly);
+        
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setApplications(mockApplications);
-    
-    // Calculate stats
-    const newCount = mockApplications.filter(app => app.status === 'new').length;
-    const pendingCount = mockApplications.filter(app => app.status === 'under_review' || app.status === 'shortlisted').length;
-    const approvedCount = mockApplications.filter(app => app.status === 'approved').length;
-    const rejectedCount = mockApplications.filter(app => app.status === 'rejected').length;
-
-    setStats({
-      total: mockApplications.length,
-      new: newCount,
-      pending: pendingCount,
-      approved: approvedCount,
-      rejected: rejectedCount
-    });
-
-    // Calculate role-wise stats
-    const roleWise = {};
-    mockApplications.forEach(app => {
-      roleWise[app.role] = (roleWise[app.role] || 0) + 1;
-    });
-    setRoleStats(roleWise);
-
-    // Calculate monthly stats
-    const monthly = {};
-    mockApplications.forEach(app => {
-      const month = new Date(app.dateApplied).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      monthly[month] = (monthly[month] || 0) + 1;
-    });
-    setMonthlyStats(monthly);
-
-    setLoading(false);
+    fetchApplications();
   }, []);
 
   const getStatusColor = (status) => {
     const colors = {
       new: '#ff6b6b',
-      under_review: '#feca57',
-      shortlisted: '#48dbfb',
+      reviewing: '#feca57',
+      interview: '#48dbfb',
       approved: '#1dd1a1',
       rejected: '#ee5a6f',
-      completed: '#00d2d3'
+      hired: '#00d2d3'
     };
     return colors[status] || '#747d8c';
   };
@@ -119,11 +80,11 @@ const InternshipDashboard = () => {
   const getStatusLabel = (status) => {
     const labels = {
       new: 'New',
-      under_review: 'Under Review',
-      shortlisted: 'Shortlisted',
+      reviewing: 'Under Review',
+      interview: 'Interview',
       approved: 'Approved',
       rejected: 'Rejected',
-      completed: 'Completed'
+      hired: 'Hired'
     };
     return labels[status] || status;
   };
@@ -257,7 +218,7 @@ const InternshipDashboard = () => {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
-                  <th>College</th>
+                  <th>Education</th>
                   <th>Date Applied</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -269,7 +230,7 @@ const InternshipDashboard = () => {
                     <td>{app.name}</td>
                     <td>{app.email}</td>
                     <td>{app.role}</td>
-                    <td>{app.college}</td>
+                    <td>{app.education || 'N/A'}</td>
                     <td>{new Date(app.dateApplied).toLocaleDateString()}</td>
                     <td>
                       <span 
