@@ -59,7 +59,7 @@ const Internship = () => {
     }
 
     try {
-      const response = await axios.post('/api/internship/applications', formDataToSend, {
+      await axios.post('/api/internship/applications', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
