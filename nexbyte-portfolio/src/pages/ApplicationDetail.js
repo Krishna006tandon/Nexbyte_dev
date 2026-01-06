@@ -97,8 +97,13 @@ const ApplicationDetail = () => {
   };
 
   const handleStatusChange = async (newStatus) => {
+    if (!finalId) {
+      console.error('No valid application ID available');
+      return;
+    }
+    
     try {
-      const response = await axios.put(`/api/internship/applications/${id}/status`, {
+      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
         status: newStatus
       });
       setApplication(response.data);
@@ -109,7 +114,7 @@ const ApplicationDetail = () => {
 
   const handleSaveNotes = async () => {
     try {
-      const response = await axios.put(`/api/internship/applications/${id}/status`, {
+      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
         notes: notes
       });
       setApplication(response.data);
