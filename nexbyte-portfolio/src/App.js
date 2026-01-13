@@ -20,6 +20,7 @@ import Member from './pages/Member';
 import InternPanel from './pages/InternPanel';
 import SrsGenerator from './pages/SrsGenerator';
 import Internship from './pages/Internship';
+import CertificatePage from './pages/CertificatePage';
 
 import { SrsProvider } from './context/SrsContext';
 import { AuthProvider } from './context/AuthContext';
@@ -53,6 +54,7 @@ function App() {
                   <Route path="/srs-generator" element={<SrsGenerator />} />
                   <Route path="/member" element={<Member />} />
                   <Route path="/internship" element={<Internship />} />
+                  <Route path="/certificate/:certificateId" element={<CertificatePage />} />
                 </Routes>
               </SrsProvider>
             </main>

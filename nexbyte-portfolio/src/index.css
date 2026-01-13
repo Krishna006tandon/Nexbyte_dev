@@ -30,6 +30,21 @@ body {
   background-color: var(--background-dark);
   color: var(--primary-text);
   line-height: 1.6;
+  position: relative;
+  z-index: 0;
+}
+
+/* Subtle global watermark using Nexbyte logo */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("/NexByte_Core%20Logo%20.png");
+  background-repeat: repeat;
+  background-size: 260px;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: -1;
 }
 
 a {

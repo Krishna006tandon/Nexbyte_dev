@@ -1,0 +1,274 @@
+ .nb-certificate-wrapper {
+  position: relative;
+  padding: 24px;
+  background: #f3f0e8;
+}
+
+.nb-certificate-container {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
+  background: #f3f0e8;
+  background-image: url("/NexByte_Core%20Logo%20.png");
+  background-repeat: repeat;
+  background-size: 220px;
+  background-position: center;
+  opacity: 0.98;
+}
+
+.nb-certificate-border {
+  border: 2px solid #1f2933;
+  padding: 32px;
+  background: rgba(243, 240, 232, 0.96);
+}
+
+.nb-certificate-inner {
+  border: 1px solid #c3b9a4;
+  padding: 40px 56px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.nb-certificate-watermark-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  letter-spacing: 6px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.07);
+  transform: rotate(-25deg);
+  pointer-events: none;
+  z-index: 2;
+  text-transform: uppercase;
+}
+
+.nb-certificate-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.nb-certificate-logo-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.nb-certificate-logo-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 20%, #ffffff, #d4d7dd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.nb-certificate-logo-img {
+  max-width: 70%;
+  max-height: 70%;
+  object-fit: contain;
+}
+
+.nb-certificate-header-text {
+  text-align: center;
+}
+
+.nb-certificate-main-title {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 42px;
+  letter-spacing: 10px;
+  margin: 0;
+  color: #222;
+}
+
+.nb-certificate-sub-title {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 18px;
+  letter-spacing: 6px;
+  margin: 6px 0 0;
+  color: #30436b;
+}
+
+.nb-certificate-body {
+  text-align: center;
+  position: relative;
+  z-index: 3;
+}
+
+.nb-certificate-award-text {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: #46556c;
+  margin-bottom: 18px;
+}
+
+.nb-certificate-name {
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  font-size: 44px;
+  letter-spacing: 6px;
+  margin: 0 0 24px;
+  color: #2b2b2b;
+  text-transform: uppercase;
+}
+
+.nb-certificate-description {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #4b5563;
+  max-width: 720px;
+  margin: 0 auto 32px;
+}
+
+.nb-certificate-highlight {
+  font-weight: 600;
+  color: #1f2933;
+}
+
+.nb-certificate-meta-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.nb-certificate-meta-block {
+  min-width: 180px;
+}
+
+.nb-certificate-meta-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.nb-certificate-meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.nb-certificate-signature-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: flex-end;
+  gap: 32px;
+  margin-top: 16px;
+}
+
+.nb-certificate-signature-block {
+  text-align: center;
+}
+
+.nb-certificate-line {
+  border-bottom: 1px solid #4b5563;
+  margin: 0 auto 8px;
+  width: 70%;
+}
+
+.nb-certificate-sign-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.nb-certificate-sign-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 4px 0 0;
+  color: #111827;
+}
+
+.nb-certificate-seal {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 20%, #ffffff, #d4d7dd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.nb-certificate-seal-inner {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  background: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nb-certificate-seal-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #4f46e5;
+}
+
+.nb-certificate-seal-ring {
+  position: absolute;
+  inset: 12px;
+  border-radius: 999px;
+  border: 2px dashed rgba(55, 65, 81, 0.55);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 14px;
+}
+
+@media (max-width: 768px) {
+  .nb-certificate-border {
+    padding: 16px;
+  }
+
+  .nb-certificate-inner {
+    padding: 24px 16px;
+  }
+
+  .nb-certificate-main-title {
+    font-size: 30px;
+    letter-spacing: 6px;
+  }
+
+  .nb-certificate-sub-title {
+    font-size: 14px;
+    letter-spacing: 3px;
+  }
+
+  .nb-certificate-name {
+    font-size: 30px;
+    letter-spacing: 3px;
+  }
+
+  .nb-certificate-signature-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .nb-certificate-watermark-text {
+    font-size: 40px;
+  }
+}
+

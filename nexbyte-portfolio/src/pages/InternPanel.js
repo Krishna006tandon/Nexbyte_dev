@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './InternPanel.css';
 import { useAuth } from '../context/AuthContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import CertificatePreview from '../components/CertificatePreview';
 
 const InternPanel = () => {
   const { user, isIntern, loading: authLoading } = useAuth();
@@ -20,6 +21,8 @@ const InternPanel = () => {
   const [notifications, setNotifications] = useState([]);
   const [resources, setResources] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [internshipInfo, setInternshipInfo] = useState(null);
+  const [certificateData, setCertificateData] = useState(null);
   
   // Form states
   const [offerLetter, setOfferLetter] = useState(null);
@@ -38,6 +41,7 @@ const InternPanel = () => {
     theme: 'dark',
     language: 'en'
   });
+  const certificateRef = useRef(null);
 
   useEffect(() => {
     console.log('InternPanel - User:', user);
@@ -83,14 +87,15 @@ const InternPanel = () => {
       };
 
       // Fetch data with fallbacks
-      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, teamData] = await Promise.all([
+      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, teamData, internshipRes] = await Promise.all([
         fetchWithErrorHandling('/api/profile', null),
         fetchWithErrorHandling('/api/tasks', []), // Use regular tasks endpoint with auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
         fetchWithErrorHandling('/api/notifications', []),
         fetchWithErrorHandling('/api/resources', []),
-        fetchWithErrorHandling('/api/team', [])
+        fetchWithErrorHandling('/api/team', []),
+        fetchWithErrorHandling('/api/internships/me', null)
       ]);
 
       // Set data with fallbacks
@@ -104,6 +109,10 @@ const InternPanel = () => {
           bio: profileData.bio || '',
           skills: profileData.skills || []
         });
+      }
+      if (internshipRes) {
+        setInternshipInfo(internshipRes.internship || null);
+        setCertificateData(internshipRes.certificateData || null);
       }
       setTasks(tasksData);
       setDiaryEntries(diaryData);
@@ -636,6 +645,15 @@ const InternPanel = () => {
             </li>
             <li>
               <button 
+                className={`nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
+                onClick={() => setActiveSection('certificate')}
+              >
+                <i className="fas fa-award"></i>
+                Certificate
+              </button>
+            </li>
+            <li>
+              <button 
                 className={`nav-btn ${activeSection === 'resources' ? 'active' : ''}`}
                 onClick={() => setActiveSection('resources')}
               >
@@ -1148,6 +1166,73 @@ const InternPanel = () => {
                     </div>
                   ) : (
                     <p>No reports available yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Certificate Section */}
+          {activeSection === 'certificate' && (
+            <div className="certificate-section">
+              <div className="section-header">
+                <h2>Internship Certificate</h2>
+                <p>
+                  View your internship completion certificate. A demo certificate is shown while your internship is in progress.
+                </p>
+              </div>
+
+              <div className="certificate-card">
+                <div ref={certificateRef}>
+                  <CertificatePreview
+                    internName={profileForm.firstName || user.email.split('@')[0]}
+                    internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
+                    startDate={internshipInfo?.startDate || profile?.internshipStartDate}
+                    endDate={internshipInfo?.endDate || profile?.internshipEndDate}
+                    certificateId={certificateData?.certificateId}
+                    isSample={profile?.internshipStatus !== 'completed' || !certificateData}
+                  />
+                </div>
+
+                <div className="certificate-actions">
+                  {profile?.internshipStatus !== 'completed' || !certificateData ? (
+                    <>
+                      <p className="certificate-info-text">
+                        Your internship is currently <strong>in progress</strong>. The above is a demo certificate.
+                      </p>
+                      <button className="btn btn-secondary" disabled>
+                        Download Disabled (Internship in Progress)
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          if (!window.html2pdf || !certificateRef.current) {
+                            toast.error('Download is not available in this environment.');
+                            return;
+                          }
+                          window.html2pdf().from(certificateRef.current).save(`certificate_${certificateData.certificateId}.pdf`);
+                        }}
+                      >
+                        <i className="fas fa-download"></i>
+                        Download Certificate
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          if (!certificateData?.certificateId) {
+                            toast.error('Certificate not available.');
+                            return;
+                          }
+                          window.open(`/certificate/${certificateData.certificateId}`, '_blank');
+                        }}
+                      >
+                        <i className="fas fa-external-link-alt"></i>
+                        View Fullscreen
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

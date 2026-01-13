@@ -19,6 +19,9 @@ const Report = require('./models/Report');
 const Notification = require('./models/Notification');
 const Resource = require('./models/Resource');
 const Project = require('./models/Project');
+const Internship = require('./models/Internship');
+const Certificate = require('./models/Certificate');
+const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
 
 
@@ -2730,6 +2733,207 @@ app.delete('/api/tasks/:id', auth, admin, async (req, res) => {
 
 // Use internship routes
 app.use('/api/internship', internshipRoutes);
+
+// =========================
+// Internship & Certificate APIs (secured)
+// =========================
+
+// Helper to generate human-friendly certificate IDs
+const generateCertificateId = () => {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `NBINT-${ts}-${rand}`;
+};
+
+// @route   POST api/internships
+// @desc    Create a new internship for an intern (admin only)
+// @access  Private (admin)
+app.post('/api/internships', auth, admin, async (req, res) => {
+  try {
+    const { internId, internshipTitle, startDate, endDate, applicationId } = req.body;
+
+    if (!internId || !internshipTitle || !startDate) {
+      return res.status(400).json({ message: 'internId, internshipTitle and startDate are required' });
+    }
+
+    const intern = await User.findById(internId);
+    if (!intern || intern.role !== 'intern') {
+      return res.status(404).json({ message: 'Intern not found' });
+    }
+
+    const internship = await Internship.create({
+      intern: internId,
+      internshipTitle,
+      startDate,
+      endDate,
+      application: applicationId || null,
+      status: 'in_progress',
+    });
+
+    intern.internshipStatus = 'in_progress';
+    intern.currentInternship = internship._id;
+    if (!intern.internshipStartDate) {
+      intern.internshipStartDate = startDate;
+    }
+    if (endDate && !intern.internshipEndDate) {
+      intern.internshipEndDate = endDate;
+    }
+    await intern.save();
+
+    res.status(201).json(internship);
+  } catch (err) {
+    console.error('Error creating internship:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/internships/:id/complete
+// @desc    Mark internship as completed and generate certificate
+// @access  Private (admin)
+app.post('/api/internships/:id/complete', auth, admin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { endDate } = req.body;
+
+    const internship = await Internship.findById(id).populate('intern');
+    if (!internship) {
+      return res.status(404).json({ message: 'Internship not found' });
+    }
+
+    if (internship.status === 'completed' && internship.certificate) {
+      const existingCert = await Certificate.findById(internship.certificate);
+      return res.json(existingCert);
+    }
+
+    internship.status = 'completed';
+    if (endDate) {
+      internship.endDate = endDate;
+    } else if (!internship.endDate) {
+      internship.endDate = new Date();
+    }
+
+    const intern = internship.intern;
+    const internName = `${intern.firstName || ''} ${intern.lastName || ''}`.trim() || intern.email;
+
+    const certificateId = generateCertificateId();
+    const certificateUrl = `/certificate/${certificateId}`;
+
+    const payload = {
+      internName,
+      internshipTitle: internship.internshipTitle,
+      startDate: internship.startDate,
+      endDate: internship.endDate,
+      certificateId,
+    };
+
+    const encryptedData = encryptCertificateData(payload);
+
+    const certificate = await Certificate.create({
+      intern: intern._id,
+      internship: internship._id,
+      certificateId,
+      certificateUrl,
+      encryptedData,
+    });
+
+    internship.certificate = certificate._id;
+    await internship.save();
+
+    intern.internshipStatus = 'completed';
+    intern.currentInternship = internship._id;
+    intern.internshipEndDate = internship.endDate;
+    await intern.save();
+
+    res.status(201).json(certificate);
+  } catch (err) {
+    console.error('Error completing internship / generating certificate:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/internships/me
+// @desc    Get current intern's internship & certificate
+// @access  Private (intern)
+app.get('/api/internships/me', verifyIntern, async (req, res) => {
+  try {
+    const internship = await Internship.findOne({ intern: req.user.id })
+      .populate('certificate');
+
+    if (!internship) {
+      return res.status(404).json({ message: 'Internship not found' });
+    }
+
+    let certificate = null;
+    let certificateData = null;
+    if (internship.certificate && internship.certificate.encryptedData) {
+      certificate = internship.certificate;
+      try {
+        certificateData = decryptCertificateData(certificate.encryptedData);
+      } catch (e) {
+        console.error('Failed to decrypt certificate data:', e);
+      }
+    }
+
+    res.json({
+      internship,
+      certificate,
+      certificateData,
+    });
+  } catch (err) {
+    console.error('Error fetching intern internship:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/certificates/me
+// @desc    Get all certificates for logged-in intern
+// @access  Private (intern)
+app.get('/api/certificates/me', verifyIntern, async (req, res) => {
+  try {
+    const certificates = await Certificate.find({ intern: req.user.id }).sort({ issuedAt: -1 });
+    const result = certificates.map(c => {
+      let data = null;
+      try {
+        data = decryptCertificateData(c.encryptedData);
+      } catch (e) {
+        console.error('Failed to decrypt certificate data for', c._id, e);
+      }
+      return { certificate: c, data };
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching certificates:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/certificates/:certificateId
+// @desc    Get a single certificate by public certificateId
+// @access  Private (admin or owning intern)
+app.get('/api/certificates/:certificateId', auth, async (req, res) => {
+  try {
+    const cert = await Certificate.findOne({ certificateId: req.params.certificateId }).populate('intern');
+    if (!cert) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+
+    if (req.user.role !== 'admin' && cert.intern._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    let data = null;
+    try {
+      data = decryptCertificateData(cert.encryptedData);
+    } catch (e) {
+      console.error('Failed to decrypt certificate data:', e);
+    }
+
+    res.json({ certificate: cert, data });
+  } catch (err) {
+    console.error('Error fetching certificate:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = app;
 
