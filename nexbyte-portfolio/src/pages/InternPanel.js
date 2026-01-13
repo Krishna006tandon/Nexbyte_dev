@@ -20,6 +20,7 @@ const InternPanel = () => {
   const [notifications, setNotifications] = useState([]);
   const [resources, setResources] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [certificateInfo, setCertificateInfo] = useState(null);
   
   // Form states
   const [offerLetter, setOfferLetter] = useState(null);
@@ -79,14 +80,24 @@ const InternPanel = () => {
       };
 
       // Fetch data with fallbacks
-      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, teamData] = await Promise.all([
+      const [
+        profileData,
+        tasksData,
+        diaryData,
+        reportsData,
+        notificationsData,
+        resourcesData,
+        teamData,
+        certificateData
+      ] = await Promise.all([
         fetchWithErrorHandling('/api/profile', null),
         fetchWithErrorHandling('/api/tasks', []),
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
         fetchWithErrorHandling('/api/notifications', []),
         fetchWithErrorHandling('/api/resources', []),
-        fetchWithErrorHandling('/api/team', [])
+        fetchWithErrorHandling('/api/team', []),
+        fetchWithErrorHandling('/api/certificates/me', null)
       ]);
 
       // Set data with fallbacks
@@ -107,6 +118,9 @@ const InternPanel = () => {
       setNotifications(notificationsData);
       setResources(resourcesData);
       setTeamMembers(teamData);
+      if (certificateData) {
+        setCertificateInfo(certificateData);
+      }
 
     } catch (err) {
       console.error('Error in fetchInternData:', err);
@@ -439,6 +453,15 @@ const InternPanel = () => {
               >
                 <i className="fas fa-book-open"></i>
                 Resources
+              </button>
+            </li>
+            <li>
+              <button 
+                className={`nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
+                onClick={() => setActiveSection('certificate')}
+              >
+                <i className="fas fa-award"></i>
+                Certificate
               </button>
             </li>
             <li>
@@ -945,6 +968,129 @@ const InternPanel = () => {
                     <p>Learning materials will be added soon.</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Certificate Section */}
+          {activeSection === 'certificate' && (
+            <div className="certificate-section">
+              <div className="section-header">
+                <h2>Internship Certificate</h2>
+                <p>
+                  View a live preview of your internship certificate. The final certificate will be
+                  available once your internship is marked as completed by the admin.
+                </p>
+              </div>
+
+              <div className="certificate-layout">
+                <div className="certificate-preview-card">
+                  <div className="certificate-frame">
+                    <div className="certificate-bg">
+                      {/* Watermark for in-progress state */}
+                      {certificateInfo?.user?.internshipStatus !== 'completed' && (
+                        <div className="certificate-watermark">
+                          SAMPLE CERTIFICATE
+                        </div>
+                      )}
+
+                      <div className="certificate-content">
+                        <h1 className="cert-title-main">INTERNSHIP</h1>
+                        <h2 className="cert-title-sub">COMPLETION CERTIFICATE</h2>
+                        <p className="cert-award-text">THE FOLLOWING AWARD IS GIVEN TO</p>
+                        <div className="cert-name">
+                          {profileForm.firstName || user.email.split('@')[0]}
+                        </div>
+                        <p className="cert-description">
+                          This certificate is given to{' '}
+                          {profileForm.firstName || user.email.split('@')[0]} for their
+                          achievement during the internship&nbsp;
+                          <strong>
+                            {certificateInfo?.user?.internshipTitle || 'at Nexbyte Core'}
+                          </strong>
+                          .
+                          <br />
+                          Internship Duration:{' '}
+                          {certificateInfo?.user?.internshipStartDate
+                            ? new Date(
+                                certificateInfo.user.internshipStartDate
+                              ).toLocaleDateString()
+                            : 'TBD'}{' '}
+                          -{' '}
+                          {certificateInfo?.user?.internshipEndDate
+                            ? new Date(
+                                certificateInfo.user.internshipEndDate
+                              ).toLocaleDateString()
+                            : 'TBD'}
+                          .
+                          {certificateInfo?.user?.certificateId && (
+                            <>
+                              <br />
+                              Certificate ID:{' '}
+                              <strong>{certificateInfo.user.certificateId}</strong>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="certificate-sidebar">
+                  <h3>Status</h3>
+                  <p className="certificate-status">
+                    <span
+                      className={`status-pill ${
+                        certificateInfo?.user?.internshipStatus === 'completed'
+                          ? 'status-completed'
+                          : 'status-in-progress'
+                      }`}
+                    >
+                      {certificateInfo?.user?.internshipStatus === 'completed'
+                        ? 'Completed'
+                        : 'In Progress'}
+                    </span>
+                  </p>
+
+                  {certificateInfo?.user?.internshipStatus !== 'completed' && (
+                    <p className="certificate-hint">
+                      Your internship is currently in progress. Once your mentor marks it as
+                      completed, the official certificate (without watermark) and download options
+                      will appear here.
+                    </p>
+                  )}
+
+                  {certificateInfo?.user?.internshipStatus === 'completed' &&
+                    certificateInfo?.user?.certificateUrl && (
+                      <div className="certificate-actions">
+                        <a
+                          href={certificateInfo.user.certificateUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-primary"
+                        >
+                          <i className="fas fa-external-link-alt"></i>
+                          View Certificate
+                        </a>
+                        <a
+                          href={certificateInfo.user.certificateUrl}
+                          download
+                          className="btn btn-secondary"
+                        >
+                          <i className="fas fa-download"></i>
+                          Download PDF
+                        </a>
+                        {certificateInfo.user.certificateIssuedAt && (
+                          <p className="issued-at">
+                            Issued on:{' '}
+                            {new Date(
+                              certificateInfo.user.certificateIssuedAt
+                            ).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                </div>
               </div>
             </div>
           )}

@@ -43,6 +43,7 @@ const Admin = () => {
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [certificateIssuing, setCertificateIssuing] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -134,7 +135,7 @@ const Admin = () => {
           } else {
             console.error('Failed to fetch messages:', data.message);
           }
-        } else if (location.pathname === '/admin/members') {
+        } else if (location.pathname === '/admin/members' || location.pathname === '/admin/interns') {
           const res = await fetch('/api/users', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -260,6 +261,50 @@ const Admin = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleIssueCertificate = async (intern) => {
+    if (!window.confirm(`Mark internship as completed and issue certificate for ${intern.email}?`)) {
+      return;
+    }
+
+    try {
+      setCertificateIssuing(intern._id);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/certificates/issue/${intern._id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          internshipTitle: intern.internshipTitle || 'Internship at Nexbyte Core',
+          startDate: intern.internshipStartDate,
+          endDate: intern.internshipEndDate,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to issue certificate');
+      }
+
+      // Refresh members so status & certificate meta reflect immediately
+      const refreshRes = await fetch('/api/users', {
+        headers: { 'x-auth-token': token },
+      });
+      const updatedMembers = await refreshRes.json();
+      if (refreshRes.ok) {
+        setMembers(updatedMembers);
+        setSuccessMessage('Certificate issued successfully.');
+        setTimeout(() => setSuccessMessage(''), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setCertificateIssuing(null);
     }
   };
 
@@ -1088,6 +1133,8 @@ const Admin = () => {
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Acceptance Date</th>
+                    <th>Internship Status</th>
+                    <th>Certificate</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -1100,6 +1147,26 @@ const Admin = () => {
                       <td>{member.role === 'intern' ? formatDate(member.internshipStartDate) : 'N/A'}</td>
                       <td>{member.role === 'intern' ? formatDate(member.internshipEndDate) : 'N/A'}</td>
                       <td>{formatDate(member.acceptanceDate)}</td>
+                      <td>
+                        {member.role === 'intern'
+                          ? member.internshipStatus || 'in_progress'
+                          : 'N/A'}
+                      </td>
+                      <td>
+                        {member.role === 'intern' && member.internshipStatus === 'completed' && member.certificateId ? (
+                          <span className="status completed">Issued ({member.certificateId})</span>
+                        ) : member.role === 'intern' ? (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleIssueCertificate(member)}
+                            disabled={certificateIssuing === member._id}
+                          >
+                            {certificateIssuing === member._id ? 'Issuing...' : 'Issue Certificate'}
+                          </button>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                         {(member.role === 'intern' || member.role === 'user' || member.role === 'member') && (

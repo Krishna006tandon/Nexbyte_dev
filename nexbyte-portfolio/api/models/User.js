@@ -11,6 +11,19 @@ const userSchema = new mongoose.Schema({
   internshipEndDate: { type: Date },
   acceptanceDate: { type: Date },
   internType: { type: String, enum: ['free', 'stipend'], default: 'free' },
+  // internship tracking & certificate meta
+  internshipStatus: {
+    type: String,
+    enum: ['in_progress', 'completed'],
+    default: 'in_progress',
+  },
+  internshipTitle: {
+    type: String,
+    default: 'Internship at Nexbyte Core',
+  },
+  certificateId: { type: String },
+  certificateUrl: { type: String },
+  certificateIssuedAt: { type: Date },
 });
 //admin role added for admin user
 

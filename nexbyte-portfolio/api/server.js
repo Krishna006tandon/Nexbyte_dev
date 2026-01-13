@@ -35,6 +35,7 @@ const internUserRoutes = require('./routes/intern');
 const userRoutes = require('./routes/user');
 const usersRoutes = require('./routes/users');
 const clientsRoutes = require('./routes/clients');
+const certificateRoutes = require('./routes/certificates');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -46,6 +47,7 @@ app.use('/api/intern', internUserRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/clients', clientsRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 // Direct login endpoint for frontend compatibility
 app.post('/api/login', async (req, res) => {
