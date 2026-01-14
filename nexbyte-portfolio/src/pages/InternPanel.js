@@ -712,6 +712,29 @@ const InternPanel = () => {
                   </div>
                 </div>
 
+                <div className="dashboard-card certificate-preview-card">
+                  <h3>Internship Certificate 🎓</h3>
+                  <div className="certificate-dashboard-preview">
+                    <CertificatePreview
+                      internName={profileForm.firstName || user.email.split('@')[0]}
+                      internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
+                      startDate={internshipInfo?.startDate || profile?.internshipStartDate}
+                      endDate={internshipInfo?.endDate || profile?.internshipEndDate}
+                      certificateId={certificateData?.certificateId}
+                      isSample={profile?.internshipStatus !== 'completed' || !certificateData}
+                    />
+                  </div>
+                  <div className="certificate-dashboard-actions">
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setActiveSection('certificate')}
+                    >
+                      <i className="fas fa-expand"></i>
+                      View Full Certificate
+                    </button>
+                  </div>
+                </div>
+
                 <div className="dashboard-card recent-diary">
                   <h3>Latest Diary Entry</h3>
                   {diaryEntries.length > 0 ? (
