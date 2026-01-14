@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-toastify';
 import html2canvas from 'html2canvas';
 
@@ -159,7 +159,7 @@ const CertificateGenerator = ({ intern, internship, onGenerate }) => {
             <div className="flex justify-center items-end space-x-12">
               <div className="text-center">
                 <div className="border-2 border-gray-300 p-2 rounded bg-white">
-                  <QRCode
+                  <QRCodeSVG
                     value={certificateData.qrData}
                     size={100}
                     level="H"
