@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 
 const StudentDashboard = ({ user }) => {
@@ -8,11 +8,7 @@ const StudentDashboard = ({ user }) => {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       // Fetch user's applications, tasks, and certificates
       const [applicationsRes, tasksRes, certificatesRes] = await Promise.all([
@@ -31,11 +27,15 @@ const StudentDashboard = ({ user }) => {
       setTasks(tasksData);
       setCertificates(certificatesData);
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user._id]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const getStatusColor = (status) => {
     switch (status) {
