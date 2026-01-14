@@ -1196,6 +1196,11 @@ const Admin = () => {
                             Mark as Complete
                           </button>
                         )}
+                        {member.role === 'intern' && member.internshipStatus === 'completed' && (
+                          <button className="btn btn-success" disabled>
+                            Success
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
