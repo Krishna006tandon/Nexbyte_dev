@@ -99,7 +99,7 @@ process.on('unhandledRejection', (err) => {
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs
+  max: 50, // limit each IP to 50 requests per windowMs (increased for debugging)
   message: 'Too many login attempts from this IP, please try again after 15 minutes'
 });
 
@@ -108,6 +108,9 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
   // Set content type to JSON
   res.setHeader('Content-Type', 'application/json');
+
+  // Debug logging
+  console.log('Login attempt:', { email, hasPassword: !!password });
 
   try {
     let user = await User.findOne({ email });
@@ -126,11 +129,13 @@ app.post('/api/login', loginLimiter, async (req, res) => {
         await User.findByIdAndUpdate(userId, { role: 'member' });
       }
     } else {
-      // Handle client login
+      console.log('User not found, checking client collection...');
       const client = await Client.findOne({ email });
       if (!client) {
+        console.log('Client not found for email:', email);
         return res.status(400).json({ message: 'Invalid credentials' });
       }
+      console.log('Client found:', client.email);
       user = client;
       role = 'client';
       userId = client.id;
