@@ -1041,6 +1041,8 @@ const Admin = () => {
   };
 
   console.log('Bills:', bills);
+  console.log('Members:', members);
+  console.log('Member internshipStatus:', members.map(m => ({ email: m.email, role: m.role, internshipStatus: m.internshipStatus })));
   return (
     <div className="admin-container">
       <Sidebar />
@@ -1186,20 +1188,24 @@ const Admin = () => {
                       <td>{formatDate(member.acceptanceDate)}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
-                        {(member.role === 'intern' || member.role === 'user' || member.role === 'member') && (
-                          <button onClick={() => handleShowInternReport(member._id)} className="btn btn-info">
-                            {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
-                          </button>
-                        )}
-                        {member.role === 'intern' && member.internshipStatus !== 'completed' && (
-                          <button onClick={() => handleCompleteInternship(member._id)} className="btn btn-success">
-                            Mark as Complete
-                          </button>
-                        )}
-                        {member.role === 'intern' && member.internshipStatus === 'completed' && (
-                          <button className="btn btn-success" disabled>
-                            Success
-                          </button>
+                        {member.role === 'intern' && (
+                          <>
+                            <button onClick={() => handleShowInternReport(member._id)} className="btn btn-info">
+                              {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
+                            </button>
+                            {member.internshipStatus !== 'completed' ? (
+                              <button onClick={() => handleCompleteInternship(member._id)} className="btn btn-success">
+                                Mark as Complete
+                              </button>
+                            ) : (
+                              <button className="btn btn-success" disabled>
+                                Success
+                              </button>
+                            )}
+                            <small style={{marginLeft: '10px', color: '#666'}}>
+                              Status: {member.internshipStatus || 'undefined'}
+                            </small>
+                          </>
                         )}
                       </td>
                     </tr>
