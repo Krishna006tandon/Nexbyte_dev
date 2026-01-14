@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -7,6 +8,7 @@ const StudentDashboard = ({ user }) => {
   const [tasks, setTasks] = useState([]);
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -65,6 +67,35 @@ const StudentDashboard = ({ user }) => {
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleViewCertificate = (certificate) => {
+    navigate(`/certificate/${certificate.certificateId}`);
+  };
+
+  const handleDownloadCertificate = async (certificate) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/certificates/${certificate._id}/download`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download certificate');
+      }
+
+      // For now, the API returns JSON data, so we'll use client-side PDF generation
+      // In a real implementation, this would return a PDF blob
+      await response.json();
+      
+      // Navigate to certificate page for download
+      navigate(`/certificate/${certificate.certificateId}`);
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      alert('Failed to download certificate. Please try again.');
     }
   };
 
@@ -318,10 +349,16 @@ const StudentDashboard = ({ user }) => {
                           Issued on {format(new Date(certificate.issuedAt), 'MMMM dd, yyyy')}
                         </p>
                         <div className="flex space-x-3">
-                          <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                          <button 
+                            onClick={() => handleViewCertificate(certificate)}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
                             View Certificate
                           </button>
-                          <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                          <button 
+                            onClick={() => handleDownloadCertificate(certificate)}
+                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
                             Download
                           </button>
                         </div>

@@ -906,6 +906,59 @@ const Admin = () => {
     setSelectedSrsClient(null);
   }
 
+  const handleCompleteInternship = async (internId) => {
+    const token = localStorage.getItem('token');
+    try {
+      // First, find the internship for this intern
+      const internshipRes = await fetch(`/api/internships?intern=${internId}`, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+      
+      if (!internshipRes.ok) {
+        throw new Error('Failed to find internship');
+      }
+      
+      const internships = await internshipRes.json();
+      const internship = internships[0]; // Get the first (and likely only) internship
+      
+      if (!internship) {
+        alert('No active internship found for this intern');
+        return;
+      }
+      
+      // Now complete the internship using the internship ID
+      const res = await fetch(`/api/internships/${internship._id}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ endDate: new Date().toISOString() }),
+      });
+      
+      if (res.ok) {
+        setSuccessMessage('Internship completed successfully! Certificate generated.');
+        setTimeout(() => setSuccessMessage(''), 5000);
+        // Refresh members list to update status
+        const fetchRes = await fetch('/api/users', {
+          headers: { 'x-auth-token': token },
+        });
+        const updatedMembers = await fetchRes.json();
+        if (fetchRes.ok) {
+          setMembers(updatedMembers);
+        }
+      } else {
+        const data = await res.json();
+        alert(`Failed to complete internship: ${data.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error completing internship:', err);
+      alert('Failed to complete internship. Please try again.');
+    }
+  };
+
   const handleShowInternReport = async (internId) => {
     setSelectedInternForReport(internId);
     setReportLoading(true);
@@ -984,10 +1037,8 @@ const Admin = () => {
       }
     } catch (err) {
       console.error(err);
-    }
+     }
   };
-
-  
 
   console.log('Bills:', bills);
   return (
@@ -1138,6 +1189,11 @@ const Admin = () => {
                         {(member.role === 'intern' || member.role === 'user' || member.role === 'member') && (
                           <button onClick={() => handleShowInternReport(member._id)} className="btn btn-info">
                             {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
+                          </button>
+                        )}
+                        {member.role === 'intern' && member.internshipStatus !== 'completed' && (
+                          <button onClick={() => handleCompleteInternship(member._id)} className="btn btn-success">
+                            Mark as Complete
                           </button>
                         )}
                       </td>

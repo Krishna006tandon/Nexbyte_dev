@@ -2796,6 +2796,29 @@ app.post('/api/internships', auth, admin, async (req, res) => {
   }
 });
 
+// @route   GET api/internships
+// @desc    Get all internships or filter by intern
+// @access  Private (admin)
+app.get('/api/internships', auth, admin, async (req, res) => {
+  try {
+    const { intern } = req.query;
+    let query = {};
+    
+    if (intern) {
+      query.intern = intern;
+    }
+    
+    const internships = await Internship.find(query)
+      .populate('intern', 'name email')
+      .populate('certificate');
+    
+    res.json(internships);
+  } catch (err) {
+    console.error('Error fetching internships:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   POST api/internships/:id/complete
 // @desc    Mark internship as completed and generate certificate
 // @access  Private (admin)

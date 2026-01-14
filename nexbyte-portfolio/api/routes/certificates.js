@@ -169,6 +169,45 @@ router.get('/user/:userId', auth, async (req, res) => {
   }
 });
 
+// Get single certificate by certificate ID
+router.get('/view/:certificateId', async (req, res) => {
+  try {
+    const { certificateId } = req.params;
+
+    const certificate = await Certificate.findOne({ certificateId })
+      .populate('intern', 'name email')
+      .populate('internship', 'internshipTitle startDate endDate');
+
+    if (!certificate) {
+      return res.status(404).json({ error: 'Certificate not found' });
+    }
+
+    // Decrypt the certificate data
+    const { decryptCertificateData } = require('../utils/certificateCrypto');
+    let decryptedData = null;
+    
+    try {
+      decryptedData = decryptCertificateData(certificate.encryptedData);
+    } catch (decryptError) {
+      console.error('Failed to decrypt certificate data:', decryptError);
+      return res.status(500).json({ error: 'Failed to decrypt certificate data' });
+    }
+
+    res.json({
+      certificate: {
+        _id: certificate._id,
+        certificateId: certificate.certificateId,
+        issuedAt: certificate.issuedAt,
+        certificateUrl: certificate.certificateUrl,
+      },
+      data: decryptedData
+    });
+  } catch (error) {
+    console.error('Error fetching certificate:', error);
+    res.status(500).json({ error: 'Failed to fetch certificate' });
+  }
+});
+
 // Get single certificate
 router.get('/:id', async (req, res) => {
   try {

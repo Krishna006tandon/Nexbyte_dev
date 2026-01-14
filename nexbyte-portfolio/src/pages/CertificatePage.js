@@ -15,7 +15,7 @@ const CertificatePage = () => {
     const fetchCertificate = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`/api/certificates/${certificateId}`, {
+        const res = await fetch(`/api/certificates/view/${certificateId}`, {
           headers: {
             'x-auth-token': token || '',
           },
