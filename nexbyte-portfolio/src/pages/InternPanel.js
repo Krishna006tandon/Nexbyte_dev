@@ -646,7 +646,11 @@ const InternPanel = () => {
             <li>
               <button 
                 className={`nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
-                onClick={() => setActiveSection('certificate')}
+                onClick={() => {
+                  console.log('Certificate tab clicked');
+                  setActiveSection('certificate');
+                }}
+                style={{display: 'block'}}
               >
                 <i className="fas fa-award"></i>
                 Certificate

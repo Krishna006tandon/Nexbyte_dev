@@ -1558,6 +1558,29 @@ body {
   color: var(--warning-color);
 }
 
+/* Ensure Certificate tab is always visible */
+.nav-btn[style*="display: block"] {
+  display: block !important;
+}
+
+/* Certificate tab specific styling */
+.nav-btn:has(.fas.fa-award) {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: 1px solid #f59e0b;
+}
+
+.nav-btn:has(.fas.fa-award):hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.nav-btn:has(.fas.fa-award).active {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+}
+
 /* Certificate Wrapper override for intern panel */
 .intern-panel .certificate-wrapper {
   background: transparent;
