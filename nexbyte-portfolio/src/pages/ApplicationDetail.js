@@ -38,6 +38,12 @@ const ApplicationDetail = () => {
 
   useEffect(() => {
     const fetchApplication = async () => {
+      if (!id || id === 'undefined') {
+        console.error('Invalid application ID:', id);
+        setLoading(false);
+        return;
+      }
+      
       try {
         console.log('Fetching application with ID:', id);
         setLoading(true);

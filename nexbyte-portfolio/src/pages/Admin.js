@@ -1041,8 +1041,7 @@ const Admin = () => {
   };
 
   console.log('Bills:', bills);
-  console.log('Members:', members);
-  console.log('Member internshipStatus:', members.map(m => ({ email: m.email, role: m.role, internshipStatus: m.internshipStatus })));
+
   return (
     <div className="admin-container">
       <Sidebar />
@@ -1165,6 +1164,22 @@ const Admin = () => {
               </div>
 
               <h3>All Members</h3>
+              <button onClick={() => {
+                const testIntern = {
+                  email: 'test.intern@example.com',
+                  password: 'test123',
+                  role: 'intern',
+                  internType: 'free',
+                  internshipStartDate: new Date().toISOString().split('T')[0],
+                  internshipEndDate: new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0],
+                  acceptanceDate: new Date().toISOString().split('T')[0]
+                };
+                console.log('Creating test intern:', testIntern);
+                // You can manually add this intern through the form above
+                alert('Please use the form above to add: test.intern@example.com with password "test123" and role "intern"');
+              }} className="btn btn-secondary" style={{marginBottom: '10px'}}>
+                Create Test Intern (Demo)
+              </button>
               <table>
                 <thead>
                   <tr>
