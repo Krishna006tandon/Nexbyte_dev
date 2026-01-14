@@ -712,29 +712,6 @@ const InternPanel = () => {
                   </div>
                 </div>
 
-                <div className="dashboard-card certificate-preview-card">
-                  <h3>Internship Certificate 🎓</h3>
-                  <div className="certificate-dashboard-preview">
-                    <CertificatePreview
-                      internName={profileForm.firstName || user.email.split('@')[0]}
-                      internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
-                      startDate={internshipInfo?.startDate || profile?.internshipStartDate}
-                      endDate={internshipInfo?.endDate || profile?.internshipEndDate}
-                      certificateId={certificateData?.certificateId}
-                      isSample={profile?.internshipStatus !== 'completed' || !certificateData}
-                    />
-                  </div>
-                  <div className="certificate-dashboard-actions">
-                    <button 
-                      className="btn btn-primary btn-sm"
-                      onClick={() => setActiveSection('certificate')}
-                    >
-                      <i className="fas fa-expand"></i>
-                      View Full Certificate
-                    </button>
-                  </div>
-                </div>
-
                 <div className="dashboard-card recent-diary">
                   <h3>Latest Diary Entry</h3>
                   {diaryEntries.length > 0 ? (
@@ -849,6 +826,44 @@ const InternPanel = () => {
                   <p>Your offer letter hasn't been generated yet. Please check back later.</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Certificate Preview Section */}
+          {activeSection === 'offer' && (
+            <div className="certificate-section">
+              <div className="section-header">
+                <h2>Internship Certificate 🎓</h2>
+                <p>View your internship completion certificate</p>
+              </div>
+
+              <div className="certificate-card">
+                <div className="certificate-dashboard-preview">
+                  <CertificatePreview
+                    internName={profileForm.firstName || user.email.split('@')[0]}
+                    internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
+                    startDate={internshipInfo?.startDate || profile?.internshipStartDate}
+                    endDate={internshipInfo?.endDate || profile?.internshipEndDate}
+                    certificateId={certificateData?.certificateId}
+                    isSample={profile?.internshipStatus !== 'completed' || !certificateData}
+                  />
+                </div>
+                <div className="certificate-dashboard-actions">
+                  {profile?.internshipStatus !== 'completed' || !certificateData ? (
+                    <p className="certificate-info-text">
+                      Your internship is currently <strong>in progress</strong>. The above is a demo certificate.
+                    </p>
+                  ) : (
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => setActiveSection('certificate')}
+                    >
+                      <i className="fas fa-expand"></i>
+                      View Full Certificate
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
