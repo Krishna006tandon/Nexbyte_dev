@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import InternshipListingCard from '../components/InternshipListingCard';
 import ApplicationForm from '../components/ApplicationForm';
 import StudentDashboard from '../components/StudentDashboard';
-import CertificateGenerator from '../components/CertificateGenerator';
 import { toast } from 'react-toastify';
 
 const InternshipPortal = () => {

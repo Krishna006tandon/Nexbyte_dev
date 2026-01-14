@@ -10,7 +10,7 @@ const StudentDashboard = ({ user }) => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   const fetchDashboardData = async () => {
     try {
