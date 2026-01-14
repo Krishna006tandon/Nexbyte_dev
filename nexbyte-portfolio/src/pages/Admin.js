@@ -1597,118 +1597,165 @@ const Admin = () => {
           )}
 
           {['/admin', '/admin/'].includes(location.pathname) && (
-            <p>Welcome to the admin dashboard!</p>
-          )}
-        </div>
-
-        {isSrsModalOpen && selectedSrsClient && (
-          <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
-            <div className="srs-modal">
-              <h2>Software Requirement Specification for {selectedSrsClient.projectName}</h2>
-              <pre>{selectedSrsClient.srsDocument}</pre>
-            </div>
-          </Modal>
-        )}
-
-        {isTrackerModalOpen && selectedClientForTracker && milestone && (
-          <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
-            <div className="project-tracker-modal">
-              <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
-              <ProjectTracker currentMilestone={milestone} />
-            </div>
-          </Modal>
-        )}
-
-        {showInternReport && internReport && (
-          <Modal isOpen={showInternReport} onClose={closeInternReport} size="lg">
-            <div className="intern-report-modal">
-              <h2>Intern Performance Report</h2>
-              {reportLoading ? (
-                <p>Loading report...</p>
-              ) : (
-                <div className="report-content">
-                  <div className="report-header">
-                    <h3>{internReport.user.email}</h3>
-                    <p>
-                      {internReport.user.role === 'intern' ? 
-                        `Internship Period: ${new Date(internReport.user.internshipStartDate).toLocaleDateString()} - ${new Date(internReport.user.internshipEndDate).toLocaleDateString()}` :
-                        `User Role: ${internReport.user.role.charAt(0).toUpperCase() + internReport.user.role.slice(1)}`
-                      }
-                    </p>
-                    {internReport.user.role === 'intern' && (
-                      <p>Intern Type: {internReport.user.internType === 'free' ? 'Free' : 'Stipend'}</p>
-                    )}
+            <div className="admin-dashboard-overview">
+              <h2>Admin Dashboard Overview</h2>
+              
+              {/* Manual Internship Management Section */}
+              <div className="manual-internship-section">
+                <h3>Manual Internship Management</h3>
+                <div className="manual-internship-actions">
+                  <button 
+                    onClick={() => window.location.href = '/admin/internship-dashboard'}
+                    className="btn btn-primary"
+                  >
+                    Manage Internships
+                  </button>
+                  <button 
+                    onClick={() => window.location.href = '/admin/application-list'}
+                    className="btn btn-secondary"
+                  >
+                    Review Applications
+                  </button>
+                  <button 
+                    onClick={() => window.location.href = '/admin/email-automation'}
+                    className="btn btn-secondary"
+                  >
+                    Email Settings
+                  </button>
+                </div>
+                <div className="internship-stats">
+                  <div className="stat-card">
+                    <h4>Total Interns</h4>
+                    <div className="stat-number">{members.filter(m => m.role === 'intern').length}</div>
                   </div>
-
-                  <div className="stats-grid">
-                    <div className="stat-card">
-                      <h4>Total Tasks</h4>
-                      <div className="stat-number">{internReport.statistics.totalTasks}</div>
-                    </div>
-                    <div className="stat-card">
-                      <h4>Completed</h4>
-                      <div className="stat-number">{internReport.statistics.completedTasks}</div>
-                    </div>
-                    <div className="stat-card">
-                      <h4>In Progress</h4>
-                      <div className="stat-number">{internReport.statistics.inProgressTasks}</div>
-                    </div>
-                    <div className="stat-card">
-                      <h4>Completion Rate</h4>
-                      <div className="stat-number">{internReport.statistics.completionRate}%</div>
+                  <div className="stat-card">
+                    <h4>Active Internships</h4>
+                    <div className="stat-number">
+                      {members.filter(m => m.role === 'intern' && 
+                        new Date() >= new Date(m.internshipStartDate) && 
+                        new Date() <= new Date(m.internshipEndDate)).length}
                     </div>
                   </div>
-
-                  <div className="report-section">
-                    <h4>Task Priority Breakdown</h4>
-                    <div className="priority-breakdown">
-                      <div className="priority-item">
-                        <span className="priority-label">High Priority:</span>
-                        <span>{internReport.priorityBreakdown.high.completed} of {internReport.priorityBreakdown.high.total} completed ({internReport.priorityBreakdown.high.completionRate}%)</span>
-                      </div>
-                      <div className="priority-item">
-                        <span className="priority-label">Medium Priority:</span>
-                        <span>{internReport.priorityBreakdown.medium.completed} of {internReport.priorityBreakdown.medium.total} completed ({internReport.priorityBreakdown.medium.completionRate}%)</span>
-                      </div>
-                      <div className="priority-item">
-                        <span className="priority-label">Low Priority:</span>
-                        <span>{internReport.priorityBreakdown.low.completed} of {internReport.priorityBreakdown.low.total} completed ({internReport.priorityBreakdown.low.completionRate}%)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="report-section">
-                    <h4>Recent Activity</h4>
-                    <div className="recent-activity">
-                      {internReport.recentActivity.map((task, index) => (
-                        <div key={index} className="activity-item">
-                          <div className="activity-header">
-                            <span className="task-title">{task.title}</span>
-                            <span className={`status-badge ${task.status.toLowerCase().replace(' ', '-')}`}>
-                              {task.status}
-                            </span>
-                          </div>
-                          <div className="activity-details">
-                            <span>Priority: {task.priority}</span>
-                            <span>Reward: ₹{task.reward}</span>
-                            {task.completedAt && (
-                              <span>Completed: {new Date(task.completedAt).toLocaleDateString()}</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="report-footer">
-                    <p>Report generated on: {new Date().toLocaleString()}</p>
+                  <div className="stat-card">
+                    <h4>Pending Applications</h4>
+                    <div className="stat-number">0</div>
                   </div>
                 </div>
-              )}
+              </div>
+              
+              <p>Welcome to the admin dashboard!</p>
             </div>
-          </Modal>
-        )}
+          )}
 
+          {isSrsModalOpen && selectedSrsClient && (
+            <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
+              <div className="srs-modal">
+                <h2>Software Requirement Specification for {selectedSrsClient.projectName}</h2>
+                <pre>{selectedSrsClient.srsDocument}</pre>
+              </div>
+            </Modal>
+          )}
+
+          {isTrackerModalOpen && selectedClientForTracker && milestone && (
+            <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
+              <div className="project-tracker-modal">
+                <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
+                <ProjectTracker currentMilestone={milestone} />
+              </div>
+            </Modal>
+          )}
+
+          {showInternReport && internReport && (
+            <Modal isOpen={showInternReport} onClose={closeInternReport} size="lg">
+              <div className="intern-report-modal">
+                <h2>Intern Performance Report</h2>
+                {reportLoading ? (
+                  <p>Loading report...</p>
+                ) : (
+                  <div className="report-content">
+                    <div className="report-header">
+                      <h3>{internReport.user.email}</h3>
+                      <p>
+                        {internReport.user.role === 'intern' ? 
+                          `Internship Period: ${new Date(internReport.user.internshipStartDate).toLocaleDateString()} - ${new Date(internReport.user.internshipEndDate).toLocaleDateString()}` :
+                          `User Role: ${internReport.user.role.charAt(0).toUpperCase() + internReport.user.role.slice(1)}`
+                        }
+                      </p>
+                      {internReport.user.role === 'intern' && (
+                        <p>Intern Type: {internReport.user.internType === 'free' ? 'Free' : 'Stipend'}</p>
+                      )}
+                    </div>
+
+                    <div className="stats-grid">
+                      <div className="stat-card">
+                        <h4>Total Tasks</h4>
+                        <div className="stat-number">{internReport.statistics.totalTasks}</div>
+                      </div>
+                      <div className="stat-card">
+                        <h4>Completed</h4>
+                        <div className="stat-number">{internReport.statistics.completedTasks}</div>
+                      </div>
+                      <div className="stat-card">
+                        <h4>In Progress</h4>
+                        <div className="stat-number">{internReport.statistics.inProgressTasks}</div>
+                      </div>
+                      <div className="stat-card">
+                        <h4>Completion Rate</h4>
+                        <div className="stat-number">{internReport.statistics.completionRate}%</div>
+                      </div>
+                    </div>
+
+                    <div className="report-section">
+                      <h4>Task Priority Breakdown</h4>
+                      <div className="priority-breakdown">
+                        <div className="priority-item">
+                          <span className="priority-label">High Priority:</span>
+                          <span>{internReport.priorityBreakdown.high.completed} of {internReport.priorityBreakdown.high.total} completed ({internReport.priorityBreakdown.high.completionRate}%)</span>
+                        </div>
+                        <div className="priority-item">
+                          <span className="priority-label">Medium Priority:</span>
+                          <span>{internReport.priorityBreakdown.medium.completed} of {internReport.priorityBreakdown.medium.total} completed ({internReport.priorityBreakdown.medium.completionRate}%)</span>
+                        </div>
+                        <div className="priority-item">
+                          <span className="priority-label">Low Priority:</span>
+                          <span>{internReport.priorityBreakdown.low.completed} of {internReport.priorityBreakdown.low.total} completed ({internReport.priorityBreakdown.low.completionRate}%)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="report-section">
+                      <h4>Recent Activity</h4>
+                      <div className="recent-activity">
+                        {internReport.recentActivity.map((task, index) => (
+                          <div key={index} className="activity-item">
+                            <div className="activity-header">
+                              <span className="task-title">{task.title}</span>
+                              <span className={`status-badge ${task.status.toLowerCase().replace(' ', '-')}`}>
+                                {task.status}
+                              </span>
+                            </div>
+                            <div className="activity-details">
+                              <span>Priority: {task.priority}</span>
+                              <span>Reward: ₹{task.reward}</span>
+                              {task.completedAt && (
+                                <span>Completed: {new Date(task.completedAt).toLocaleDateString()}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="report-footer">
+                      <p>Report generated on: {new Date().toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Modal>
+          )}
+
+        </div>
       </div>
     </div>
   );
