@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './ApplicationDetail.css';
 
 const ApplicationDetail = () => {
-  const { id } = useParams();
+  // Extract ID from URL since useParams doesn't work with Admin wildcard routing
+  const getIdFromUrl = () => {
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/');
+    return parts[parts.length - 1]; // Get the last part of the URL
+  };
+  
+  const id = getIdFromUrl();
   const navigate = useNavigate();
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,15 +67,7 @@ const ApplicationDetail = () => {
       }
     };
 
-    // Extract ID from URL if useParams doesn't work
-    const urlId = window.location.pathname.split('/').pop();
-    console.log('ID from useParams:', id);
-    console.log('Extracted ID from URL:', urlId);
-    
-    const finalId = id || urlId;
-    console.log('Final ID to use:', finalId);
-    
-    if (finalId && finalId !== 'undefined') {
+    if (id && id !== 'undefined') {
       fetchApplication();
     } else {
       console.error('No valid ID provided');
@@ -101,17 +100,13 @@ const ApplicationDetail = () => {
   };
 
   const handleStatusChange = async (newStatus) => {
-    // Extract ID from URL if useParams doesn't work
-    const urlId = window.location.pathname.split('/').pop();
-    const finalId = id || urlId;
-    
-    if (!finalId || finalId === 'undefined') {
+    if (!id || id === 'undefined') {
       console.error('No valid application ID available');
       return;
     }
     
     try {
-      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
         status: newStatus
       });
       setApplication(response.data);
@@ -121,17 +116,13 @@ const ApplicationDetail = () => {
   };
 
   const handleSaveNotes = async () => {
-    // Extract ID from URL if useParams doesn't work
-    const urlId = window.location.pathname.split('/').pop();
-    const finalId = id || urlId;
-    
-    if (!finalId || finalId === 'undefined') {
+    if (!id || id === 'undefined') {
       console.error('No valid application ID available');
       return;
     }
     
     try {
-      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
         notes: notes
       });
       setApplication(response.data);
@@ -142,17 +133,13 @@ const ApplicationDetail = () => {
   };
 
   const handleDownloadResume = async () => {
-    // Extract ID from URL if useParams doesn't work
-    const urlId = window.location.pathname.split('/').pop();
-    const finalId = id || urlId;
-    
-    if (!finalId || finalId === 'undefined') {
+    if (!id || id === 'undefined') {
       console.error('No valid application ID available');
       return;
     }
     
     try {
-      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
+      const response = await axios.put(`/api/internship/applications/${id}/status`, {
         resume: application.resume
       });
       setApplication(response.data);
@@ -192,7 +179,7 @@ const ApplicationDetail = () => {
           <div className="status-badge" style={{ backgroundColor: getStatusColor(application.status) }}>
             {getStatusLabel(application.status)}
           </div>
-          <div className="application-id">ID: #{id || window.location.pathname.split('/').pop()}</div>
+          <div className="application-id">ID: #{id}</div>
         </div>
       </div>
 
