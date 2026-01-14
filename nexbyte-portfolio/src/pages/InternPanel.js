@@ -650,12 +650,26 @@ const InternPanel = () => {
                 Growth Report
               </button>
             </li>
-            <li>
+            {/* CERTIFICATE BUTTON - DEBUG WRAPPER */}
+            <li style={{
+              display: 'block !important',
+              visibility: 'visible !important',
+              opacity: '1 !important',
+              position: 'relative !important',
+              zIndex: '9999 !important',
+              background: 'rgba(245, 158, 11, 0.1) !important',
+              border: '2px dashed #f59e0b !important',
+              borderRadius: '8px !important',
+              margin: '15px 0 !important',
+              padding: '5px !important'
+            }}>
               <button 
                 className={`nav-btn certificate-nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
                 onClick={() => {
-                  console.log('Certificate tab clicked!');
+                  console.log('🎓 Certificate tab clicked!');
+                  console.log('🎓 Before setActiveSection - current activeSection:', activeSection);
                   setActiveSection('certificate');
+                  console.log('🎓 After setActiveSection - should change to certificate');
                 }}
                 style={{
                   display: 'block !important', 
@@ -666,15 +680,32 @@ const InternPanel = () => {
                   border: '2px solid #f59e0b !important',
                   fontWeight: 'bold !important',
                   position: 'relative !important',
-                  zIndex: '999 !important',
-                  minHeight: '50px !important',
-                  fontSize: '16px !important'
+                  zIndex: '9999 !important',
+                  minHeight: '60px !important',
+                  fontSize: '16px !important',
+                  width: '100% !important',
+                  borderRadius: '6px !important',
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4) !important',
+                  transform: 'scale(1.05) !important'
                 }}
               >
                 <i className="fas fa-award"></i>
                 Certificate 🎓
               </button>
+              {/* Debug indicator */}
+              <div style={{
+                fontSize: '10px !important',
+                color: '#f59e0b !important',
+                textAlign: 'center !important',
+                marginTop: '2px !important',
+                background: 'rgba(245, 158, 11, 0.2) !important',
+                padding: '2px !important',
+                borderRadius: '3px !important'
+              }}>
+                DEBUG: Certificate Tab
+              </div>
             </li>
+            {/* END CERTIFICATE BUTTON */}
             <li>
               <button 
                 className={`nav-btn ${activeSection === 'resources' ? 'active' : ''}`}
