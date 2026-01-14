@@ -653,11 +653,26 @@ const InternPanel = () => {
             <li>
               <button 
                 className={`nav-btn certificate-nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
-                onClick={() => setActiveSection('certificate')}
-                style={{display: 'block', visibility: 'visible', opacity: 1}}
+                onClick={() => {
+                  console.log('Certificate tab clicked!');
+                  setActiveSection('certificate');
+                }}
+                style={{
+                  display: 'block !important', 
+                  visibility: 'visible !important', 
+                  opacity: '1 !important',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706) !important',
+                  color: 'white !important',
+                  border: '2px solid #f59e0b !important',
+                  fontWeight: 'bold !important',
+                  position: 'relative !important',
+                  zIndex: '999 !important',
+                  minHeight: '50px !important',
+                  fontSize: '16px !important'
+                }}
               >
                 <i className="fas fa-award"></i>
-                Certificate
+                Certificate 🎓
               </button>
             </li>
             <li>
