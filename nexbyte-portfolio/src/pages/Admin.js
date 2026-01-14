@@ -11,6 +11,7 @@ import TaskMonitoringDashboard from '../components/TaskMonitoringDashboard';
 import InternshipDashboard from './InternshipDashboard';
 import ApplicationList from './ApplicationList';
 import ApplicationDetail from './ApplicationDetail';
+import InternReports from './InternReports';
 import EmailAutomation from './EmailAutomation';
 import RoleManagement from './RoleManagement';
 import Modal from '../components/Modal';
@@ -1660,6 +1661,10 @@ const Admin = () => {
 
           {location.pathname === '/admin/internship-dashboard' && (
             <InternshipDashboard />
+          )}
+
+          {location.pathname === '/admin/intern-reports' && (
+            <InternReports />
           )}
 
           {location.pathname === '/admin/application-list' && (
