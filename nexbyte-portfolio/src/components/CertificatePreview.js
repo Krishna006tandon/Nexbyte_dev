@@ -26,11 +26,14 @@ const CertificatePreview = ({
             <header className="nb-certificate-header">
               <div className="nb-certificate-logo-title">
                 <div className="nb-certificate-logo-circle">
-                  <img
-                    src="/NexByte_Core%20Logo%20.png"
-                    alt="Nexbyte Core Logo"
-                    className="nb-certificate-logo-img"
-                  />
+                  <div className="nb-certificate-logo-img" style={{
+                    backgroundImage: 'url("/NexByte_Core%20Logo%20.png")',
+                    backgroundSize: 'contain',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'center',
+                    width: '100%',
+                    height: '100%'
+                  }}></div>
                 </div>
                 <div className="nb-certificate-header-text">
                   <h1 className="nb-certificate-main-title">INTERNSHIP</h1>

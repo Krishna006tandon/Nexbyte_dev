@@ -43,7 +43,6 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url("/NexByte_Core%20Logo%20.png");
   background-repeat: repeat;
   background-size: 260px;
   opacity: 0.03;

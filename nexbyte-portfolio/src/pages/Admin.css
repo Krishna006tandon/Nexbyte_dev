@@ -3,6 +3,98 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* Manual Internship Management Styles */
+.admin-dashboard-overview {
+  padding: 20px;
+}
+
+.manual-internship-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.manual-internship-section h3 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+}
+
+.manual-internship-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.manual-internship-actions .btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.manual-internship-actions .btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.manual-internship-actions .btn-primary:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+}
+
+.manual-internship-actions .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.manual-internship-actions .btn-secondary:hover {
+  background: #545b62;
+  transform: translateY(-2px);
+}
+
+.internship-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.internship-stats .stat-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.internship-stats .stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.internship-stats .stat-card h4 {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.internship-stats .stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
 /* Task Management Styles */
 .task-management-section {
   max-width: 1200px;

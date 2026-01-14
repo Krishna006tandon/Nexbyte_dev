@@ -3,11 +3,11 @@ import './EmailAutomation.css';
 
 const EmailAutomation = () => {
   const [emailSettings, setEmailSettings] = useState({
-    enabled: true,
-    autoReply: true,
-    approvalEmail: true,
-    rejectionEmail: true,
-    completionEmail: true,
+    enabled: false, // Disabled automatic emails
+    autoReply: false,
+    approvalEmail: false,
+    rejectionEmail: false,
+    completionEmail: false,
     customTemplates: {
       applicationReceived: {
         subject: 'Application Received - NexByte Internship',
