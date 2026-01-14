@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './InternPanel.css';
 import { useAuth } from '../context/AuthContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import CertificatePreview from '../components/CertificatePreview';
+import InternSidebar from '../components/InternSidebar';
 
 const InternPanel = () => {
   const { user, isIntern, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,6 +51,13 @@ const InternPanel = () => {
       console.log('Certificate section should now be visible');
     }
   }, [activeSection]);
+
+  // Handle navigation from sidebar
+  useEffect(() => {
+    if (location.state?.activeSection) {
+      setActiveSection(location.state.activeSection);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     console.log('InternPanel - User:', user);
@@ -586,166 +595,7 @@ const InternPanel = () => {
       <ToastContainer position="top-right" autoClose={5000} />
       
       {/* Sidebar Navigation */}
-      <aside className="intern-sidebar">
-        <div className="sidebar-header">
-          <div className="intern-logo">
-            <h3>NexByte</h3>
-            <span>Intern Portal</span>
-          </div>
-        </div>
-        
-        <nav className="sidebar-nav">
-          <ul>
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setActiveSection('dashboard')}
-              >
-                <i className="fas fa-home"></i>
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'offer' ? 'active' : ''}`}
-                onClick={() => setActiveSection('offer')}
-              >
-                <i className="fas fa-file-contract"></i>
-                Offer Letter
-              </button>
-            </li>
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'tasks' ? 'active' : ''}`}
-                onClick={() => setActiveSection('tasks')}
-              >
-                <i className="fas fa-tasks"></i>
-                Tasks
-              </button>
-            </li>
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'profile' ? 'active' : ''}`}
-                onClick={() => setActiveSection('profile')}
-              >
-                <i className="fas fa-user"></i>
-                Profile
-              </button>
-            </li>
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'diary' ? 'active' : ''}`}
-                onClick={() => setActiveSection('diary')}
-              >
-                <i className="fas fa-book"></i>
-                Daily Diary
-              </button>
-            </li>
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'reports' ? 'active' : ''}`}
-                onClick={() => setActiveSection('reports')}
-              >
-                <i className="fas fa-chart-line"></i>
-                Growth Report
-              </button>
-            </li>
-            {/* CERTIFICATE BUTTON - DEBUG WRAPPER */}
-            <li style={{
-              display: 'block !important',
-              visibility: 'visible !important',
-              opacity: '1 !important',
-              position: 'relative !important',
-              zIndex: '9999 !important',
-              background: 'rgba(245, 158, 11, 0.1) !important',
-              border: '2px dashed #f59e0b !important',
-              borderRadius: '8px !important',
-              margin: '15px 0 !important',
-              padding: '5px !important'
-            }}>
-              <button 
-                className={`nav-btn certificate-nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
-                onClick={() => {
-                  console.log('🎓 Certificate tab clicked!');
-                  console.log('🎓 Before setActiveSection - current activeSection:', activeSection);
-                  setActiveSection('certificate');
-                  console.log('🎓 After setActiveSection - should change to certificate');
-                }}
-                style={{
-                  display: 'block !important', 
-                  visibility: 'visible !important', 
-                  opacity: '1 !important',
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706) !important',
-                  color: 'white !important',
-                  border: '2px solid #f59e0b !important',
-                  fontWeight: 'bold !important',
-                  position: 'relative !important',
-                  zIndex: '9999 !important',
-                  minHeight: '60px !important',
-                  fontSize: '16px !important',
-                  width: '100% !important',
-                  borderRadius: '6px !important',
-                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4) !important',
-                  transform: 'scale(1.05) !important'
-                }}
-              >
-                <i className="fas fa-award"></i>
-                Certificate 🎓
-              </button>
-              {/* Debug indicator */}
-              <div style={{
-                fontSize: '10px !important',
-                color: '#f59e0b !important',
-                textAlign: 'center !important',
-                marginTop: '2px !important',
-                background: 'rgba(245, 158, 11, 0.2) !important',
-                padding: '2px !important',
-                borderRadius: '3px !important'
-              }}>
-                DEBUG: Certificate Tab
-              </div>
-            </li>
-            {/* END CERTIFICATE BUTTON */}
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'resources' ? 'active' : ''}`}
-                onClick={() => setActiveSection('resources')}
-              >
-                <i className="fas fa-book-open"></i>
-                Resources
-              </button>
-            </li>
-            <li>
-              <button 
-                className={`nav-btn ${activeSection === 'settings' ? 'active' : ''}`}
-                onClick={() => setActiveSection('settings')}
-              >
-                <i className="fas fa-cog"></i>
-                Settings
-              </button>
-            </li>
-          </ul>
-        </nav>
-        
-        <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="user-details">
-              <p className="user-name">{profileForm.firstName || user.email.split('@')[0]}</p>
-              <p className="user-role">Intern</p>
-            </div>
-          </div>
-          <button 
-            className="logout-btn"
-            onClick={() => {
-              localStorage.removeItem('token');
-              navigate('/login');
-            }}
-          >
-            <i className="fas fa-sign-out-alt"></i>
-            Logout
-          </button>
-        </div>
-      </aside>
+      <InternSidebar />
 
       {/* Main Content */}
       <main className="intern-main-content">
