@@ -44,6 +44,13 @@ const InternPanel = () => {
   const certificateRef = useRef(null);
 
   useEffect(() => {
+    console.log('Active section changed to:', activeSection);
+    if (activeSection === 'certificate') {
+      console.log('Certificate section should now be visible');
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
     console.log('InternPanel - User:', user);
     console.log('InternPanel - isIntern:', isIntern);
     console.log('InternPanel - authLoading:', authLoading);
@@ -95,7 +102,7 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/notifications', []),
         fetchWithErrorHandling('/api/resources', []),
         fetchWithErrorHandling('/api/team', []),
-        fetchWithErrorHandling('/api/internships/me', null)
+        fetchWithErrorHandling('/api/internship-management/me', null)
       ]);
 
       // Set data with fallbacks
@@ -645,12 +652,14 @@ const InternPanel = () => {
             </li>
             <li>
               <button 
-                className={`nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
+                className={`nav-btn certificate-nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
                 onClick={() => {
                   console.log('Certificate tab clicked');
+                  console.log('Current activeSection:', activeSection);
                   setActiveSection('certificate');
+                  console.log('Setting activeSection to certificate');
                 }}
-                style={{display: 'block'}}
+                style={{display: 'block', visibility: 'visible', opacity: 1}}
               >
                 <i className="fas fa-award"></i>
                 Certificate
@@ -718,6 +727,24 @@ const InternPanel = () => {
               }}
             >
               Save All to Backend
+            </button>
+            <button 
+              onClick={() => {
+                console.log('Debug: Directly setting certificate section');
+                setActiveSection('certificate');
+              }}
+              style={{
+                marginLeft: '10px',
+                padding: '8px 16px',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Test Certificate Section
             </button>
           </div>
           <div className="header-right">
@@ -1239,6 +1266,7 @@ const InternPanel = () => {
                     </>
                   )}
                 </div>
+                {console.log('Rendering certificate section')}
               </div>
             </div>
           )}

@@ -911,7 +911,7 @@ const Admin = () => {
     const token = localStorage.getItem('token');
     try {
       // First, find the internship for this intern
-      const internshipRes = await fetch(`/api/internships?intern=${internId}`, {
+      const internshipRes = await fetch(`/api/internship-management/me`, {
         headers: {
           'x-auth-token': token,
         },
@@ -921,42 +921,77 @@ const Admin = () => {
         throw new Error('Failed to find internship');
       }
       
-      const internships = await internshipRes.json();
-      const internship = internships[0]; // Get the first (and likely only) internship
+      const internshipData = await internshipRes.json();
       
-      if (!internship) {
+      if (!internshipData.internship) {
         alert('No active internship found for this intern');
         return;
       }
       
-      // Now complete the internship using the internship ID
-      const res = await fetch(`/api/internships/${internship._id}/complete`, {
+      // Now complete the internship using the new API endpoint
+      const res = await fetch(`/api/internship-management/complete/${internshipData.internship._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+      });
+      
+      if (res.ok) {
+        const result = await res.json();
+        setSuccessMessage('Internship completed successfully! Certificate generated automatically.');
+        setTimeout(() => setSuccessMessage(''), 5000);
+        console.log('Certificate generated:', result.certificate);
+        // Refresh members list to update status
+        const fetchRes = await fetch('/api/users', {
+          headers: { 'x-auth-token': token },
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          setMembers(data);
+        }
+      } else {
+        const data = await res.json();
+        alert(`Failed to complete internship: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error completing internship:', err);
+      alert('Failed to complete internship. Please try again.');
+    }
+  };
+
+  const handleCheckCompletions = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/internship-management/check-completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ endDate: new Date().toISOString() }),
       });
       
       if (res.ok) {
-        setSuccessMessage('Internship completed successfully! Certificate generated.');
+        const result = await res.json();
+        setSuccessMessage('✅ Auto-completion check completed! Check console for details.');
         setTimeout(() => setSuccessMessage(''), 5000);
-        // Refresh members list to update status
+        console.log('Completion check result:', result);
+        
+        // Refresh members list to show updated statuses
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
-        const updatedMembers = await fetchRes.json();
         if (fetchRes.ok) {
-          setMembers(updatedMembers);
+          const data = await fetchRes.json();
+          setMembers(data);
         }
       } else {
         const data = await res.json();
-        alert(`Failed to complete internship: ${data.message || 'Unknown error'}`);
+        alert(`Failed to check completions: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
-      console.error('Error completing internship:', err);
-      alert('Failed to complete internship. Please try again.');
+      console.error('Error checking completions:', err);
+      alert('Failed to check completions. Please try again.');
     }
   };
 
@@ -1165,6 +1200,14 @@ const Admin = () => {
               </div>
 
               <h3>All Members</h3>
+              <div style={{marginBottom: '20px'}}>
+                <button onClick={handleCheckCompletions} className="btn btn-info" style={{marginRight: '10px'}}>
+                  🔄 Check Auto-Completions
+                </button>
+                <small style={{color: '#666', fontSize: '12px'}}>
+                  Automatically checks and completes internships that have reached their end date
+                </small>
+              </div>
               <button onClick={() => {
                 const testIntern = {
                   email: 'test.intern@example.com',

@@ -2971,11 +2971,19 @@ app.get('/api/certificates/:certificateId', auth, async (req, res) => {
 const internshipListingsRoutes = require('./routes/internshipListings');
 const applicationsRoutes = require('./routes/applications');
 const certificatesRoutes = require('./routes/certificates');
+const internshipsRoutes = require('./routes/internships');
+
+// Import auto-completion checker
+const { startAutoCompletionChecker } = require('./middleware/autoCompletion');
 
 // Use new internship portal routes
 app.use('/api/internships', internshipListingsRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/certificates', certificatesRoutes);
+app.use('/api/internship-management', internshipsRoutes);
+
+// Start auto-completion checker
+startAutoCompletionChecker();
 
 module.exports = app;
 

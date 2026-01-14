@@ -1564,20 +1564,26 @@ body {
 }
 
 /* Certificate tab specific styling */
-.nav-btn:has(.fas.fa-award) {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  border: 1px solid #f59e0b;
+.nav-btn.certificate-nav-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: white !important;
+  border: 1px solid #f59e0b !important;
+  font-weight: 600 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 10 !important;
 }
 
-.nav-btn:has(.fas.fa-award):hover {
-  background: linear-gradient(135deg, #d97706, #b45309);
+.nav-btn.certificate-nav-btn:hover {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
-.nav-btn:has(.fas.fa-award).active {
-  background: linear-gradient(135deg, #d97706, #b45309);
+.nav-btn.certificate-nav-btn.active {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
 }
 
