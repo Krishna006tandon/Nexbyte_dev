@@ -23,6 +23,10 @@ const Internship = require('./models/Internship');
 const Certificate = require('./models/Certificate');
 const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
+const { setupStaticFiles } = require('./server-uploads');
+
+// Setup static file serving for uploads
+setupStaticFiles(app);
 
 
 const app = express();
@@ -2934,6 +2938,16 @@ app.get('/api/certificates/:certificateId', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Import new internship portal routes
+const internshipListingsRoutes = require('./routes/internshipListings');
+const applicationsRoutes = require('./routes/applications');
+const certificatesRoutes = require('./routes/certificates');
+
+// Use new internship portal routes
+app.use('/api/internships', internshipListingsRoutes);
+app.use('/api/applications', applicationsRoutes);
+app.use('/api/certificates', certificatesRoutes);
 
 module.exports = app;
 
