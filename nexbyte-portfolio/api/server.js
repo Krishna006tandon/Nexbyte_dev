@@ -25,11 +25,10 @@ const { encryptCertificateData, decryptCertificateData } = require('./utils/cert
 const internshipRoutes = require('./internship');
 const { setupStaticFiles } = require('./server-uploads');
 
+const app = express();
+
 // Setup static file serving for uploads
 setupStaticFiles(app);
-
-
-const app = express();
 
 // Trust proxy for rate limiting behind load balancers/proxies
 app.set('trust proxy', 1);

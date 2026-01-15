@@ -47,6 +47,29 @@ const seedAdmin = async () => {
       await memberUser.save();
       console.log('Member user created successfully.');
     }
+
+    // Create an intern user for testing
+    const internEmail = 'intern@example.com';
+    const internPassword = 'intern';
+
+    const existingIntern = await User.findOne({ email: internEmail });
+    if (existingIntern) {
+      console.log('Intern user already exists.');
+    } else {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(internPassword, salt);
+
+      const internUser = new User({
+        email: internEmail,
+        password: hashedPassword,
+        role: 'intern',
+        internshipStartDate: new Date(),
+        internshipEndDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+      });
+
+      await internUser.save();
+      console.log('Intern user created successfully.');
+    }
   } catch (err) {
     console.error(err.message);
   } finally {
