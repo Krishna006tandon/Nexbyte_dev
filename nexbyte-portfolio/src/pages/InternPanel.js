@@ -25,6 +25,7 @@ const InternPanel = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [internshipInfo, setInternshipInfo] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
+  const [cloudinaryUrl, setCloudinaryUrl] = useState(null);
   
   // Form states
   const [offerLetter, setOfferLetter] = useState(null);
@@ -127,25 +128,12 @@ const InternPanel = () => {
         });
       }
       if (internshipRes) {
-        console.log('DEBUG: Internship API Response:', internshipRes);
+        console.log('Internship response:', internshipRes);
         setInternshipInfo(internshipRes.internship || null);
-        // Handle certificate data properly - it might be nested differently
-        if (internshipRes.certificateData) {
-          console.log('DEBUG: Certificate data found:', internshipRes.certificateData);
-          setCertificateData(internshipRes.certificateData);
-        } else if (internshipRes.internship?.certificate) {
-          console.log('DEBUG: Certificate found in internship:', internshipRes.internship.certificate);
-          setCertificateData(internshipRes.internship.certificate);
-        } else {
-          console.log('DEBUG: No certificate data found');
-        }
-        
-        // Auto-navigate to certificate if internship is completed and certificate is available
-        if (internshipRes.internship?.status === 'completed' && 
-            (internshipRes.certificateData || internshipRes.internship?.certificate)) {
-          console.log('Internship completed with certificate, navigating to certificate section');
-          setActiveSection('certificate');
-        }
+        setCertificateData(internshipRes.certificateData || null);
+        setCloudinaryUrl(internshipRes.cloudinaryUrl || null);
+        console.log('Certificate data set:', internshipRes.certificateData);
+        console.log('Cloudinary URL:', internshipRes.cloudinaryUrl);
       }
       setTasks(tasksData);
       setDiaryEntries(diaryData);
@@ -1122,58 +1110,101 @@ const InternPanel = () => {
               </div>
 
               <div className="certificate-card">
-                <div ref={certificateRef}>
-                  <CertificatePreview
-                    internName={profileForm.firstName || user.email.split('@')[0]}
-                    internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
-                    startDate={internshipInfo?.startDate || profile?.internshipStartDate}
-                    endDate={internshipInfo?.endDate || profile?.internshipEndDate}
-                    certificateId={certificateData?.certificateId}
-                    isSample={internshipInfo?.status !== 'completed' || !certificateData}
-                  />
-                </div>
-
-                <div className="certificate-actions">
-                  {internshipInfo?.status !== 'completed' || !certificateData ? (
-                    <>
-                      <p className="certificate-info-text">
-                        Your internship is currently <strong>in progress</strong>. The above is a demo certificate.
-                      </p>
-                      <button className="btn btn-secondary" disabled>
-                        Download Disabled (Internship in Progress)
-                      </button>
-                    </>
-                  ) : (
-                    <>
+                {/* Show Cloudinary image if available */}
+                {cloudinaryUrl ? (
+                  <div className="cloudinary-certificate">
+                    <img 
+                      src={cloudinaryUrl} 
+                      alt="Certificate of Completion"
+                      style={{ 
+                        width: '100%', 
+                        maxWidth: '800px', 
+                        height: 'auto',
+                        border: '2px solid #ddd',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <div className="certificate-actions" style={{ marginTop: '20px', textAlign: 'center' }}>
                       <button
                         className="btn btn-primary"
                         onClick={() => {
-                          if (!window.html2pdf || !certificateRef.current) {
-                            toast.error('Download is not available in this environment.');
-                            return;
-                          }
-                          window.html2pdf().from(certificateRef.current).save(`certificate_${certificateData.certificateId}.pdf`);
+                          window.open(cloudinaryUrl, '_blank');
+                        }}
+                      >
+                        <i className="fas fa-external-link-alt"></i>
+                        View Full Certificate
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = cloudinaryUrl;
+                          link.download = `certificate_${certificateData?.certificateId}.jpg`;
+                          link.click();
                         }}
                       >
                         <i className="fas fa-download"></i>
                         Download Certificate
                       </button>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          if (!certificateData?.certificateId) {
-                            toast.error('Certificate not available.');
-                            return;
-                          }
-                          window.open(`/certificate/${certificateData.certificateId}`, '_blank');
-                        }}
-                      >
-                        <i className="fas fa-external-link-alt"></i>
-                        View Fullscreen
-                      </button>
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div ref={certificateRef}>
+                    <CertificatePreview
+                      internName={profileForm.firstName || user.email.split('@')[0]}
+                      internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
+                      startDate={internshipInfo?.startDate || profile?.internshipStartDate}
+                      endDate={internshipInfo?.endDate || profile?.internshipEndDate}
+                      certificateId={certificateData?.certificateId}
+                      isSample={internshipInfo?.status !== 'completed' || !certificateData}
+                    />
+                  </div>
+                )}
+
+                {!cloudinaryUrl && (
+                  <div className="certificate-actions">
+                    {internshipInfo?.status !== 'completed' || !certificateData ? (
+                      <>
+                        <p className="certificate-info-text">
+                          Your internship is currently <strong>in progress</strong>. The above is a demo certificate.
+                        </p>
+                        <button className="btn btn-secondary" disabled>
+                          Download Disabled (Internship in Progress)
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => {
+                            if (!window.html2pdf || !certificateRef.current) {
+                              toast.error('Download is not available in this environment.');
+                              return;
+                            }
+                            window.html2pdf().from(certificateRef.current).save(`certificate_${certificateData.certificateId}.pdf`);
+                          }}
+                        >
+                          <i className="fas fa-download"></i>
+                          Download Certificate
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            if (!certificateData?.certificateId) {
+                              toast.error('Certificate not available.');
+                              return;
+                            }
+                            window.open(`/certificate/${certificateData.certificateId}`, '_blank');
+                          }}
+                        >
+                          <i className="fas fa-external-link-alt"></i>
+                          View Fullscreen
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
                 {console.log('Rendering certificate section')}
               </div>
             </div>

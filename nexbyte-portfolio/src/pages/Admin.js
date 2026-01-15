@@ -907,30 +907,53 @@ const Admin = () => {
     setSelectedSrsClient(null);
   }
 
-  const handleCompleteInternship = async (internId) => {
+  const handleTestCertificate = async (internId) => {
     const token = localStorage.getItem('token');
     try {
-      // First, find the internship for this intern
-      const internshipRes = await fetch(`/api/internship-management/me`, {
+      const res = await fetch(`/api/internships/test-certificate/${internId}`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-auth-token': token,
         },
       });
       
-      if (!internshipRes.ok) {
-        throw new Error('Failed to find internship');
+      if (res.ok) {
+        const result = await res.json();
+        setSuccessMessage(`✅ Test certificate generated: ${result.certificateId}`);
+        setTimeout(() => setSuccessMessage(''), 5000);
+        console.log('Test certificate result:', result);
+      } else {
+        const data = await res.json();
+        alert(`Failed to generate test certificate: ${data.error || 'Unknown error'}`);
       }
-      
-      const internshipData = await internshipRes.json();
-      
-      if (!internshipData.internship) {
-        alert('No active internship found for this intern');
-        return;
+    } catch (err) {
+      console.error('Error testing certificate:', err);
+      alert('Failed to test certificate. Please try again.');
+    }
+  };
+
+  const fetchMembers = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/users', {
+        headers: { 'x-auth-token': token },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMembers(data);
       }
-      
-      // Now complete the internship using the new API endpoint
-      const res = await fetch(`/api/internship-management/complete/${internshipData.internship._id}`, {
-        method: 'PUT',
+    } catch (err) {
+      console.error('Error fetching members:', err);
+    }
+  };
+
+  const handleCompleteInternship = async (internId) => {
+    const token = localStorage.getItem('token');
+    try {
+      // Use the new manual completion endpoint
+      const res = await fetch(`/api/internships/complete-manual/${internId}`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
@@ -943,13 +966,7 @@ const Admin = () => {
         setTimeout(() => setSuccessMessage(''), 5000);
         console.log('Certificate generated:', result.certificate);
         // Refresh members list to update status
-        const fetchRes = await fetch('/api/users', {
-          headers: { 'x-auth-token': token },
-        });
-        if (fetchRes.ok) {
-          const data = await fetchRes.json();
-          setMembers(data);
-        }
+        fetchMembers();
       } else {
         const data = await res.json();
         alert(`Failed to complete internship: ${data.error || 'Unknown error'}`);
@@ -963,7 +980,7 @@ const Admin = () => {
   const handleCheckCompletions = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch('/api/internship-management/check-completions', {
+      const res = await fetch('/api/internships/check-completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1253,9 +1270,14 @@ const Admin = () => {
                               {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
                             </button>
                             {member.internshipStatus !== 'completed' ? (
-                              <button onClick={() => handleCompleteInternship(member._id)} className="btn btn-success">
-                                Mark as Complete
-                              </button>
+                              <>
+                                <button onClick={() => handleTestCertificate(member._id)} className="btn btn-info" style={{marginRight: '5px'}}>
+                                  🧪 Test Certificate
+                                </button>
+                                <button onClick={() => handleCompleteInternship(member._id)} className="btn btn-success">
+                                  Mark as Complete
+                                </button>
+                              </>
                             ) : (
                               <button className="btn btn-success" disabled>
                                 Success

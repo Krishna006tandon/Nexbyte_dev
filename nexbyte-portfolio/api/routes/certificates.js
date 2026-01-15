@@ -53,7 +53,7 @@ router.post('/generate', auth, async (req, res) => {
 
     // Verify intern and internship exist
     const intern = await User.findById(internId);
-    const internship = await Internship.findById(internshipId).populate('intern');
+    const internship = await Internship.findById(internshipId);
 
     if (!intern || !internship) {
       return res.status(404).json({ error: 'Intern or internship not found' });
@@ -74,7 +74,7 @@ router.post('/generate', auth, async (req, res) => {
 
     // Prepare certificate data
     const certificateData = {
-      internName: intern.name,
+      internName: intern.email,
       internshipTitle: internship.internshipTitle,
       startDate: internship.startDate,
       endDate: internship.endDate || issuedAt,

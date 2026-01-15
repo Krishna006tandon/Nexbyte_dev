@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Internship = require('../models/Internship');
 const User = require('../models/User');
+const Certificate = require('../models/Certificate');
 const auth = require('../middleware/auth');
 const { autoGenerateCertificate } = require('../middleware/certificateGenerator');
 const { checkAndCompleteInternships, checkInternshipsNearingCompletion } = require('../middleware/autoCompletion');
+const { decryptCertificateData } = require('../utils/certificateCrypto');
 
 // Complete internship and generate certificate
 router.put('/complete/:internshipId', auth, async (req, res) => {
@@ -59,18 +61,55 @@ router.get('/me', auth, async (req, res) => {
       return res.status(403).json({ error: 'Intern access required' });
     }
 
+    console.log('Looking for internship for intern:', req.user.id);
+    console.log('Intern email:', req.user.email);
+
     const internship = await Internship.findOne({ 
-      intern: req.user._id 
-    }).populate('intern', 'name email firstName lastName')
-    .populate('certificate');
+      intern: req.user.id,
+      status: 'completed'
+    }).populate('intern', 'name email firstName lastName internshipStatus')
+    .populate('certificate')
+    .sort({ createdAt: -1 }); // Get the latest completed internship
+
+    console.log('Found internship:', internship ? 'YES' : 'NO');
+    if (internship) {
+      console.log('Internship ID:', internship._id);
+      console.log('Internship Status:', internship.status);
+      console.log('Certificate:', internship.certificate ? 'YES' : 'NO');
+      if (internship.certificate) {
+        console.log('Certificate Object:', {
+          id: internship.certificate._id,
+          certificateId: internship.certificate.certificateId,
+          cloudinaryUrl: internship.certificate.cloudinaryUrl,
+          hasEncryptedData: !!internship.certificate.encryptedData
+        });
+      }
+    }
 
     if (!internship) {
       return res.status(404).json({ error: 'No internship found' });
     }
 
+    let certificateData = null;
+    
+    // If certificate exists, decrypt the data
+    if (internship.certificate && internship.certificate.encryptedData) {
+      try {
+        certificateData = decryptCertificateData(internship.certificate.encryptedData);
+        console.log('Certificate decrypted successfully');
+      } catch (error) {
+        console.error('Failed to decrypt certificate data:', error);
+        certificateData = null;
+      }
+    }
+
     res.json({
-      internship,
-      certificateData: internship.certificate || null
+      internship: {
+        ...internship.toObject(),
+        certificate: undefined // Remove certificate from internship object
+      },
+      certificateData,
+      cloudinaryUrl: internship.certificate?.cloudinaryUrl || null
     });
 
   } catch (error) {
@@ -187,6 +226,99 @@ router.post('/check-completions', auth, async (req, res) => {
   } catch (error) {
     console.error('Error in manual completion check:', error);
     res.status(500).json({ error: 'Failed to check completions' });
+  }
+});
+
+// Test certificate generation (Admin only)
+router.post('/test-certificate/:internId', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { internId } = req.params;
+    
+    // Find intern's current internship
+    const internship = await Internship.findOne({ 
+      intern: internId,
+      status: 'in_progress' 
+    }).populate('intern');
+
+    if (!internship) {
+      return res.status(404).json({ error: 'No active internship found for this intern' });
+    }
+
+    console.log('Testing certificate generation for:', internship.intern.email);
+    
+    // Test certificate generation
+    const certificate = await autoGenerateCertificate(internship._id);
+    
+    if (certificate) {
+      console.log('✅ Test certificate generated successfully:', certificate.certificateId);
+      res.json({
+        message: 'Test certificate generated successfully',
+        certificateId: certificate.certificateId,
+        certificateUrl: certificate.certificateUrl
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to generate test certificate' });
+    }
+
+  } catch (error) {
+    console.error('Error in test certificate generation:', error);
+    res.status(500).json({ error: 'Failed to generate test certificate' });
+  }
+});
+
+// Manual complete internship for testing (Admin only)
+router.post('/complete-manual/:internId', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { internId } = req.params;
+    
+    // Find the intern's current internship
+    const internship = await Internship.findOne({ 
+      intern: internId,
+      status: 'in_progress' 
+    }).populate('intern');
+
+    if (!internship) {
+      return res.status(404).json({ error: 'No active internship found for this intern' });
+    }
+
+    console.log(`Manually completing internship for: ${internship.intern.email}`);
+    
+    // Update internship status
+    internship.status = 'completed';
+    internship.endDate = internship.endDate || new Date();
+    await internship.save();
+    
+    // Auto-generate certificate
+    const certificate = await autoGenerateCertificate(internship._id);
+    
+    if (certificate) {
+      console.log(`✅ Certificate generated: ${certificate.certificateId}`);
+      
+      // Update user status
+      await User.findByIdAndUpdate(internship.intern._id, {
+        internshipStatus: 'completed'
+      });
+      
+      res.json({
+        message: 'Internship completed successfully and certificate generated',
+        internship,
+        certificate
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to generate certificate' });
+    }
+
+  } catch (error) {
+    console.error('Error in manual completion:', error);
+    res.status(500).json({ error: 'Failed to complete internship' });
   }
 });
 

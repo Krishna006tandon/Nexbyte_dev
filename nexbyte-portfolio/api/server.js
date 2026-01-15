@@ -69,6 +69,11 @@ if (!uri) {
     process.exit(1);
 }
 
+// Check for certificate encryption key
+if (!process.env.CERT_SECRET && !process.env.CERT_ENC_KEY) {
+    console.warn('WARNING: Certificate encryption key (CERT_SECRET) is not set. Using default key for development.');
+}
+
 mongoose.connect(uri);
 
 const connection = mongoose.connection;
@@ -2882,40 +2887,6 @@ app.post('/api/internships/:id/complete', auth, admin, async (req, res) => {
   }
 });
 
-// @route   GET api/internships/me
-// @desc    Get current intern's internship & certificate
-// @access  Private (intern)
-app.get('/api/internships/me', verifyIntern, async (req, res) => {
-  try {
-    const internship = await Internship.findOne({ intern: req.user.id })
-      .populate('certificate');
-
-    if (!internship) {
-      return res.status(404).json({ message: 'Internship not found' });
-    }
-
-    let certificate = null;
-    let certificateData = null;
-    if (internship.certificate && internship.certificate.encryptedData) {
-      certificate = internship.certificate;
-      try {
-        certificateData = decryptCertificateData(certificate.encryptedData);
-      } catch (e) {
-        console.error('Failed to decrypt certificate data:', e);
-      }
-    }
-
-    res.json({
-      internship,
-      certificate,
-      certificateData,
-    });
-  } catch (err) {
-    console.error('Error fetching intern internship:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // @route   GET api/certificates/me
 // @desc    Get all certificates for logged-in intern
 // @access  Private (intern)
@@ -2984,9 +2955,10 @@ app.use('/api/internship-management', internshipsRoutes);
 // Start auto-completion checker
 startAutoCompletionChecker();
 
+const PORT = process.env.PORT || 3002;
+
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
-  const port = process.env.PORT || 3001;
-  app.listen(port, () => console.log(`Server listening on port ${port}`));
+  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 }
