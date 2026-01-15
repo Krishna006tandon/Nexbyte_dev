@@ -111,7 +111,7 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/notifications', []),
         fetchWithErrorHandling('/api/resources', []),
         fetchWithErrorHandling('/api/team', []),
-        fetchWithErrorHandling('/api/internship-management/me', null)
+        fetchWithErrorHandling('/api/internships/me', null)
       ]);
 
       // Set data with fallbacks
@@ -127,8 +127,25 @@ const InternPanel = () => {
         });
       }
       if (internshipRes) {
+        console.log('DEBUG: Internship API Response:', internshipRes);
         setInternshipInfo(internshipRes.internship || null);
-        setCertificateData(internshipRes.certificateData || null);
+        // Handle certificate data properly - it might be nested differently
+        if (internshipRes.certificateData) {
+          console.log('DEBUG: Certificate data found:', internshipRes.certificateData);
+          setCertificateData(internshipRes.certificateData);
+        } else if (internshipRes.internship?.certificate) {
+          console.log('DEBUG: Certificate found in internship:', internshipRes.internship.certificate);
+          setCertificateData(internshipRes.internship.certificate);
+        } else {
+          console.log('DEBUG: No certificate data found');
+        }
+        
+        // Auto-navigate to certificate if internship is completed and certificate is available
+        if (internshipRes.internship?.status === 'completed' && 
+            (internshipRes.certificateData || internshipRes.internship?.certificate)) {
+          console.log('Internship completed with certificate, navigating to certificate section');
+          setActiveSection('certificate');
+        }
       }
       setTasks(tasksData);
       setDiaryEntries(diaryData);
@@ -829,44 +846,6 @@ const InternPanel = () => {
             </div>
           )}
 
-          {/* Certificate Preview Section */}
-          {activeSection === 'offer' && (
-            <div className="certificate-section">
-              <div className="section-header">
-                <h2>Internship Certificate 🎓</h2>
-                <p>View your internship completion certificate</p>
-              </div>
-
-              <div className="certificate-card">
-                <div className="certificate-dashboard-preview">
-                  <CertificatePreview
-                    internName={profileForm.firstName || user.email.split('@')[0]}
-                    internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
-                    startDate={internshipInfo?.startDate || profile?.internshipStartDate}
-                    endDate={internshipInfo?.endDate || profile?.internshipEndDate}
-                    certificateId={certificateData?.certificateId}
-                    isSample={profile?.internshipStatus !== 'completed' || !certificateData}
-                  />
-                </div>
-                <div className="certificate-dashboard-actions">
-                  {profile?.internshipStatus !== 'completed' || !certificateData ? (
-                    <p className="certificate-info-text">
-                      Your internship is currently <strong>in progress</strong>. The above is a demo certificate.
-                    </p>
-                  ) : (
-                    <button 
-                      className="btn btn-primary"
-                      onClick={() => setActiveSection('certificate')}
-                    >
-                      <i className="fas fa-expand"></i>
-                      View Full Certificate
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Tasks Section */}
           {activeSection === 'tasks' && (
             <div className="tasks-section">
@@ -1150,12 +1129,12 @@ const InternPanel = () => {
                     startDate={internshipInfo?.startDate || profile?.internshipStartDate}
                     endDate={internshipInfo?.endDate || profile?.internshipEndDate}
                     certificateId={certificateData?.certificateId}
-                    isSample={profile?.internshipStatus !== 'completed' || !certificateData}
+                    isSample={internshipInfo?.status !== 'completed' || !certificateData}
                   />
                 </div>
 
                 <div className="certificate-actions">
-                  {profile?.internshipStatus !== 'completed' || !certificateData ? (
+                  {internshipInfo?.status !== 'completed' || !certificateData ? (
                     <>
                       <p className="certificate-info-text">
                         Your internship is currently <strong>in progress</strong>. The above is a demo certificate.
