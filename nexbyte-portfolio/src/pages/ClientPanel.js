@@ -8,7 +8,7 @@ const ClientPanel = () => {
   const [data, setData] = useState(null);
   const [bills, setBills] = useState([]);
   const [error, setError] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'srs'
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'srs', 'billing', 'settings'
   const [message, setMessage] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,6 +18,12 @@ const ClientPanel = () => {
   const [milestone, setMilestone] = useState(null); // Add state for milestone
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
+  
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordChangeStatus, setPasswordChangeStatus] = useState('');
 
   const handlePayNow = (bill) => {
     setSelectedBill(bill);
@@ -163,6 +169,53 @@ const ClientPanel = () => {
       closeModal();
     } catch (err) {
       setMessageStatus(err.message);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordChangeStatus('Changing password...');
+
+    if (newPassword !== confirmPassword) {
+      setPasswordChangeStatus('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordChangeStatus('New password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/clientAuth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to change password');
+      }
+
+      setPasswordChangeStatus('Password changed successfully!');
+      // Clear form
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setPasswordChangeStatus(''), 3000);
+    } catch (err) {
+      setPasswordChangeStatus(err.message);
     }
   };
 
@@ -556,6 +609,89 @@ const ClientPanel = () => {
     </div>
   );
 
+  const renderSettings = () => (
+    <div className="settings-view">
+      <h2>Account Settings</h2>
+      
+      <div className="password-change-section">
+        <h3>Change Password</h3>
+        <form onSubmit={handlePasswordChange} className="password-change-form">
+          <div className="form-group">
+            <label htmlFor="currentPassword">Current Password</label>
+            <input
+              type="password"
+              id="currentPassword"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter your current password"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="newPassword">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter your new password (min. 6 characters)"
+              required
+              minLength="6"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm New Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm your new password"
+              required
+              minLength="6"
+            />
+          </div>
+          
+          <button type="submit" className="change-password-btn">
+            Change Password
+          </button>
+          
+          {passwordChangeStatus && (
+            <div className={`password-change-status ${
+              passwordChangeStatus.includes('successfully') ? 'success' : 'error'
+            }`}>
+              {passwordChangeStatus}
+            </div>
+          )}
+        </form>
+      </div>
+      
+      <div className="account-info">
+        <h3>Account Information</h3>
+        <div className="info-grid">
+          <div className="info-item">
+            <label>Name:</label>
+            <span>{data.clientData.contactPerson || data.clientData.name}</span>
+          </div>
+          <div className="info-item">
+            <label>Email:</label>
+            <span>{data.clientData.email}</span>
+          </div>
+          <div className="info-item">
+            <label>Project:</label>
+            <span>{data.clientData.project}</span>
+          </div>
+          <div className="info-item">
+            <label>Status:</label>
+            <span>{data.clientData.status}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="client-panel-container">
       <div className="sidebar">
@@ -570,6 +706,9 @@ const ClientPanel = () => {
           <li onClick={() => setActiveView('billing')} className={activeView === 'billing' ? 'active' : ''}>
             Billing
           </li>
+          <li onClick={() => setActiveView('settings')} className={activeView === 'settings' ? 'active' : ''}>
+            Settings
+          </li>
         </ul>
       </div>
       <div className="main-content">
@@ -577,6 +716,7 @@ const ClientPanel = () => {
         {activeView === 'dashboard' && renderDashboard()}
         {activeView === 'srs' && renderSrs()}
         {activeView === 'billing' && renderBilling()}
+        {activeView === 'settings' && renderSettings()}
         {isSrsModalOpen && (
           <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
             <div className="srs-modal">

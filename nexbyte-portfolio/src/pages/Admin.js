@@ -354,9 +354,11 @@ const Admin = () => {
       if (res.ok) {
         setClients([...clients, data]);
         
-        // Show the generated/used password to admin
+        // Show the admin-set password to admin
         if (data.password) {
-          alert(`Client created successfully!\n\nClient Email: ${data.email}\nClient Password: ${data.password}\n\nThis password has been sent to the client via email.`);
+          alert(`Client created successfully!
+
+Client Email: ${data.email}\nClient Password: ${data.password}\n\nThis password has been sent to the client via email.`);
         }
         
         setClientData({
@@ -1237,14 +1239,15 @@ const Admin = () => {
                   <input type="email" name="email" placeholder="Email Address" value={clientData.email} onChange={handleClientChange} required />
                   <div style={{marginBottom: '1rem'}}>
                     <label style={{display: 'block', marginBottom: '0.5rem', color: '#2d3748', fontWeight: '600', fontSize: '0.95rem'}}>
-                      Client Password (Optional - Auto-generated if empty) {clientData.password && '✅'}
+                      Client Password * (Required) {clientData.password && '✅'}
                     </label>
                     <input 
                       type="password" 
                       name="password" 
-                      placeholder="Enter client password (optional)" 
+                      placeholder="Enter client password (required)" 
                       value={clientData.password} 
                       onChange={handleClientChange} 
+                      required
                       style={{
                         width: '100%', 
                         padding: '0.875rem 1rem', 
