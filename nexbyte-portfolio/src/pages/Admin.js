@@ -336,6 +336,16 @@ const Admin = () => {
   const handleAddClient = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    
+    // Debug: Check if password is included
+    console.log('Client data being sent:', clientData);
+    console.log('Password field:', clientData.password);
+    
+    if (!clientData.password) {
+      alert('Password is required for client creation');
+      return;
+    }
+    
     try {
       const res = await fetch('/api/clients', {
         method: 'POST',
@@ -1217,7 +1227,29 @@ const Admin = () => {
                   <input type="text" name="clientName" placeholder="Client/Company Name" value={clientData.clientName} onChange={handleClientChange} required />
                   <input type="text" name="contactPerson" placeholder="Contact Person's Name" value={clientData.contactPerson} onChange={handleClientChange} required />
                   <input type="email" name="email" placeholder="Email Address" value={clientData.email} onChange={handleClientChange} required />
-                  <input type="password" name="password" placeholder="Client Password" value={clientData.password} onChange={handleClientChange} required />
+                  <div style={{marginBottom: '1rem'}}>
+                    <label style={{display: 'block', marginBottom: '0.5rem', color: '#2d3748', fontWeight: '600', fontSize: '0.95rem'}}>
+                      Client Password (Required for Login) {clientData.password && '✅'}
+                    </label>
+                    <input 
+                      type="password" 
+                      name="password" 
+                      placeholder="Enter client password" 
+                      value={clientData.password} 
+                      onChange={handleClientChange} 
+                      required 
+                      style={{
+                        width: '100%', 
+                        padding: '0.875rem 1rem', 
+                        border: clientData.password ? '2px solid #48bb78' : '2px solid #667eea', 
+                        borderRadius: '10px', 
+                        backgroundColor: clientData.password ? '#f0fff4' : '#f0f4ff', 
+                        color: '#2d3748', 
+                        fontSize: '0.95rem',
+                        transition: 'all 0.2s ease'
+                      }} 
+                    />
+                  </div>
                   <input type="text" name="phone" placeholder="Phone Number" value={clientData.phone} onChange={handleClientChange} />
                   <input type="text" name="companyAddress" placeholder="Company Address" value={clientData.companyAddress} onChange={handleClientChange} />
                   <input type="text" name="projectName" placeholder="Project Name" value={clientData.projectName} onChange={handleClientChange} required />
