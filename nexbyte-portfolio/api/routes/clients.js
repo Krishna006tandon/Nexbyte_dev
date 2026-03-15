@@ -340,11 +340,6 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Generate OTP for client login
-const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
 // Get client password (admin only) - temporarily removed auth for testing
 router.get('/:id/password', async (req, res) => {
   try {
@@ -354,35 +349,45 @@ router.get('/:id/password', async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
     
-    const otp = generateOTP();
+    // Generate a new password for the client
+    const generatePassword = () => {
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let password = '';
+      for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
     
-    // Hash the OTP
+    const newPassword = generatePassword();
+    
+    // Hash the new password
     const salt = await bcrypt.genSalt(10);
-    const hashedOTP = await bcrypt.hash(otp, salt);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
     
-    // Update client password with OTP
-    await Client.findByIdAndUpdate(req.params.id, { password: hashedOTP });
+    // Update client password
+    await Client.findByIdAndUpdate(req.params.id, { password: hashedPassword });
     
-    // Send OTP email to client (only if email service is configured)
+    // Send password reset email to client (only if email service is configured)
     if (emailService) {
       try {
-        const emailResult = await emailService.sendPasswordReset(client.email, client.contactPerson, `Your OTP is: ${otp}`);
+        const emailResult = await emailService.sendPasswordReset(client.email, client.contactPerson, newPassword);
         if (emailResult.success) {
-          console.log(`OTP email sent to ${client.email}`);
+          console.log(`Password reset email sent to ${client.email}`);
         } else {
-          console.error(`Failed to send OTP email to ${client.email}:`, emailResult.error);
+          console.error(`Failed to send password reset email to ${client.email}:`, emailResult.error);
         }
       } catch (emailError) {
-        console.error('Error sending OTP email:', emailError);
+        console.error('Error sending password reset email:', emailError);
       }
     } else {
-      console.log('Email service not configured - skipping OTP email send');
+      console.log('Email service not configured - skipping password reset email');
     }
     
-    res.json({ otp: otp });
+    res.json({ password: newPassword });
   } catch (error) {
-    console.error('Error getting client OTP:', error);
-    res.status(500).json({ error: 'Failed to get client OTP' });
+    console.error('Error getting client password:', error);
+    res.status(500).json({ error: 'Failed to get client password' });
   }
 });
 

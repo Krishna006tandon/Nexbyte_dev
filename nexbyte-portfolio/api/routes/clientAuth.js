@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const router = express.Router();
 const Client = require('../models/Client');
 
-// Client login with OTP/Password
+// Client login with password
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -20,8 +20,8 @@ router.post('/login', async (req, res) => {
       console.log('Using mock client authentication (MongoDB not connected)');
       
       const mockClients = [
-        { email: 'dveep@gmail.com', password: '123456', clientName: 'Durga Battery House' },
-        { email: 'client@example.com', password: '123456', clientName: 'Test Client' }
+        { email: 'dveep@gmail.com', password: 'myCustomPass123', clientName: 'Durga Battery House' },
+        { email: 'client@example.com', password: 'password123', clientName: 'Test Client' }
       ];
       
       const mockClient = mockClients.find(c => c.email === email && c.password === password);
@@ -54,7 +54,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Check password/OTP
+    // Check password
     const isMatch = await bcrypt.compare(password, client.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
