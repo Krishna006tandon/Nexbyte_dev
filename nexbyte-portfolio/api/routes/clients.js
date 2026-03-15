@@ -1,6 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const router = express.Router();
+const Client = require('../models/Client');
+const { sendClientCredentials, sendPasswordReset } = require('../services/emailService');
 
 // Middleware to verify JWT token
 const authMiddleware = (req, res, next) => {
@@ -61,7 +64,8 @@ let mockClients = [
 // Get all clients (admin only)
 router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    res.json(mockClients);
+    const clients = await Client.find().select('-password');
+    res.json(clients);
   } catch (error) {
     console.error('Error fetching clients:', error);
     res.status(500).json({ error: 'Failed to fetch clients' });
@@ -71,20 +75,84 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 // Create new client (admin only)
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { name, email, phone, project, status } = req.body;
+    const { 
+      clientName, 
+      contactPerson, 
+      email, 
+      phone, 
+      companyAddress,
+      projectName,
+      projectType,
+      projectRequirements,
+      projectDeadline,
+      totalBudget,
+      billingAddress,
+      gstNumber,
+      paymentTerms,
+      paymentMethod,
+      domainRegistrarLogin,
+      webHostingLogin,
+      logoAndBrandingFiles,
+      content
+    } = req.body;
+
+    // Generate a random password
+    const generatePassword = () => {
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let password = '';
+      for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+
+    const plainPassword = generatePassword();
     
-    const newClient = {
-      _id: Date.now().toString(),
-      name,
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(plainPassword, salt);
+    
+    const newClient = new Client({
+      clientName,
+      contactPerson,
       email,
       phone,
-      project,
-      status: status || 'active',
-      createdAt: new Date().toISOString()
-    };
+      companyAddress,
+      projectName,
+      projectType,
+      projectRequirements,
+      projectDeadline,
+      totalBudget,
+      billingAddress,
+      gstNumber,
+      paymentTerms,
+      paymentMethod,
+      domainRegistrarLogin,
+      webHostingLogin,
+      logoAndBrandingFiles,
+      content,
+      password: hashedPassword
+    });
     
-    mockClients.push(newClient);
-    res.status(201).json(newClient);
+    const savedClient = await newClient.save();
+    
+    // Send email with credentials to client
+    try {
+      const emailResult = await sendClientCredentials(email, contactPerson, plainPassword, projectName);
+      if (emailResult.success) {
+        console.log(`Credentials email sent to ${email}`);
+      } else {
+        console.error(`Failed to send email to ${email}:`, emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending email:', emailError);
+    }
+    
+    // Return client with plain password for admin to see/email
+    const clientResponse = savedClient.toObject();
+    clientResponse.password = plainPassword;
+    
+    res.status(201).json(clientResponse);
   } catch (error) {
     console.error('Error creating client:', error);
     res.status(500).json({ error: 'Failed to create client' });
@@ -94,24 +162,59 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 // Update client (admin only)
 router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { name, email, phone, project, status } = req.body;
+    const { 
+      clientName, 
+      contactPerson, 
+      email, 
+      phone, 
+      companyAddress,
+      projectName,
+      projectType,
+      projectRequirements,
+      projectDeadline,
+      totalBudget,
+      billingAddress,
+      gstNumber,
+      paymentTerms,
+      paymentMethod,
+      domainRegistrarLogin,
+      webHostingLogin,
+      logoAndBrandingFiles,
+      content,
+      milestone
+    } = req.body;
     
-    const clientIndex = mockClients.findIndex(client => client._id === req.params.id);
-    
-    if (clientIndex === -1) {
+    const updatedClient = await Client.findByIdAndUpdate(
+      req.params.id,
+      { 
+        clientName,
+        contactPerson,
+        email,
+        phone,
+        companyAddress,
+        projectName,
+        projectType,
+        projectRequirements,
+        projectDeadline,
+        totalBudget,
+        billingAddress,
+        gstNumber,
+        paymentTerms,
+        paymentMethod,
+        domainRegistrarLogin,
+        webHostingLogin,
+        logoAndBrandingFiles,
+        content,
+        milestone
+      },
+      { new: true }
+    ).select('-password');
+
+    if (!updatedClient) {
       return res.status(404).json({ error: 'Client not found' });
     }
     
-    mockClients[clientIndex] = {
-      ...mockClients[clientIndex],
-      name,
-      email,
-      phone,
-      project,
-      status
-    };
-    
-    res.json(mockClients[clientIndex]);
+    res.json(updatedClient);
   } catch (error) {
     console.error('Error updating client:', error);
     res.status(500).json({ error: 'Failed to update client' });
@@ -121,17 +224,63 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
 // Delete client (admin only)
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const clientIndex = mockClients.findIndex(client => client._id === req.params.id);
+    const deletedClient = await Client.findByIdAndDelete(req.params.id);
     
-    if (clientIndex === -1) {
+    if (!deletedClient) {
       return res.status(404).json({ error: 'Client not found' });
     }
     
-    mockClients.splice(clientIndex, 1);
     res.json({ message: 'Client deleted successfully' });
   } catch (error) {
     console.error('Error deleting client:', error);
     res.status(500).json({ error: 'Failed to delete client' });
+  }
+});
+
+// Get client password (admin only)
+router.get('/:id/password', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const client = await Client.findById(req.params.id);
+    
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+    
+    // Generate a new temporary password for the client
+    const generatePassword = () => {
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let password = '';
+      for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+    
+    const newPassword = generatePassword();
+    
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update client password
+    await Client.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+    
+    // Send password reset email to client
+    try {
+      const emailResult = await sendPasswordReset(client.email, client.contactPerson, newPassword);
+      if (emailResult.success) {
+        console.log(`Password reset email sent to ${client.email}`);
+      } else {
+        console.error(`Failed to send password reset email to ${client.email}:`, emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending password reset email:', emailError);
+    }
+    
+    res.json({ password: newPassword });
+  } catch (error) {
+    console.error('Error getting client password:', error);
+    res.status(500).json({ error: 'Failed to get client password' });
   }
 });
 
