@@ -12,7 +12,7 @@ const createTransporter = () => {
 };
 
 // Send client credentials email
-const sendClientCredentials = async (clientEmail, clientName, password, projectName) => {
+const sendClientCredentials = async (clientEmail, clientName, clientPassword, projectName) => {
   try {
     const transporter = createTransporter();
 
@@ -66,7 +66,7 @@ const sendClientCredentials = async (clientEmail, clientName, password, projectN
                 
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <span style="color: #64748b; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Password</span>
-                  <span style="color: #1f2937; font-weight: 700; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; padding: 8px 16px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 16px; letter-spacing: 1px;">${password}</span>
+                  <span style="color: #1f2937; font-weight: 700; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; padding: 8px 16px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 16px; letter-spacing: 1px;">${clientPassword}</span>
                 </div>
               </div>
               
@@ -158,7 +158,7 @@ const sendClientCredentials = async (clientEmail, clientName, password, projectN
 };
 
 // Send password reset email
-const sendPasswordReset = async (clientEmail, clientName, newPassword) => {
+const sendPasswordReset = async (clientEmail, clientName, clientPassword) => {
   try {
     const transporter = createTransporter();
 
@@ -212,7 +212,7 @@ const sendPasswordReset = async (clientEmail, clientName, newPassword) => {
                 
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <span style="color: #64748b; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">New Password</span>
-                  <span style="color: #1f2937; font-weight: 700; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 8px 16px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 16px; letter-spacing: 1px;">${newPassword}</span>
+                  <span style="color: #1f2937; font-weight: 700; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 8px 16px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 16px; letter-spacing: 1px;">${clientPassword}</span>
                 </div>
               </div>
               
