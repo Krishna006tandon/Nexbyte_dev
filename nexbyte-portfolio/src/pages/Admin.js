@@ -341,11 +341,6 @@ const Admin = () => {
     console.log('Client data being sent:', clientData);
     console.log('Password field:', clientData.password);
     
-    if (!clientData.password) {
-      alert('Password is required for client creation');
-      return;
-    }
-    
     try {
       const res = await fetch('/api/clients', {
         method: 'POST',
@@ -358,6 +353,12 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClients([...clients, data]);
+        
+        // Show the generated/used password to admin
+        if (data.password) {
+          alert(`Client created successfully!\n\nClient Email: ${data.email}\nClient Password: ${data.password}\n\nThis password has been sent to the client via email.`);
+        }
+        
         setClientData({
           clientName: '',
           contactPerson: '',
@@ -388,9 +389,11 @@ const Admin = () => {
         }
       } else {
         console.error(data.message);
+        alert(data.error || 'Failed to create client');
       }
     } catch (err) {
       console.error(err);
+      alert('Failed to create client');
     }
   };
 
@@ -418,7 +421,7 @@ const Admin = () => {
   const handleShowPassword = async (id) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`/api/clients/${id}/password`, {
+      const res = await fetch(`/api/clients/${id}/credentials`, {
         headers: {
           'x-auth-token': token,
         },
@@ -426,12 +429,17 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClientPasswords({ ...clientPasswords, [id]: data.password });
+        
+        // Show credentials in a nice alert
+        alert(`📧 Client Credentials\n\n👤 Name: ${data.contactPerson}\n📧 Email: ${data.email}\n🔐 Password: ${data.password}\n\n✅ Email has been sent to client with these credentials!`);
       }
       else {
         console.error(data.message);
+        alert(data.error || 'Failed to fetch client credentials');
       }
     } catch (err) {
       console.error(err);
+      alert('Failed to fetch client credentials');
     }
   };
 
@@ -1229,15 +1237,14 @@ const Admin = () => {
                   <input type="email" name="email" placeholder="Email Address" value={clientData.email} onChange={handleClientChange} required />
                   <div style={{marginBottom: '1rem'}}>
                     <label style={{display: 'block', marginBottom: '0.5rem', color: '#2d3748', fontWeight: '600', fontSize: '0.95rem'}}>
-                      Client Password (Required for Login) {clientData.password && '✅'}
+                      Client Password (Optional - Auto-generated if empty) {clientData.password && '✅'}
                     </label>
                     <input 
                       type="password" 
                       name="password" 
-                      placeholder="Enter client password" 
+                      placeholder="Enter client password (optional)" 
                       value={clientData.password} 
                       onChange={handleClientChange} 
-                      required 
                       style={{
                         width: '100%', 
                         padding: '0.875rem 1rem', 
