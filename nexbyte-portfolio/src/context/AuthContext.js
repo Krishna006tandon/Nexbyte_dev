@@ -13,20 +13,24 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('AuthContext: Fetching user, token exists:', !!token);
       if (token) {
         const res = await axios.get('/api/profile', { 
           headers: { 'x-auth-token': token } 
         });
         const userData = res.data;
         const role = userData.role ? userData.role.toLowerCase() : '';
+        console.log('AuthContext: User data fetched:', { userData, role });
         setUser(userData);
         setIsAdmin(role === 'admin');
         setIsClient(role === 'client');
         setIsIntern(role === 'intern');
-        console.log('User role set to:', role);
+        console.log('AuthContext: User role set to:', role, 'isIntern:', role === 'intern');
+      } else {
+        console.log('AuthContext: No token found');
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error('AuthContext: Error fetching user:', error);
       localStorage.removeItem('token');
     } finally {
       setLoading(false);

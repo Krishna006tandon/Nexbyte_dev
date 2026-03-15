@@ -31,9 +31,12 @@ const Login = () => {
       const data = await res.json();
 
       if (res.ok) {
+        console.log('Login: Login successful, data:', data);
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         const userRole = data.user.role ? data.user.role.toLowerCase() : '';
+        console.log('Login: User role detected:', userRole);
+        
         if (userRole === 'admin') {
           setIsAdmin(true);
           await fetchUser();
@@ -44,6 +47,7 @@ const Login = () => {
           navigate('/client-panel');
         } else if (userRole === 'intern') {
           setIsIntern(true);
+          console.log('Login: Setting intern role and navigating to intern-panel');
           await fetchUser();
           navigate('/intern-panel');
         } else if (userRole === 'member') {
