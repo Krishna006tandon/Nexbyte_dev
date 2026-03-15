@@ -40,7 +40,6 @@ const Member = () => {
     completionRate: 0
   });
   const [reports, setReports] = useState([]);
-  const [reportsLoading, setReportsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -138,8 +137,6 @@ const Member = () => {
         setReports(res.data);
       } catch (err) {
         console.error('Failed to fetch reports:', err);
-      } finally {
-        setReportsLoading(false);
       }
     };
 
