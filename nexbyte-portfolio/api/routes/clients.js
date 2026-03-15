@@ -14,6 +14,16 @@ try {
   console.log('Email service not available:', error.message);
 }
 
+// Single password generation function to ensure consistency
+const generatePassword = () => {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let password = '';
+  for (let i = 0; i < 8; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+
 // Middleware to verify JWT token
 const authMiddleware = (req, res, next) => {
   const token = req.header('x-auth-token');
@@ -131,16 +141,6 @@ router.post('/', async (req, res) => {
         content
       } = req.body;
 
-      // Generate a random password
-      const generatePassword = () => {
-        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let password = '';
-        for (let i = 0; i < 8; i++) {
-          password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return password;
-      };
-
       const plainPassword = generatePassword();
       
       const newClient = {
@@ -208,16 +208,6 @@ router.post('/', async (req, res) => {
       logoAndBrandingFiles,
       content
     } = req.body;
-
-    // Generate a random password
-    const generatePassword = () => {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let password = '';
-      for (let i = 0; i < 8; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return password;
-    };
 
     const plainPassword = generatePassword();
     
@@ -362,16 +352,6 @@ router.get('/:id/password', async (req, res) => {
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
     }
-    
-    // Generate a new temporary password for the client
-    const generatePassword = () => {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let password = '';
-      for (let i = 0; i < 8; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return password;
-    };
     
     const newPassword = generatePassword();
     
