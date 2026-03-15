@@ -128,4 +128,91 @@ router.get('/profile', async (req, res) => {
   }
 });
 
+// Change client password (protected route)
+router.post('/change-password', async (req, res) => {
+  try {
+    const token = req.header('x-auth-token');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token, authorization denied' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    // Check if MongoDB is connected
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      // Mock password change
+      console.log('Using mock password change (MongoDB not connected)');
+      
+      // In mock mode, we'll just return success
+      return res.json({ message: 'Password changed successfully' });
+    }
+
+    // Get client from database
+    const client = await Client.findById(decoded.clientId);
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, client.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password in database
+    await Client.findByIdAndUpdate(decoded.clientId, { password: hashedNewPassword });
+
+    // Send password change confirmation email (only if email service is configured)
+    let emailService = null;
+    try {
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        emailService = require('../services/emailService');
+      }
+    } catch (error) {
+      console.log('Email service not available:', error.message);
+    }
+
+    if (emailService) {
+      try {
+        const emailResult = await emailService.sendPasswordChangeNotification(
+          client.email, 
+          client.contactPerson || client.clientName
+        );
+        if (emailResult.success) {
+          console.log(`Password change notification sent to ${client.email}`);
+        } else {
+          console.error(`Failed to send password change notification to ${client.email}:`, emailResult.error);
+        }
+      } catch (emailError) {
+        console.error('Error sending password change notification:', emailError);
+      }
+    } else {
+      console.log('Email service not configured - skipping password change notification');
+    }
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
 module.exports = router;

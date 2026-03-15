@@ -102,16 +102,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Generate random password
-const generatePassword = () => {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let password = '';
-  for (let i = 0; i < 8; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-};
-
 // Create new client (admin only) - temporarily removed auth for testing
 router.post('/', async (req, res) => {
   try {
@@ -142,8 +132,10 @@ router.post('/', async (req, res) => {
         password
       } = req.body;
 
-      // Generate password if not provided
-      const clientPassword = password || generatePassword();
+      // Password is now required (admin must set it)
+      if (!password) {
+        return res.status(400).json({ error: 'Password is required' });
+      }
       
       const newClient = {
         _id: Date.now().toString(),
@@ -165,7 +157,7 @@ router.post('/', async (req, res) => {
         webHostingLogin,
         logoAndBrandingFiles,
         content,
-        password: clientPassword,
+        password: password,
         createdAt: new Date().toISOString()
       };
       
@@ -174,7 +166,7 @@ router.post('/', async (req, res) => {
       // Send email with credentials to client (only if email service is configured)
       if (emailService) {
         try {
-          const emailResult = await emailService.sendClientCredentials(email, contactPerson, clientPassword, projectName);
+          const emailResult = await emailService.sendClientCredentials(email, contactPerson, password, projectName);
           if (emailResult.success) {
             console.log(`Credentials email sent to ${email}`);
           } else {
@@ -188,7 +180,7 @@ router.post('/', async (req, res) => {
       }
       
       // Return client with plain password for admin to see
-      const clientResponse = { ...newClient, password: clientPassword };
+      const clientResponse = { ...newClient, password: password };
       return res.status(201).json(clientResponse);
     }
 
@@ -214,12 +206,14 @@ router.post('/', async (req, res) => {
       password
     } = req.body;
 
-    // Generate password if not provided
-    const clientPassword = password || generatePassword();
+    // Password is now required (admin must set it)
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(clientPassword, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
     
     const newClient = new Client({
       clientName,
@@ -248,7 +242,7 @@ router.post('/', async (req, res) => {
     // Send email with credentials to client (only if email service is configured)
     if (emailService) {
       try {
-        const emailResult = await emailService.sendClientCredentials(email, contactPerson, clientPassword, projectName);
+        const emailResult = await emailService.sendClientCredentials(email, contactPerson, password, projectName);
         if (emailResult.success) {
           console.log(`Credentials email sent to ${email}`);
         } else {
@@ -263,7 +257,7 @@ router.post('/', async (req, res) => {
     
     // Return client with plain password for admin to see/email
     const clientResponse = savedClient.toObject();
-    clientResponse.password = clientPassword;
+    clientResponse.password = password;
     
     res.status(201).json(clientResponse);
   } catch (error) {
@@ -359,42 +353,13 @@ router.get('/:id/password', async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
     
-    // Generate a new password for the client
-    const generatePassword = () => {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let password = '';
-      for (let i = 0; i < 8; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return password;
-    };
-    
-    const newPassword = generatePassword();
-    
-    // Hash the new password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    
-    // Update client password
-    await Client.findByIdAndUpdate(req.params.id, { password: hashedPassword });
-    
-    // Send password reset email to client (only if email service is configured)
-    if (emailService) {
-      try {
-        const emailResult = await emailService.sendPasswordReset(client.email, client.contactPerson, newPassword);
-        if (emailResult.success) {
-          console.log(`Password reset email sent to ${client.email}`);
-        } else {
-          console.error(`Failed to send password reset email to ${client.email}:`, emailResult.error);
-        }
-      } catch (emailError) {
-        console.error('Error sending password reset email:', emailError);
-      }
-    } else {
-      console.log('Email service not configured - skipping password reset email');
-    }
-    
-    res.json({ password: newPassword });
+    // For MongoDB clients, we cannot retrieve the hashed password
+    // Return a message that password cannot be retrieved
+    res.json({ 
+      message: 'Password cannot be retrieved for security reasons. Please use the password reset functionality.',
+      email: client.email,
+      contactPerson: client.contactPerson || client.clientName
+    });
   } catch (error) {
     console.error('Error getting client password:', error);
     res.status(500).json({ error: 'Failed to get client password' });
@@ -410,60 +375,12 @@ router.get('/:id/credentials', async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
     
-    // Return client info with password if it exists in mock data
-    // For MongoDB clients, we can't return the hashed password, so we'll need to generate a new one
-    const mongoose = require('mongoose');
-    if (mongoose.connection.readyState !== 1) {
-      // Check mock data for password
-      const mockClient = mockClients.find(c => c._id === req.params.id);
-      if (mockClient && mockClient.password) {
-        return res.json({
-          email: client.email,
-          password: mockClient.password,
-          contactPerson: client.contactPerson || client.clientName
-        });
-      }
-    }
-    
-    // For MongoDB clients or if no password found, generate a new one
-    const generatePassword = () => {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let password = '';
-      for (let i = 0; i < 8; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return password;
-    };
-    
-    const newPassword = generatePassword();
-    
-    // Hash the new password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    
-    // Update client password
-    await Client.findByIdAndUpdate(req.params.id, { password: hashedPassword });
-    
-    // Send password reset email to client (only if email service is configured)
-    if (emailService) {
-      try {
-        const emailResult = await emailService.sendPasswordReset(client.email, client.contactPerson, newPassword);
-        if (emailResult.success) {
-          console.log(`Password reset email sent to ${client.email}`);
-        } else {
-          console.error(`Failed to send password reset email to ${client.email}:`, emailResult.error);
-        }
-      } catch (emailError) {
-        console.error('Error sending password reset email:', emailError);
-      }
-    } else {
-      console.log('Email service not configured - skipping password reset email');
-    }
-    
+    // Return client info without password for security
     res.json({
       email: client.email,
-      password: newPassword,
-      contactPerson: client.contactPerson || client.clientName
+      contactPerson: client.contactPerson || client.clientName,
+      projectName: client.projectName,
+      message: 'Password is securely stored and cannot be retrieved. Client can change their own password or admin can reset it.'
     });
   } catch (error) {
     console.error('Error getting client credentials:', error);
