@@ -7,7 +7,7 @@ import './Auth.css';
 import '../components/HomeSidebar.css';
 
 const Login = () => {
-  const { setIsAdmin, setIsClient } = useContext(AuthContext);
+  const { setIsAdmin, setIsClient, setIsIntern, fetchUser } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,15 +35,21 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(data.user));
         if (data.user.role === 'admin') {
           setIsAdmin(true);
+          await fetchUser();
           navigate('/admin');
         } else if (data.user.role === 'client') {
           setIsClient(true);
+          await fetchUser();
           navigate('/client-panel');
         } else if (data.user.role === 'intern') {
+          setIsIntern(true);
+          await fetchUser();
           navigate('/intern-panel');
         } else if (data.user.role === 'member') {
+          await fetchUser();
           navigate('/member');
         } else {
+          await fetchUser();
           navigate('/');
         }  
       } else {
