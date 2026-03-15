@@ -14,16 +14,6 @@ try {
   console.log('Email service not available:', error.message);
 }
 
-// Single password generation function to ensure consistency
-const generatePassword = () => {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let password = '';
-  for (let i = 0; i < 8; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-};
-
 // Middleware to verify JWT token
 const authMiddleware = (req, res, next) => {
   const token = req.header('x-auth-token');
@@ -138,10 +128,13 @@ router.post('/', async (req, res) => {
         domainRegistrarLogin,
         webHostingLogin,
         logoAndBrandingFiles,
-        content
+        content,
+        password
       } = req.body;
 
-      const plainPassword = generatePassword();
+      if (!password) {
+        return res.status(400).json({ error: 'Password is required' });
+      }
       
       const newClient = {
         _id: Date.now().toString(),
@@ -163,7 +156,7 @@ router.post('/', async (req, res) => {
         webHostingLogin,
         logoAndBrandingFiles,
         content,
-        password: plainPassword,
+        password: password,
         createdAt: new Date().toISOString()
       };
       
@@ -172,7 +165,7 @@ router.post('/', async (req, res) => {
       // Send email with credentials to client (only if email service is configured)
       if (emailService) {
         try {
-          const emailResult = await emailService.sendClientCredentials(email, contactPerson, plainPassword, projectName);
+          const emailResult = await emailService.sendClientCredentials(email, contactPerson, password, projectName);
           if (emailResult.success) {
             console.log(`Credentials email sent to ${email}`);
           } else {
@@ -206,14 +199,17 @@ router.post('/', async (req, res) => {
       domainRegistrarLogin,
       webHostingLogin,
       logoAndBrandingFiles,
-      content
+      content,
+      password
     } = req.body;
 
-    const plainPassword = generatePassword();
-    
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(plainPassword, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
     
     const newClient = new Client({
       clientName,
@@ -242,7 +238,7 @@ router.post('/', async (req, res) => {
     // Send email with credentials to client (only if email service is configured)
     if (emailService) {
       try {
-        const emailResult = await emailService.sendClientCredentials(email, contactPerson, plainPassword, projectName);
+        const emailResult = await emailService.sendClientCredentials(email, contactPerson, password, projectName);
         if (emailResult.success) {
           console.log(`Credentials email sent to ${email}`);
         } else {
@@ -257,7 +253,7 @@ router.post('/', async (req, res) => {
     
     // Return client with plain password for admin to see/email
     const clientResponse = savedClient.toObject();
-    clientResponse.password = plainPassword;
+    clientResponse.password = password;
     
     res.status(201).json(clientResponse);
   } catch (error) {
@@ -344,6 +340,11 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Generate OTP for client login
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 // Get client password (admin only) - temporarily removed auth for testing
 router.get('/:id/password', async (req, res) => {
   try {
@@ -353,35 +354,35 @@ router.get('/:id/password', async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
     
-    const newPassword = generatePassword();
+    const otp = generateOTP();
     
-    // Hash the new password
+    // Hash the OTP
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashedOTP = await bcrypt.hash(otp, salt);
     
-    // Update client password
-    await Client.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+    // Update client password with OTP
+    await Client.findByIdAndUpdate(req.params.id, { password: hashedOTP });
     
-    // Send password reset email to client (only if email service is configured)
+    // Send OTP email to client (only if email service is configured)
     if (emailService) {
       try {
-        const emailResult = await emailService.sendPasswordReset(client.email, client.contactPerson, newPassword);
+        const emailResult = await emailService.sendPasswordReset(client.email, client.contactPerson, `Your OTP is: ${otp}`);
         if (emailResult.success) {
-          console.log(`Password reset email sent to ${client.email}`);
+          console.log(`OTP email sent to ${client.email}`);
         } else {
-          console.error(`Failed to send password reset email to ${client.email}:`, emailResult.error);
+          console.error(`Failed to send OTP email to ${client.email}:`, emailResult.error);
         }
       } catch (emailError) {
-        console.error('Error sending password reset email:', emailError);
+        console.error('Error sending OTP email:', emailError);
       }
     } else {
-      console.log('Email service not configured - skipping password reset email');
+      console.log('Email service not configured - skipping OTP email send');
     }
     
-    res.json({ password: newPassword });
+    res.json({ otp: otp });
   } catch (error) {
-    console.error('Error getting client password:', error);
-    res.status(500).json({ error: 'Failed to get client password' });
+    console.error('Error getting client OTP:', error);
+    res.status(500).json({ error: 'Failed to get client OTP' });
   }
 });
 

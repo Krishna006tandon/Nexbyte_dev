@@ -95,6 +95,7 @@ const Admin = () => {
     clientName: '',
     contactPerson: '',
     email: '',
+    password: '',
     phone: '',
     companyAddress: '',
     projectName: '',
@@ -351,6 +352,7 @@ const Admin = () => {
           clientName: '',
           contactPerson: '',
           email: '',
+          password: '',
           phone: '',
           companyAddress: '',
           projectName: '',
@@ -1215,6 +1217,7 @@ const Admin = () => {
                   <input type="text" name="clientName" placeholder="Client/Company Name" value={clientData.clientName} onChange={handleClientChange} required />
                   <input type="text" name="contactPerson" placeholder="Contact Person's Name" value={clientData.contactPerson} onChange={handleClientChange} required />
                   <input type="email" name="email" placeholder="Email Address" value={clientData.email} onChange={handleClientChange} required />
+                  <input type="password" name="password" placeholder="Client Password" value={clientData.password} onChange={handleClientChange} required />
                   <input type="text" name="phone" placeholder="Phone Number" value={clientData.phone} onChange={handleClientChange} />
                   <input type="text" name="companyAddress" placeholder="Company Address" value={clientData.companyAddress} onChange={handleClientChange} />
                   <input type="text" name="projectName" placeholder="Project Name" value={clientData.projectName} onChange={handleClientChange} required />
