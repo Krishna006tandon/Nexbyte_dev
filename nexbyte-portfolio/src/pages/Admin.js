@@ -8,6 +8,29 @@ import TaskList from '../components/TaskList';
 import ProjectTracker from '../components/ProjectTracker';
 import ProjectTaskManagement from '../components/ProjectTaskManagement';
 import Modal from '../components/Modal';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -44,6 +67,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [certificateIssuing, setCertificateIssuing] = useState(null);
+  const [reportRoleFilter, setReportRoleFilter] = useState('intern');
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -1550,52 +1574,56 @@ const Admin = () => {
 
           {location.pathname === '/admin/reports' && (
             <div>
-              <h2>Intern Reports</h2>
+              <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>User Performance Reports</h2>
+                <div className="filter-group">
+                  <label style={{ marginRight: '10px' }}>Filter by Role:</label>
+                  <select 
+                    value={reportRoleFilter} 
+                    onChange={(e) => setReportRoleFilter(e.target.value)}
+                    style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ddd' }}
+                  >
+                    <option value="intern">Interns</option>
+                    <option value="member">Members</option>
+                  </select>
+                </div>
+              </div>
               <table>
                 <thead>
                   <tr>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>Performance</th>
-                    <th>Tasks Completed</th>
+                    <th>Average Performance</th>
+                    <th>Tasks</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {members.filter(member => member.role === 'intern').map((intern) => (
-                    <tr key={intern._id}>
-                      <td>{intern.email}</td>
-                      <td>{intern.email}</td>
-                      <td>{intern.role}</td>
+                  {members.filter(member => member.role === reportRoleFilter).map((user) => (
+                    <tr key={user._id}>
+                      <td>{user.email.split('@')[0]}</td>
+                      <td>{user.email}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{user.role}</td>
                       <td>
                         <div className="performance-metrics">
                           <div className="metric">
-                            <span>Task Completion:</span>
-                            <div className="progress-bar">
-                              <div className="progress" style={{width: '75%'}}></div>
+                            <div className="progress-bar" style={{ height: '8px', backgroundColor: '#eee', borderRadius: '4px', overflow: 'hidden', width: '100px', display: 'inline-block', marginRight: '10px' }}>
+                              <div className="progress" style={{ width: '78%', height: '100%', backgroundColor: '#4f46e5' }}></div>
                             </div>
-                            <span>75%</span>
-                          </div>
-                          <div className="metric">
-                            <span>Priority Tasks:</span>
-                            <div className="progress-bar">
-                              <div className="progress" style={{width: '60%'}}></div>
-                            </div>
-                            <span>60%</span>
+                            <span>78%</span>
                           </div>
                         </div>
                       </td>
                       <td>
                         <div className="task-stats">
-                          <div>Total: 24</div>
-                          <div>Completed: 18</div>
-                          <div>Pending: 6</div>
+                          <span className="badge badge-success" style={{ marginRight: '5px' }}>18 Done</span>
+                          <span className="badge badge-warning">6 Pending</span>
                         </div>
                       </td>
                       <td>
-                        <button onClick={() => handleShowInternReport(intern._id)} className="btn btn-info">
-                          {reportLoading && selectedInternForReport === intern._id ? 'Loading...' : 'View Report'}
+                        <button onClick={() => handleShowInternReport(user._id)} className="btn btn-info">
+                          {reportLoading && selectedInternForReport === user._id ? 'Loading...' : 'View Analysis'}
                         </button>
                       </td>
                     </tr>
@@ -1638,43 +1666,88 @@ const Admin = () => {
 
         {showInternReport && internReport && (
           <Modal isOpen={showInternReport} onClose={closeInternReport}>
-            <div className="intern-report-modal">
-              <h2>Intern Report</h2>
+            <div className="intern-report-modal" style={{ maxWidth: '900px', width: '90vw' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>Growth Analysis Report</h2>
+                <div className="user-badge" style={{ padding: '5px 15px', backgroundColor: '#eef2ff', color: '#4f46e5', borderRadius: '20px', fontWeight: 'bold' }}>
+                  {members.find(m => m._id === selectedInternForReport)?.role?.toUpperCase()}
+                </div>
+              </div>
+              
               <div className="report-content">
-                <h3>Performance Statistics</h3>
-                <div className="stats-grid">
-                  <div className="stat-card">
-                    <h4>Total Tasks</h4>
-                    <p>{internReport.totalTasks || 24}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
+                  <div className="performance-chart-card" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                    <h3>Performance Trend</h3>
+                    <div style={{ height: '250px' }}>
+                      {internReport.growthReports && internReport.growthReports.length > 0 ? (
+                        <Line 
+                          data={{
+                            labels: internReport.growthReports.map(r => new Date(r.date).toLocaleDateString()).reverse(),
+                            datasets: [{
+                              label: 'Score',
+                              data: internReport.growthReports.map(r => r.performanceScore).reverse(),
+                              fill: true,
+                              backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                              borderColor: '#4f46e5',
+                              tension: 0.4
+                            }]
+                          }}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true, max: 100 } }
+                          }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                          <p>No historical data available</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="stat-card">
-                    <h4>Completed Tasks</h4>
-                    <p>{internReport.completedTasks || 18}</p>
-                  </div>
-                  <div className="stat-card">
-                    <h4>Completion Rate</h4>
-                    <p>{internReport.completionRate || '75%'}</p>
-                  </div>
-                  <div className="stat-card">
-                    <h4>Priority Tasks</h4>
-                    <p>{internReport.priorityTasks || 12}</p>
+
+                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Completed Tasks</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a' }}>{internReport.completedTasks || 0}</p>
+                    </div>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Completion Rate</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{internReport.completionRate || '0%'}</p>
+                    </div>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Growth Score</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#4f46e5' }}>88%</p>
+                    </div>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Assigned Projects</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>3</p>
+                    </div>
                   </div>
                 </div>
                 
-                <h3>Recent Activity</h3>
-                <div className="activity-list">
-                  {internReport.recentActivity ? internReport.recentActivity.map((activity, index) => (
-                    <div key={index} className="activity-item">
-                      <span className="activity-date">{new Date(activity.date).toLocaleDateString()}</span>
-                      <span className="activity-description">{activity.description}</span>
-                    </div>
-                  )) : (
-                    <p>No recent activity available</p>
-                  )}
+                <div className="detailed-reports">
+                  <h3>Recent Evaluation Reports</h3>
+                  <div className="reports-list" style={{ maxHeight: '300px', overflowY: 'auto', padding: '10px' }}>
+                    {internReport.growthReports && internReport.growthReports.length > 0 ? (
+                      internReport.growthReports.map(report => (
+                        <div key={report._id} className="report-item" style={{ marginBottom: '15px', padding: '15px', border: '1px solid #efefef', borderRadius: '8px', background: '#fff' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <strong>Evaluation - {new Date(report.date).toLocaleDateString()}</strong>
+                            <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>Score: {report.performanceScore}%</span>
+                          </div>
+                          <p style={{ margin: '0 0 10px', fontSize: '0.9rem', color: '#444' }}><strong>Skills:</strong> {report.skillsLearned.join(', ')}</p>
+                          <p style={{ margin: 0, fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>"{report.feedback}"</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No evaluation reports submitted for this user.</p>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="modal-actions">
-                <button onClick={closeInternReport} className="btn btn-secondary">Close</button>
+              <div className="modal-actions" style={{ marginTop: '20px', textAlign: 'right' }}>
+                <button onClick={closeInternReport} className="btn btn-secondary">Close Report</button>
               </div>
             </div>
           </Modal>

@@ -4,6 +4,29 @@ import './InternPanel.css';
 import { useAuth } from '../context/AuthContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const InternPanel = () => {
   const { user, isIntern, loading: authLoading } = useAuth();
@@ -890,9 +913,44 @@ const InternPanel = () => {
               <div className="reports-grid">
                 <div className="report-card performance-chart">
                   <h3>Performance Trend</h3>
-                  <div className="chart-placeholder">
-                    <i className="fas fa-chart-line"></i>
-                    <p>Performance chart will be displayed here</p>
+                  <div className="chart-container" style={{ height: '300px', position: 'relative' }}>
+                    {growthData.length > 0 ? (
+                      <Line 
+                        data={{
+                          labels: growthData.map(d => d.date),
+                          datasets: [
+                            {
+                              label: 'Performance Score',
+                              data: growthData.map(d => d.performance),
+                              fill: true,
+                              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                              borderColor: 'rgba(75, 192, 192, 1)',
+                              tension: 0.4
+                            }
+                          ]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              max: 100
+                            }
+                          },
+                          plugins: {
+                            legend: {
+                              display: false
+                            }
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="chart-placeholder">
+                        <i className="fas fa-chart-line"></i>
+                        <p>No growth data available for chart</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -903,7 +961,7 @@ const InternPanel = () => {
                       <div key={index} className="skill-item">
                         <span className="skill-name">{skill}</span>
                         <div className="skill-progress">
-                          <div className="progress-bar" style={{width: `${Math.random() * 100}%`}}></div>
+                          <div className="progress-bar" style={{width: '75%'}}></div>
                         </div>
                       </div>
                     )) || (

@@ -181,4 +181,48 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
+// Get user report (admin only)
+router.get('/intern-report/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Mock report data for now
+    const reportData = {
+      totalTasks: 24,
+      completedTasks: 18,
+      completionRate: '75%',
+      priorityTasks: 12,
+      recentActivity: [
+        { date: new Date().toISOString(), description: 'Completed Task: React Dashboard' },
+        { date: new Date(Date.now() - 86400000).toISOString(), description: 'Submitted Diary Entry' },
+        { date: new Date(Date.now() - 172800000).toISOString(), description: 'Started Task: API Integration' }
+      ],
+      growthReports: [
+        {
+          _id: '1',
+          date: new Date().toISOString(),
+          skillsLearned: ['React', 'Chart.js'],
+          performanceScore: 90,
+          feedback: 'Excellent work on data visualization.'
+        },
+        {
+          _id: '2',
+          date: new Date(Date.now() - 2592000000).toISOString(),
+          skillsLearned: ['Node.js', 'Express'],
+          performanceScore: 82,
+          feedback: 'Solid understanding of backend routes.'
+        }
+      ]
+    };
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('Error fetching user report:', error);
+    res.status(500).json({ error: 'Failed to fetch user report' });
+  }
+});
+
 module.exports = router;
