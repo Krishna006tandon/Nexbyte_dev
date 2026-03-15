@@ -37,9 +37,7 @@ const InternPanel = () => {
   });
 
   useEffect(() => {
-    console.log('InternPanel - User:', user);
-    console.log('InternPanel - isIntern:', isIntern);
-    console.log('InternPanel - authLoading:', authLoading);
+    console.log('InternPanel - Auth State:', { user, isIntern, authLoading });
     
     if (authLoading) return;
     
@@ -49,8 +47,10 @@ const InternPanel = () => {
       return;
     }
     
-    if (user.role !== 'intern') {
-      console.log(`User role is ${user.role}, not intern. Access denied.`);
+    // Check role - use case-insensitive check to be safe
+    const userRole = user.role ? user.role.toLowerCase() : '';
+    if (userRole !== 'intern') {
+      console.log(`User role is ${user.role}, not intern. Access denied. Redirecting to dashboard.`);
       navigate('/dashboard');
       return;
     }
@@ -91,12 +91,12 @@ const InternPanel = () => {
         certificateData
       ] = await Promise.all([
         fetchWithErrorHandling('/api/profile', null),
-        fetchWithErrorHandling('/api/tasks', []),
-        fetchWithErrorHandling('/api/diary', []),
-        fetchWithErrorHandling('/api/reports', []),
-        fetchWithErrorHandling('/api/notifications', []),
-        fetchWithErrorHandling('/api/resources', []),
-        fetchWithErrorHandling('/api/team', []),
+        fetchWithErrorHandling('/api/user/my-tasks', []),
+        fetchWithErrorHandling('/api/user/diary', []),
+        fetchWithErrorHandling('/api/user/reports', []),
+        fetchWithErrorHandling('/api/user/notifications', []),
+        fetchWithErrorHandling('/api/user/resources', []),
+        fetchWithErrorHandling('/api/user/team', []),
         fetchWithErrorHandling('/api/certificates/me', null)
       ]);
 
@@ -268,7 +268,7 @@ const InternPanel = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/diary', {
+      const response = await fetch('/api/user/diary', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

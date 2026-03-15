@@ -18,11 +18,12 @@ export const AuthProvider = ({ children }) => {
           headers: { 'x-auth-token': token } 
         });
         const userData = res.data;
+        const role = userData.role ? userData.role.toLowerCase() : '';
         setUser(userData);
-        setIsAdmin(userData.role === 'admin');
-        setIsClient(userData.role === 'client');
-        setIsIntern(userData.role === 'intern');
-        console.log('User role set to:', userData.role);
+        setIsAdmin(role === 'admin');
+        setIsClient(role === 'client');
+        setIsIntern(role === 'intern');
+        console.log('User role set to:', role);
       }
     } catch (error) {
       console.error('Error fetching user:', error);

@@ -33,19 +33,20 @@ const Login = () => {
       if (res.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.user.role === 'admin') {
+        const userRole = data.user.role ? data.user.role.toLowerCase() : '';
+        if (userRole === 'admin') {
           setIsAdmin(true);
           await fetchUser();
           navigate('/admin');
-        } else if (data.user.role === 'client') {
+        } else if (userRole === 'client') {
           setIsClient(true);
           await fetchUser();
           navigate('/client-panel');
-        } else if (data.user.role === 'intern') {
+        } else if (userRole === 'intern') {
           setIsIntern(true);
           await fetchUser();
           navigate('/intern-panel');
-        } else if (data.user.role === 'member') {
+        } else if (userRole === 'member') {
           await fetchUser();
           navigate('/member');
         } else {

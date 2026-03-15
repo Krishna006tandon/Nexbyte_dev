@@ -18,7 +18,7 @@ const Signup = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,13 +32,14 @@ const Signup = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        if (data.user.role === 'intern') {
+        const userRole = data.user.role ? data.user.role.toLowerCase() : '';
+        if (userRole === 'intern') {
           setIsIntern(true);
         }
         
         await fetchUser();
         
-        if (data.user.role === 'intern') {
+        if (userRole === 'intern') {
           navigate('/intern-panel');
         } else {
           navigate('/dashboard');

@@ -17,7 +17,7 @@ app.use(express.json());
 const mongoURI = process.env.MONGODB_URI;
 
 // Only connect to MongoDB if not in test environment and if MONGODB_URI is provided
-if (process.env.NODE_ENV !== process.env.MONGODB_URI) {
+if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
   mongoose.connect(mongoURI)
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
