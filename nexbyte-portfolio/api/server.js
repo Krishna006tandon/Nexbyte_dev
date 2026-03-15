@@ -13,17 +13,56 @@ const PORT = 5002;
 app.use(cors());
 app.use(express.json());
 
-// Database connection
+// Database connection with proper error handling
 const mongoURI = process.env.MONGODB_URI;
 
-// Only connect to MongoDB if not in test environment and if MONGODB_URI is provided
-if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
-  mongoose.connect(mongoURI)
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
-} else if (!process.env.MONGODB_URI) {
-  console.log('MongoDB connection skipped - MONGODB_URI not provided');
-}
+// MongoDB connection options for production
+const mongoOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  bufferMaxEntries: 0, // Disable mongoose buffering
+  bufferCommands: false, // Disable mongoose buffering
+};
+
+// Connect to MongoDB with retry logic
+const connectDB = async () => {
+  if (!mongoURI) {
+    console.log('MongoDB connection skipped - MONGODB_URI not provided');
+    console.log('Using mock authentication only');
+    return;
+  }
+
+  try {
+    const conn = await mongoose.connect(mongoURI, mongoOptions);
+    console.log('MongoDB connected successfully:', conn.connection.host);
+    
+    // Handle connection events
+    mongoose.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.log('MongoDB disconnected');
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      console.log('MongoDB reconnected');
+    });
+    
+  } catch (error) {
+    console.error('MongoDB connection failed:', error.message);
+    console.log('Will retry connection in 5 seconds...');
+    
+    // Retry connection after 5 seconds
+    setTimeout(connectDB, 5000);
+  }
+};
+
+// Initialize database connection
+connectDB();
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -76,7 +115,7 @@ app.post('/api/login', async (req, res) => {
       const mockUser = mockUsers.find(u => u.email === email && u.password === password);
       
       if (!mockUser) {
-        return res.status(400).json({ error: 'Invalid credentials' });
+        return res.status(400).json({ message: 'Invalid credentials' });
       }
 
       // Create token
@@ -100,13 +139,13 @@ app.post('/api/login', async (req, res) => {
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'User not found' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid password' });
     }
 
     // Create token
@@ -127,13 +166,41 @@ app.post('/api/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ message: 'Login failed' });
   }
+});
+
+// Environment debug endpoint
+app.get('/api/debug', (req, res) => {
+  const mongoose = require('mongoose');
+  res.json({ 
+    status: 'Debug Info',
+    environment: {
+      mongodb_uri: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
+      mongodb_connected: mongoose.connection.readyState === 1 ? 'YES' : 'NO',
+      connection_state: mongoose.connection.readyState,
+      jwt_secret: process.env.JWT_SECRET ? 'SET' : 'NOT SET',
+      node_env: process.env.NODE_ENV || 'development',
+      smtp_user: process.env.SMTP_USER ? 'SET' : 'NOT SET',
+      email_from: process.env.EMAIL_FROM ? 'SET' : 'NOT SET'
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    environment: {
+      mongodb: process.env.MONGODB_URI ? 'CONNECTED' : 'NOT SET',
+      jwt: process.env.JWT_SECRET ? 'SET' : 'NOT SET',
+      email: process.env.SMTP_USER ? 'CONFIGURED' : 'NOT SET',
+      node_env: process.env.NODE_ENV || 'development'
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Error handling middleware

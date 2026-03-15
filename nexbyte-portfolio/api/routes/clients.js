@@ -7,7 +7,7 @@ const Client = require('../models/Client');
 // Optional email service - only load if email is configured
 let emailService = null;
 try {
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     emailService = require('../services/emailService');
   }
 } catch (error) {
@@ -19,7 +19,7 @@ const authMiddleware = (req, res, next) => {
   const token = req.header('x-auth-token');
   
   if (!token) {
-    return res.status(401).json({ error: 'No token, authorization denied' });
+    return res.status(401).json({ message: 'No token, authorization denied' });
   }
 
   try {
@@ -29,14 +29,14 @@ const authMiddleware = (req, res, next) => {
     next();
   } catch (error) {
     console.error('Token verification failed:', error.message);
-    res.status(401).json({ error: 'Token is not valid' });
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };
 
 // Admin middleware
 const adminMiddleware = (req, res, next) => {
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+    return res.status(403).json({ message: 'Admin access required' });
   }
   next();
 };
@@ -134,7 +134,7 @@ router.post('/', async (req, res) => {
 
       // Password is now required (admin must set it)
       if (!password) {
-        return res.status(400).json({ error: 'Password is required' });
+        return res.status(400).json({ message: 'Password is required' });
       }
       
       const newClient = {
@@ -262,7 +262,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(clientResponse);
   } catch (error) {
     console.error('Error creating client:', error);
-    res.status(500).json({ error: 'Failed to create client' });
+    res.status(500).json({ message: 'Failed to create client' });
   }
 });
 
@@ -318,13 +318,13 @@ router.put('/:id', async (req, res) => {
     ).select('-password');
 
     if (!updatedClient) {
-      return res.status(404).json({ error: 'Client not found' });
+      return res.status(404).json({ message: 'Client not found' });
     }
     
     res.json(updatedClient);
   } catch (error) {
     console.error('Error updating client:', error);
-    res.status(500).json({ error: 'Failed to update client' });
+    res.status(500).json({ message: 'Failed to update client' });
   }
 });
 
@@ -334,13 +334,13 @@ router.delete('/:id', async (req, res) => {
     const deletedClient = await Client.findByIdAndDelete(req.params.id);
     
     if (!deletedClient) {
-      return res.status(404).json({ error: 'Client not found' });
+      return res.status(404).json({ message: 'Client not found' });
     }
     
     res.json({ message: 'Client deleted successfully' });
   } catch (error) {
     console.error('Error deleting client:', error);
-    res.status(500).json({ error: 'Failed to delete client' });
+    res.status(500).json({ message: 'Failed to delete client' });
   }
 });
 
@@ -350,7 +350,7 @@ router.get('/:id/password', async (req, res) => {
     const client = await Client.findById(req.params.id);
     
     if (!client) {
-      return res.status(404).json({ error: 'Client not found' });
+      return res.status(404).json({ message: 'Client not found' });
     }
     
     // For MongoDB clients, we cannot retrieve the hashed password
@@ -362,7 +362,7 @@ router.get('/:id/password', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting client password:', error);
-    res.status(500).json({ error: 'Failed to get client password' });
+    res.status(500).json({ message: 'Failed to get client password' });
   }
 });
 
@@ -372,7 +372,7 @@ router.get('/:id/credentials', async (req, res) => {
     const client = await Client.findById(req.params.id);
     
     if (!client) {
-      return res.status(404).json({ error: 'Client not found' });
+      return res.status(404).json({ message: 'Client not found' });
     }
     
     // Return client info without password for security
@@ -384,7 +384,7 @@ router.get('/:id/credentials', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting client credentials:', error);
-    res.status(500).json({ error: 'Failed to get client credentials' });
+    res.status(500).json({ message: 'Failed to get client credentials' });
   }
 });
 

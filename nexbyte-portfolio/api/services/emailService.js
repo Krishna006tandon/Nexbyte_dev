@@ -1,12 +1,14 @@
 const nodemailer = require('nodemailer');
 
-// Create a transporter using Gmail (you can configure this according to your email service)
+// Create a transporter using SMTP configuration
 const createTransporter = () => {
   return nodemailer.createTransporter({
-    service: 'gmail',
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
     }
   });
 };
@@ -17,7 +19,7 @@ const sendClientCredentials = async (clientEmail, clientName, clientPassword, pr
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@nexbyte.com',
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@nexbyte.com',
       to: clientEmail,
       subject: `🎉 Welcome to Nexbyte - Your Project "${projectName}" is Ready!`,
       html: `
@@ -163,7 +165,7 @@ const sendPasswordReset = async (clientEmail, clientName, clientPassword) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@nexbyte.com',
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@nexbyte.com',
       to: clientEmail,
       subject: `🔐 Nexbyte - Your Password Has Been Reset Successfully`,
       html: `
@@ -320,7 +322,7 @@ const sendPasswordChangeNotification = async (clientEmail, clientName) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@nexbyte.com',
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@nexbyte.com',
       to: clientEmail,
       subject: `🔐 Nexbyte - Your Password Has Been Changed Successfully`,
       html: `
