@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../components/Modal';
-import ProjectTracker from '../components/ProjectTracker'; // Import ProjectTracker
+import ProjectTracker from '../components/ProjectTracker';
 import './ClientPanel.css';
 
 const ClientPanel = () => {
   const [data, setData] = useState(null);
   const [bills, setBills] = useState([]);
   const [error, setError] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'srs'
+  const [activeView, setActiveView] = useState('dashboard');
   const [message, setMessage] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [transactionId, setTransactionId] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
-  const [milestone, setMilestone] = useState(null); // Add state for milestone
+  const [milestone, setMilestone] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
 
@@ -354,7 +354,6 @@ const ClientPanel = () => {
       <p><strong>Due Date:</strong> {data.clientData.dueDate}</p>
     </div>
   );
-
   const renderBilling = () => {
     const totalPaid = bills.reduce((acc, bill) => acc + (bill.paidAmount || 0), 0);
     const totalBilled = bills.reduce((acc, bill) => acc + (bill.amount || 0), 0);
@@ -402,12 +401,12 @@ const ClientPanel = () => {
                   <p><strong>Due Date:</strong> {new Date(bill.dueDate).toLocaleDateString()}</p>
                   <p><strong>Status:</strong> <span className={`status ${status.toLowerCase()}`}>{status}</span></p>
                 </div>
-                  <div className="bill-actions">
-                    {status !== 'Paid' && (
-                      <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
-                    )}
-                    <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button>
-                  </div>
+                <div className="bill-actions">
+                  {status !== 'Paid' && (
+                    <button className="pay-now-btn" onClick={() => handlePayNow(bill)}>Pay Now</button>
+                  )}
+                  <button className="download-btn" onClick={() => handleDownloadBill(bill)}>Download Bill</button>
+                </div>
               </div>
             );
           })}
@@ -556,6 +555,8 @@ const ClientPanel = () => {
     </div>
   );
 
+  
+  
   return (
     <div className="client-panel-container">
       <div className="sidebar">
@@ -573,7 +574,7 @@ const ClientPanel = () => {
         </ul>
       </div>
       <div className="main-content">
-        <h1>{data.message}</h1>
+        <h1>Welcome to Client Panel</h1>
         {activeView === 'dashboard' && renderDashboard()}
         {activeView === 'srs' && renderSrs()}
         {activeView === 'billing' && renderBilling()}
@@ -622,8 +623,10 @@ const ClientPanel = () => {
               <div className="modal-actions">
                 <button
                   onClick={handleConfirmPayment}
-                  disabled={!transactionId || !paidAmount}>
-                  Confirm Payment</button>
+                  disabled={!transactionId || !paidAmount}
+                >
+                  Confirm Payment
+                </button>
                 <button onClick={closeModal}>Cancel</button>
               </div>
             </div>
