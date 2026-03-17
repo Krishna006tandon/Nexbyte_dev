@@ -30,9 +30,9 @@ router.get('/profile', authMiddleware, async (req, res) => {
       // Return mock data when MongoDB is not connected
       const mockUser = {
         _id: req.user.userId,
-        name: 'Admin User',
-        email: 'admin@nexbyte.com',
-        role: 'admin',
+        name: req.user.name || 'User',
+        email: req.user.email || (req.user.userId && req.user.userId.includes('@') ? req.user.userId : 'user@example.com'),
+        role: req.user.role || 'intern',
         createdAt: new Date().toISOString()
       };
       return res.json(mockUser);

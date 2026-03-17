@@ -1,7 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import './Member.css';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const Member = () => {
   const [userData, setUserData] = useState(null);
@@ -16,6 +39,7 @@ const Member = () => {
     totalTasks: 0,
     completionRate: 0
   });
+  const [reports, setReports] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,7 +98,7 @@ const Member = () => {
     const fetchTasks = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('/api/tasks/my-tasks', {
+        const res = await axios.get('/api/user/my-tasks', {
           headers: {
             'x-auth-token': token
           }
@@ -102,8 +126,23 @@ const Member = () => {
       }
     };
 
+    const fetchReports = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/api/user/reports', {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+        setReports(res.data);
+      } catch (err) {
+        console.error('Failed to fetch reports:', err);
+      }
+    };
+
     if (userData) {
       fetchTasks();
+      fetchReports();
     }
   }, [userData]);
 
@@ -195,6 +234,9 @@ const Member = () => {
             </li>
             <li className={activeSection === 'progress' ? 'active' : ''}>
               <a href="#progress" onClick={() => setActiveSection('progress')}>Progress Report</a>
+            </li>
+            <li className={activeSection === 'growth' ? 'active' : ''}>
+              <a href="#growth" onClick={() => setActiveSection('growth')}>Growth Analysis</a>
             </li>
           </ul>
         </nav>
@@ -338,6 +380,75 @@ const Member = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'growth' && (
+            <div className="growth-section">
+              <h2>Growth Analysis</h2>
+              
+              <div className="performance-trend-card" style={{ marginBottom: '30px', background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                <h3>Performance Trend</h3>
+                <div style={{ height: '300px' }}>
+                  {reports.length > 0 ? (
+                    <Line 
+                      data={{
+                        labels: reports.map(r => new Date(r.date).toLocaleDateString()).reverse(),
+                        datasets: [
+                          {
+                            label: 'Performance Score',
+                            data: reports.map(r => r.performanceScore).reverse(),
+                            fill: true,
+                            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                            borderColor: 'rgba(99, 102, 241, 1)',
+                            tension: 0.4
+                          }
+                        ]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                          y: { beginAtZero: true, max: 100 }
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="no-data-placeholder" style={{ textAlign: 'center', padding: '50px' }}>
+                      <p>No performance data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="reports-grid">
+                {reports.length === 0 ? (
+                  <div className="no-reports">
+                    <p>No growth reports available yet.</p>
+                  </div>
+                ) : (
+                  reports.map(report => (
+                    <div key={report._id} className="report-card">
+                      <div className="report-header">
+                        <h3>Report - {new Date(report.date).toLocaleDateString()}</h3>
+                        <span className="performance-score">Score: {report.performanceScore}%</span>
+                      </div>
+                      <div className="skills-learned">
+                        <strong>Skills Learned:</strong>
+                        <div className="skills-badges">
+                          {report.skillsLearned.map((skill, idx) => (
+                            <span key={idx} className="skill-badge">{skill}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="report-feedback">
+                        <strong>Feedback:</strong>
+                        <p>{report.feedback}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

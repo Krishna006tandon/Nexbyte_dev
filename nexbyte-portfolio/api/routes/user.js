@@ -24,6 +24,30 @@ const authMiddleware = (req, res, next) => {
 // Get user's tasks
 router.get('/my-tasks', authMiddleware, async (req, res) => {
   try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      // Return mock tasks when MongoDB is not connected
+      const mockTasks = [
+        {
+          _id: '1',
+          title: 'Complete Project Documentation',
+          description: 'Write comprehensive documentation for the intern portal project.',
+          status: 'pending',
+          dueDate: new Date(Date.now() + 86400000).toISOString(),
+          priority: 'high'
+        },
+        {
+          _id: '2',
+          title: 'Bug Fixing',
+          description: 'Identify and fix minor UI bugs in the dashboard.',
+          status: 'in-progress',
+          dueDate: new Date(Date.now() + 172800000).toISOString(),
+          priority: 'medium'
+        }
+      ];
+      return res.json(mockTasks);
+    }
+
     const tasks = await User.findById(req.user.userId)
       .populate({
         path: 'tasks',

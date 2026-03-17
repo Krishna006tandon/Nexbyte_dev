@@ -17,7 +17,7 @@ app.use(express.json());
 const mongoURI = process.env.MONGODB_URI;
 
 // Only connect to MongoDB if not in test environment and if MONGODB_URI is provided
-if (process.env.NODE_ENV !== process.env.MONGODB_URI) {
+if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
   mongoose.connect(mongoURI)
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
@@ -35,6 +35,8 @@ const internUserRoutes = require('./routes/intern');
 const userRoutes = require('./routes/user');
 const usersRoutes = require('./routes/users');
 const clientsRoutes = require('./routes/clients');
+const certificateRoutes = require('./routes/certificates');
+const clientAuthRoutes = require('./routes/clientAuth');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -46,6 +48,8 @@ app.use('/api/intern', internUserRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/clients', clientsRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/client', clientAuthRoutes);
 
 // Direct login endpoint for frontend compatibility
 app.post('/api/login', async (req, res) => {

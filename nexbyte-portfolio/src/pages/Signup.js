@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import '../components/Form.css';
 import './Auth.css';
 
@@ -9,6 +10,7 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { setIsIntern, fetchUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -16,7 +18,7 @@ const Signup = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,7 +30,20 @@ const Signup = () => {
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
-        navigate('/dashboard');
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        const userRole = data.user.role ? data.user.role.toLowerCase() : '';
+        if (userRole === 'intern') {
+          setIsIntern(true);
+        }
+        
+        await fetchUser();
+        
+        if (userRole === 'intern') {
+          navigate('/intern-panel');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(data.message || 'Signup failed. Please try again.');
       }

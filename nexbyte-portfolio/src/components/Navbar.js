@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
-  const { isAdmin, isClient, setIsAdmin, setIsClient } = useContext(AuthContext);
+  const { isAdmin, isClient, isIntern, setIsAdmin, setIsClient, setIsIntern } = useContext(AuthContext);
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const navigate = useNavigate();
   const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
@@ -13,10 +13,11 @@ const Navbar = () => {
     localStorage.removeItem('token');
     setIsAdmin(false);
     setIsClient(false);
+    setIsIntern(false);
     navigate('/');
   };
 
-  const loggedIn = isAdmin || isClient;
+  const loggedIn = isAdmin || isClient || isIntern;
 
   return (
     <header className="header">
@@ -29,6 +30,7 @@ const Navbar = () => {
           <NavLink className="nav-link" to="/contact">Contact</NavLink>
           {isAdmin && <NavLink className="nav-link" to="/admin">Admin</NavLink>}
           {isClient && <NavLink className="nav-link" to="/client-panel">Client Panel</NavLink>}
+          {isIntern && <NavLink className="nav-link" to="/intern-panel">Intern Panel</NavLink>}
           
           <div style={{ flexGrow: 1 }}></div>
 

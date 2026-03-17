@@ -8,6 +8,29 @@ import TaskList from '../components/TaskList';
 import ProjectTracker from '../components/ProjectTracker';
 import ProjectTaskManagement from '../components/ProjectTaskManagement';
 import Modal from '../components/Modal';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -43,6 +66,8 @@ const Admin = () => {
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [certificateIssuing, setCertificateIssuing] = useState(null);
+  const [reportRoleFilter, setReportRoleFilter] = useState('intern');
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,6 +95,7 @@ const Admin = () => {
     clientName: '',
     contactPerson: '',
     email: '',
+    password: '',
     phone: '',
     companyAddress: '',
     projectName: '',
@@ -134,7 +160,7 @@ const Admin = () => {
           } else {
             console.error('Failed to fetch messages:', data.message);
           }
-        } else if (location.pathname === '/admin/members') {
+        } else if (location.pathname === '/admin/members' || location.pathname === '/admin/interns') {
           const res = await fetch('/api/users', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -263,9 +289,58 @@ const Admin = () => {
     }
   };
 
+  const handleIssueCertificate = async (intern) => {
+    if (!window.confirm(`Mark internship as completed and issue certificate for ${intern.email}?`)) {
+      return;
+    }
+
+    try {
+      setCertificateIssuing(intern._id);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/certificates/issue/${intern._id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({
+          internshipTitle: intern.internshipTitle || 'Internship at Nexbyte Core',
+          startDate: intern.internshipStartDate,
+          endDate: intern.internshipEndDate,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to issue certificate');
+      }
+
+      // Refresh members so status & certificate meta reflect immediately
+      const refreshRes = await fetch('/api/users', {
+        headers: { 'x-auth-token': token },
+      });
+      const updatedMembers = await refreshRes.json();
+      if (refreshRes.ok) {
+        setMembers(updatedMembers);
+        setSuccessMessage('Certificate issued successfully.');
+        setTimeout(() => setSuccessMessage(''), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setCertificateIssuing(null);
+    }
+  };
+
   const handleAddClient = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    
+    // Debug: Check if password is included
+    console.log('Client data being sent:', clientData);
+    console.log('Password field:', clientData.password);
+    
     try {
       const res = await fetch('/api/clients', {
         method: 'POST',
@@ -278,10 +353,19 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClients([...clients, data]);
+        
+        // Show the admin-set password to admin
+        if (data.password) {
+          alert(`Client created successfully!
+
+Client Email: ${data.email}\nClient Password: ${data.password}\n\nThis password has been sent to the client via email.`);
+        }
+        
         setClientData({
           clientName: '',
           contactPerson: '',
           email: '',
+          password: '',
           phone: '',
           companyAddress: '',
           projectName: '',
@@ -307,9 +391,11 @@ const Admin = () => {
         }
       } else {
         console.error(data.message);
+        alert(data.error || 'Failed to create client');
       }
     } catch (err) {
       console.error(err);
+      alert('Failed to create client');
     }
   };
 
@@ -337,7 +423,7 @@ const Admin = () => {
   const handleShowPassword = async (id) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`/api/clients/${id}/password`, {
+      const res = await fetch(`/api/clients/${id}/credentials`, {
         headers: {
           'x-auth-token': token,
         },
@@ -345,12 +431,17 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         setClientPasswords({ ...clientPasswords, [id]: data.password });
+        
+        // Show credentials in a nice alert
+        alert(`📧 Client Credentials\n\n👤 Name: ${data.contactPerson}\n📧 Email: ${data.email}\n🔐 Password: ${data.password}\n\n✅ Email has been sent to client with these credentials!`);
       }
       else {
         console.error(data.message);
+        alert(data.error || 'Failed to fetch client credentials');
       }
     } catch (err) {
       console.error(err);
+      alert('Failed to fetch client credentials');
     }
   };
 
@@ -1088,6 +1179,8 @@ const Admin = () => {
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Acceptance Date</th>
+                    <th>Internship Status</th>
+                    <th>Certificate</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -1100,6 +1193,26 @@ const Admin = () => {
                       <td>{member.role === 'intern' ? formatDate(member.internshipStartDate) : 'N/A'}</td>
                       <td>{member.role === 'intern' ? formatDate(member.internshipEndDate) : 'N/A'}</td>
                       <td>{formatDate(member.acceptanceDate)}</td>
+                      <td>
+                        {member.role === 'intern'
+                          ? member.internshipStatus || 'in_progress'
+                          : 'N/A'}
+                      </td>
+                      <td>
+                        {member.role === 'intern' && member.internshipStatus === 'completed' && member.certificateId ? (
+                          <span className="status completed">Issued ({member.certificateId})</span>
+                        ) : member.role === 'intern' ? (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleIssueCertificate(member)}
+                            disabled={certificateIssuing === member._id}
+                          >
+                            {certificateIssuing === member._id ? 'Issuing...' : 'Issue Certificate'}
+                          </button>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                         {(member.role === 'intern' || member.role === 'user' || member.role === 'member') && (
@@ -1124,6 +1237,29 @@ const Admin = () => {
                   <input type="text" name="clientName" placeholder="Client/Company Name" value={clientData.clientName} onChange={handleClientChange} required />
                   <input type="text" name="contactPerson" placeholder="Contact Person's Name" value={clientData.contactPerson} onChange={handleClientChange} required />
                   <input type="email" name="email" placeholder="Email Address" value={clientData.email} onChange={handleClientChange} required />
+                  <div style={{marginBottom: '1rem'}}>
+                    <label style={{display: 'block', marginBottom: '0.5rem', color: '#2d3748', fontWeight: '600', fontSize: '0.95rem'}}>
+                      Client Password * (Required) {clientData.password && '✅'}
+                    </label>
+                    <input 
+                      type="password" 
+                      name="password" 
+                      placeholder="Enter client password (required)" 
+                      value={clientData.password} 
+                      onChange={handleClientChange} 
+                      required
+                      style={{
+                        width: '100%', 
+                        padding: '0.875rem 1rem', 
+                        border: clientData.password ? '2px solid #48bb78' : '2px solid #667eea', 
+                        borderRadius: '10px', 
+                        backgroundColor: clientData.password ? '#f0fff4' : '#f0f4ff', 
+                        color: '#2d3748', 
+                        fontSize: '0.95rem',
+                        transition: 'all 0.2s ease'
+                      }} 
+                    />
+                  </div>
                   <input type="text" name="phone" placeholder="Phone Number" value={clientData.phone} onChange={handleClientChange} />
                   <input type="text" name="companyAddress" placeholder="Company Address" value={clientData.companyAddress} onChange={handleClientChange} />
                   <input type="text" name="projectName" placeholder="Project Name" value={clientData.projectName} onChange={handleClientChange} required />
@@ -1483,52 +1619,56 @@ const Admin = () => {
 
           {location.pathname === '/admin/reports' && (
             <div>
-              <h2>Intern Reports</h2>
+              <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>User Performance Reports</h2>
+                <div className="filter-group">
+                  <label style={{ marginRight: '10px' }}>Filter by Role:</label>
+                  <select 
+                    value={reportRoleFilter} 
+                    onChange={(e) => setReportRoleFilter(e.target.value)}
+                    style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ddd' }}
+                  >
+                    <option value="intern">Interns</option>
+                    <option value="member">Members</option>
+                  </select>
+                </div>
+              </div>
               <table>
                 <thead>
                   <tr>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>Performance</th>
-                    <th>Tasks Completed</th>
+                    <th>Average Performance</th>
+                    <th>Tasks</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {members.filter(member => member.role === 'intern').map((intern) => (
-                    <tr key={intern._id}>
-                      <td>{intern.email}</td>
-                      <td>{intern.email}</td>
-                      <td>{intern.role}</td>
+                  {members.filter(member => member.role === reportRoleFilter).map((user) => (
+                    <tr key={user._id}>
+                      <td>{user.email.split('@')[0]}</td>
+                      <td>{user.email}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{user.role}</td>
                       <td>
                         <div className="performance-metrics">
                           <div className="metric">
-                            <span>Task Completion:</span>
-                            <div className="progress-bar">
-                              <div className="progress" style={{width: '75%'}}></div>
+                            <div className="progress-bar" style={{ height: '8px', backgroundColor: '#eee', borderRadius: '4px', overflow: 'hidden', width: '100px', display: 'inline-block', marginRight: '10px' }}>
+                              <div className="progress" style={{ width: '78%', height: '100%', backgroundColor: '#4f46e5' }}></div>
                             </div>
-                            <span>75%</span>
-                          </div>
-                          <div className="metric">
-                            <span>Priority Tasks:</span>
-                            <div className="progress-bar">
-                              <div className="progress" style={{width: '60%'}}></div>
-                            </div>
-                            <span>60%</span>
+                            <span>78%</span>
                           </div>
                         </div>
                       </td>
                       <td>
                         <div className="task-stats">
-                          <div>Total: 24</div>
-                          <div>Completed: 18</div>
-                          <div>Pending: 6</div>
+                          <span className="badge badge-success" style={{ marginRight: '5px' }}>18 Done</span>
+                          <span className="badge badge-warning">6 Pending</span>
                         </div>
                       </td>
                       <td>
-                        <button onClick={() => handleShowInternReport(intern._id)} className="btn btn-info">
-                          {reportLoading && selectedInternForReport === intern._id ? 'Loading...' : 'View Report'}
+                        <button onClick={() => handleShowInternReport(user._id)} className="btn btn-info">
+                          {reportLoading && selectedInternForReport === user._id ? 'Loading...' : 'View Analysis'}
                         </button>
                       </td>
                     </tr>
@@ -1571,43 +1711,88 @@ const Admin = () => {
 
         {showInternReport && internReport && (
           <Modal isOpen={showInternReport} onClose={closeInternReport}>
-            <div className="intern-report-modal">
-              <h2>Intern Report</h2>
+            <div className="intern-report-modal" style={{ maxWidth: '900px', width: '90vw' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>Growth Analysis Report</h2>
+                <div className="user-badge" style={{ padding: '5px 15px', backgroundColor: '#eef2ff', color: '#4f46e5', borderRadius: '20px', fontWeight: 'bold' }}>
+                  {members.find(m => m._id === selectedInternForReport)?.role?.toUpperCase()}
+                </div>
+              </div>
+              
               <div className="report-content">
-                <h3>Performance Statistics</h3>
-                <div className="stats-grid">
-                  <div className="stat-card">
-                    <h4>Total Tasks</h4>
-                    <p>{internReport.totalTasks || 24}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
+                  <div className="performance-chart-card" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                    <h3>Performance Trend</h3>
+                    <div style={{ height: '250px' }}>
+                      {internReport.growthReports && internReport.growthReports.length > 0 ? (
+                        <Line 
+                          data={{
+                            labels: internReport.growthReports.map(r => new Date(r.date).toLocaleDateString()).reverse(),
+                            datasets: [{
+                              label: 'Score',
+                              data: internReport.growthReports.map(r => r.performanceScore).reverse(),
+                              fill: true,
+                              backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                              borderColor: '#4f46e5',
+                              tension: 0.4
+                            }]
+                          }}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true, max: 100 } }
+                          }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                          <p>No historical data available</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="stat-card">
-                    <h4>Completed Tasks</h4>
-                    <p>{internReport.completedTasks || 18}</p>
-                  </div>
-                  <div className="stat-card">
-                    <h4>Completion Rate</h4>
-                    <p>{internReport.completionRate || '75%'}</p>
-                  </div>
-                  <div className="stat-card">
-                    <h4>Priority Tasks</h4>
-                    <p>{internReport.priorityTasks || 12}</p>
+
+                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Completed Tasks</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a' }}>{internReport.completedTasks || 0}</p>
+                    </div>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Completion Rate</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{internReport.completionRate || '0%'}</p>
+                    </div>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Growth Score</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#4f46e5' }}>88%</p>
+                    </div>
+                    <div className="stat-card" style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 10px', color: '#64748b' }}>Assigned Projects</h4>
+                      <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>3</p>
+                    </div>
                   </div>
                 </div>
                 
-                <h3>Recent Activity</h3>
-                <div className="activity-list">
-                  {internReport.recentActivity ? internReport.recentActivity.map((activity, index) => (
-                    <div key={index} className="activity-item">
-                      <span className="activity-date">{new Date(activity.date).toLocaleDateString()}</span>
-                      <span className="activity-description">{activity.description}</span>
-                    </div>
-                  )) : (
-                    <p>No recent activity available</p>
-                  )}
+                <div className="detailed-reports">
+                  <h3>Recent Evaluation Reports</h3>
+                  <div className="reports-list" style={{ maxHeight: '300px', overflowY: 'auto', padding: '10px' }}>
+                    {internReport.growthReports && internReport.growthReports.length > 0 ? (
+                      internReport.growthReports.map(report => (
+                        <div key={report._id} className="report-item" style={{ marginBottom: '15px', padding: '15px', border: '1px solid #efefef', borderRadius: '8px', background: '#fff' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <strong>Evaluation - {new Date(report.date).toLocaleDateString()}</strong>
+                            <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>Score: {report.performanceScore}%</span>
+                          </div>
+                          <p style={{ margin: '0 0 10px', fontSize: '0.9rem', color: '#444' }}><strong>Skills:</strong> {report.skillsLearned.join(', ')}</p>
+                          <p style={{ margin: 0, fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>"{report.feedback}"</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No evaluation reports submitted for this user.</p>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="modal-actions">
-                <button onClick={closeInternReport} className="btn btn-secondary">Close</button>
+              <div className="modal-actions" style={{ marginTop: '20px', textAlign: 'right' }}>
+                <button onClick={closeInternReport} className="btn btn-secondary">Close Report</button>
               </div>
             </div>
           </Modal>

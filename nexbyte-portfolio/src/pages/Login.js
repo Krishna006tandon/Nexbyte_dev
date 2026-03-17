@@ -7,7 +7,7 @@ import './Auth.css';
 import '../components/HomeSidebar.css';
 
 const Login = () => {
-  const { setIsAdmin, setIsClient } = useContext(AuthContext);
+  const { setIsAdmin, setIsClient, setIsIntern, fetchUser } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,19 +31,30 @@ const Login = () => {
       const data = await res.json();
 
       if (res.ok) {
+        console.log('Login: Login successful, data:', data);
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.user.role === 'admin') {
+        const userRole = data.user.role ? data.user.role.toLowerCase() : '';
+        console.log('Login: User role detected:', userRole);
+        
+        if (userRole === 'admin') {
           setIsAdmin(true);
+          await fetchUser();
           navigate('/admin');
-        } else if (data.user.role === 'client') {
+        } else if (userRole === 'client') {
           setIsClient(true);
+          await fetchUser();
           navigate('/client-panel');
-        } else if (data.user.role === 'intern') {
+        } else if (userRole === 'intern') {
+          setIsIntern(true);
+          console.log('Login: Setting intern role and navigating to intern-panel');
+          await fetchUser();
           navigate('/intern-panel');
-        } else if (data.user.role === 'member') {
+        } else if (userRole === 'member') {
+          await fetchUser();
           navigate('/member');
         } else {
+          await fetchUser();
           navigate('/');
         }  
       } else {
