@@ -8,11 +8,7 @@ const ClientPanel = () => {
   const [data, setData] = useState(null);
   const [bills, setBills] = useState([]);
   const [error, setError] = useState(null);
-<<<<<<< HEAD
-  const [activeView, setActiveView] = useState('dashboard');
-=======
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'srs', 'billing', 'settings'
->>>>>>> 102431addd670971ba1d567f0ad25d9e41febae1
+const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'srs', 'billing', 'settings'
   const [message, setMessage] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
