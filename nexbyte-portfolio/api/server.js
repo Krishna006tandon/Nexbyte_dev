@@ -166,6 +166,45 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Simple MongoDB test endpoint
+app.get('/api/mongo-test', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const mongoURI = process.env.MONGODB_URI;
+    
+    const result = {
+      uri: mongoURI ? 'SET' : 'NOT SET',
+      connectionState: mongoose.connection.readyState,
+      connectionStates: {
+        0: 'disconnected',
+        1: 'connected', 
+        2: 'connecting',
+        3: 'disconnecting'
+      },
+      currentState: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState],
+      error: null
+    };
+    
+    // Test connection
+    if (mongoose.connection.readyState === 0) {
+      try {
+        await mongoose.connect(mongoURI);
+        result.testConnection = 'SUCCESS';
+        result.finalState = mongoose.connection.readyState;
+      } catch (error) {
+        result.testConnection = 'FAILED';
+        result.error = error.message;
+      }
+    } else {
+      result.testConnection = 'ALREADY_CONNECTED';
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Force connect endpoint
 app.post('/api/connect', async (req, res) => {
   try {
