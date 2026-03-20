@@ -170,6 +170,138 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Force connect endpoint
+app.post('/api/connect', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const mongoURI = process.env.MONGODB_URI;
+    
+    if (!mongoURI) {
+      return res.status(400).json({ message: 'MONGODB_URI not set' });
+    }
+    
+    // Force connection
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000
+    });
+    
+    res.json({ 
+      message: 'MongoDB connection attempted',
+      uri: mongoURI ? 'SET' : 'NOT SET',
+      state: mongoose.connection.readyState,
+      connected: mongoose.connection.readyState === 1
+    });
+  } catch (error) {
+    console.error('Connection error:', error);
+    res.status(500).json({ 
+      message: 'Connection failed', 
+      error: error.message,
+      state: mongoose.connection.readyState
+    });
+  }
+});
+
+// Seed data endpoint
+app.post('/api/seed', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const bcrypt = require('bcryptjs');
+    const User = require('./models/User');
+    const Client = require('./models/Client');
+    
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(500).json({ message: 'MongoDB not connected' });
+    }
+    
+    // Clear existing data
+    await User.deleteMany({});
+    await Client.deleteMany({});
+    
+    // Create users
+    const users = [
+      {
+        name: 'Admin User',
+        email: 'admin@nexbyte.com',
+        password: 'admin123',
+        role: 'admin',
+        credits: 1000
+      },
+      {
+        name: 'John Doe',
+        email: 'john.doe@nexbyte.com',
+        password: 'intern123',
+        role: 'intern',
+        credits: 0,
+        internshipStartDate: new Date('2024-01-01'),
+        internshipEndDate: new Date('2024-06-01'),
+        internType: 'stipend'
+      },
+      {
+        name: 'Jane Smith',
+        email: 'jane.smith@nexbyte.com',
+        password: 'intern123',
+        role: 'intern',
+        credits: 0,
+        internshipStartDate: new Date('2024-02-01'),
+        internshipEndDate: new Date('2024-07-01'),
+        internType: 'free'
+      },
+      {
+        name: 'Client User',
+        email: 'client@nexbyte.com',
+        password: 'client123',
+        role: 'client',
+        credits: 500
+      }
+    ];
+    
+    for (const userData of users) {
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      const user = new User({ ...userData, password: hashedPassword });
+      await user.save();
+    }
+    
+    // Create test client
+    const clientPassword = 'clientpass123';
+    const hashedClientPassword = await bcrypt.hash(clientPassword, 10);
+    
+    const testClient = new Client({
+      clientName: 'Test Production Client',
+      contactPerson: 'Test Contact',
+      email: 'production@client.com',
+      phone: '+1234567890',
+      companyAddress: '123 Production St',
+      projectName: 'Production Test Project',
+      projectType: 'Web Application',
+      projectRequirements: 'Full stack application with MongoDB',
+      projectDeadline: new Date('2024-12-31'),
+      totalBudget: 10000,
+      billingAddress: '123 Production St',
+      gstNumber: 'GST123456',
+      paymentTerms: '50% advance',
+      paymentMethod: 'Bank transfer',
+      domainRegistrarLogin: 'domain123',
+      webHostingLogin: 'host123',
+      logoAndBrandingFiles: 'logo.png',
+      content: 'content.pdf',
+      password: hashedClientPassword
+    });
+    
+    await testClient.save();
+    
+    res.json({ 
+      message: 'Database seeded successfully!',
+      users: users.length,
+      clients: 1
+    });
+  } catch (error) {
+    console.error('Seeding error:', error);
+    res.status(500).json({ message: 'Seeding failed', error: error.message });
+  }
+});
+
 // Environment debug endpoint
 app.get('/api/debug', (req, res) => {
   const mongoose = require('mongoose');
