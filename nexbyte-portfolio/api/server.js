@@ -21,14 +21,14 @@ if (!mongoURI) {
 }
 
 mongoose.connect(mongoURI, {
-  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-  bufferMaxEntries: 0, // Disable mongoose buffering
-  bufferCommands: false, // Disable mongoose buffering
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
 })
 .then(() => console.log('MongoDB connected successfully'))
 .catch(err => {
   console.error('MongoDB connection error:', err.message);
-  console.log('Server will continue running with mock data fallback');
+  process.exit(1); // Exit if MongoDB connection fails - no fallback
 });
 
 // Import routes
@@ -65,41 +65,6 @@ app.post('/api/login', async (req, res) => {
     const User = require('./models/User');
     
     const { email, password } = req.body;
-
-    // // Check if MongoDB is connected
-    // if (mongoose.connection.readyState !== 1) {
-    //   console.log('Using mock authentication (MongoDB not connected)');
-      
-    //   // Mock users for fallback
-    //   const mockUsers = [
-    //     { email: 'admin@nexbyte.com', password: 'admin123', name: 'Admin User', role: 'admin' },
-    //     { email: 'dveep@gmail.com', password: 'myCustomPass123', name: 'Durga Battery House', role: 'client' },
-    //     { email: 'intern@nexbyte.com', password: 'intern123', name: 'Test Intern', role: 'intern' }
-    //   ];
-      
-    //   const mockUser = mockUsers.find(u => u.email === email && u.password === password);
-      
-    //   if (!mockUser) {
-    //     return res.status(400).json({ message: 'Invalid credentials' });
-    //   }
-
-    //   // Create token
-    //   const token = jwt.sign(
-    //     { userId: mockUser.email, role: mockUser.role },
-    //     process.env.JWT_SECRET || 'your-secret-key',
-    //     { expiresIn: '24h' }
-    //   );
-
-    //   return res.json({
-    //     token,
-    //     user: {
-    //       id: mockUser.email,
-    //       name: mockUser.name,
-    //       email: mockUser.email,
-    //       role: mockUser.role
-    //     }
-    //   });
-    // }
 
     // Check if user exists
     const user = await User.findOne({ email });
