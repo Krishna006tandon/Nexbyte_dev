@@ -6,6 +6,16 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Optional email service - only load if email is configured
+let emailService = null;
+try {
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    emailService = require('../services/emailService');
+  }
+} catch (error) {
+  console.log('Email service not available:', error.message);
+}
+
 // Middleware to verify JWT token
 const authMiddleware = (req, res, next) => {
   const token = req.header('x-auth-token');
@@ -97,6 +107,28 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
         internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
         acceptanceDate: role === 'intern' ? acceptanceDate : undefined
       };
+      
+      // Send email with credentials to user (only if email service is configured)
+      if (emailService && password) {
+        try {
+          const emailResult = await emailService.sendClientCredentials(
+            email, 
+            email.split('@')[0], // Use email prefix as name
+            password, 
+            `${role.charAt(0).toUpperCase() + role.slice(1)} Account`
+          );
+          if (emailResult.success) {
+            console.log(`Credentials email sent to ${email} for role: ${role}`);
+          } else {
+            console.error(`Failed to send email to ${email}:`, emailResult.error);
+          }
+        } catch (emailError) {
+          console.error('Error sending email:', emailError);
+        }
+      } else {
+        console.log('Email service not configured or no password provided - skipping email send');
+      }
+      
       return res.status(201).json(mockUser);
     }
 
@@ -124,6 +156,27 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     });
 
     const savedUser = await newUser.save();
+    
+    // Send email with credentials to user (only if email service is configured)
+    if (emailService) {
+      try {
+        const emailResult = await emailService.sendClientCredentials(
+          email, 
+          email.split('@')[0], // Use email prefix as name
+          password, 
+          `${role.charAt(0).toUpperCase() + role.slice(1)} Account`
+        );
+        if (emailResult.success) {
+          console.log(`Credentials email sent to ${email} for role: ${role}`);
+        } else {
+          console.error(`Failed to send email to ${email}:`, emailResult.error);
+        }
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+      }
+    } else {
+      console.log('Email service not configured - skipping email send');
+    }
     
     // Return user without password
     const userResponse = savedUser.toObject();

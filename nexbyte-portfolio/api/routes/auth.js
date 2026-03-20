@@ -5,6 +5,16 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Optional email service - only load if email is configured
+let emailService = null;
+try {
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    emailService = require('../services/emailService');
+  }
+} catch (error) {
+  console.log('Email service not available:', error.message);
+}
+
 // Register
 router.post('/register', async (req, res) => {
   try {
@@ -29,6 +39,27 @@ router.post('/register', async (req, res) => {
     });
 
     await user.save();
+
+    // Send email with credentials to user (only if email service is configured)
+    if (emailService) {
+      try {
+        const emailResult = await emailService.sendClientCredentials(
+          email, 
+          name || email.split('@')[0], 
+          password, 
+          `${role.charAt(0).toUpperCase() + role.slice(1)} Account`
+        );
+        if (emailResult.success) {
+          console.log(`Credentials email sent to ${email} for role: ${role}`);
+        } else {
+          console.error(`Failed to send email to ${email}:`, emailResult.error);
+        }
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+      }
+    } else {
+      console.log('Email service not configured - skipping email send');
+    }
 
     // Create token
     const token = jwt.sign(
