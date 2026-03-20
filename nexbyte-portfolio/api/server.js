@@ -16,15 +16,11 @@ app.use(express.json());
 // Database connection with proper error handling
 const mongoURI = process.env.MONGODB_URI;
 
-// MongoDB connection options for production
+// MongoDB connection options for production (updated for MongoDB driver 4.0+)
 const mongoOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   maxPoolSize: 10, // Maintain up to 10 socket connections
-  bufferMaxEntries: 0, // Disable mongoose buffering
-  bufferCommands: false, // Disable mongoose buffering
 };
 
 // Connect to MongoDB with retry logic
@@ -180,10 +176,8 @@ app.post('/api/connect', async (req, res) => {
       return res.status(400).json({ message: 'MONGODB_URI not set' });
     }
     
-    // Force connection
+    // Force connection (updated for MongoDB driver 4.0+)
     await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000
     });
     
