@@ -96,7 +96,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
       // Return mock response when MongoDB is not connected
-      const { email, role, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
+      const { email, password, role, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
       const mockUser = {
         _id: Date.now().toString(),
         email,
@@ -221,7 +221,14 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
 // Delete user (admin only)
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+    
+    const deletedUser = await User.findByIdAndDelete(id);
     
     if (!deletedUser) {
       return res.status(404).json({ error: 'User not found' });
