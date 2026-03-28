@@ -2,8 +2,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 4rem 2rem;
-  color: white;
+  padding: 5rem 2rem;
+  color: var(--primary-text);
 }
 
 @keyframes fadeInUp {
@@ -20,11 +20,10 @@
 .auth-container {
   width: 100%;
   max-width: 450px;
-  background-color: var(--background-light);
+  background: linear-gradient(160deg, rgba(22, 27, 34, 0.98), rgba(13, 17, 23, 0.95));
   padding: 3rem;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  
+  border-radius: 20px;
+  border: 1px solid rgba(48, 54, 61, 0.8);
   box-shadow: var(--shadow);
   animation: fadeInUp 0.5s ease-out forwards;
 }
@@ -32,7 +31,7 @@
 
 .auth-container h1 {
   text-align: center;
-  font-size: 2.5rem;
+  font-size: 2.3rem;
   margin-bottom: 2rem;
   transition: color 0.3s ease;
 }

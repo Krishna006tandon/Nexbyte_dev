@@ -1,16 +1,18 @@
 .member-container {
   display: flex;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: transparent;
+  color: var(--primary-text);
 }
 
 .member-sidebar {
   width: 250px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: rgba(13, 17, 23, 0.95);
+  color: var(--primary-text);
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-light);
+  border-right: 1px solid rgba(48, 54, 61, 0.7);
 }
 
 .sidebar-header {
@@ -33,46 +35,47 @@
 }
 
 .sidebar-nav li {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
 }
 
 .sidebar-nav a {
   display: block;
   padding: 15px 20px;
-  color: white;
+  color: var(--secondary-text);
   text-decoration: none;
   transition: background-color 0.3s ease;
 }
 
 .sidebar-nav a:hover,
 .sidebar-nav li.active a {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(88, 166, 255, 0.12);
+  color: var(--accent-hover);
 }
 
 .sidebar-footer {
   padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(48, 54, 61, 0.5);
 }
 
 .logout-btn {
   width: 100%;
   padding: 10px;
-  background-color: #e74c3c;
-  color: white;
+  background-color: rgba(220, 53, 69, 0.9);
+  color: #f9fbff;
   border: none;
-  border-radius: 5px;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 1rem;
   transition: background-color 0.3s ease;
 }
 
 .logout-btn:hover {
-  background-color: #c0392b;
+  background-color: rgba(220, 53, 69, 0.95);
 }
 
 .member-main-content {
   flex-grow: 1;
-  padding: 30px;
+  padding: 32px;
 }
 
 .member-header {
@@ -81,12 +84,12 @@
   align-items: center;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.7);
 }
 
 .member-header h1 {
   margin: 0;
-  color: #333;
+  color: var(--primary-text);
   font-size: 2rem;
 }
 
@@ -97,8 +100,8 @@
 }
 
 .role-badge {
-  background-color: #667eea;
-  color: white;
+  background-color: rgba(88, 166, 255, 0.9);
+  color: #081018;
   padding: 5px 15px;
   border-radius: 20px;
   font-size: 0.9rem;
@@ -106,21 +109,22 @@
 }
 
 .welcome-card {
-  background: white;
+  background: rgba(22, 27, 34, 0.8);
   padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 18px;
+  box-shadow: var(--shadow-light);
   margin-bottom: 30px;
+  border: 1px solid rgba(48, 54, 61, 0.7);
 }
 
 .welcome-card h2 {
   margin-top: 0;
-  color: #333;
+  color: var(--primary-text);
   font-size: 1.5rem;
 }
 
 .welcome-card p {
-  color: #666;
+  color: var(--secondary-text);
   line-height: 1.6;
 }
 
@@ -132,16 +136,17 @@
 }
 
 .info-card {
-  background: white;
+  background: rgba(22, 27, 34, 0.8);
   padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 18px;
+  box-shadow: var(--shadow-light);
+  border: 1px solid rgba(48, 54, 61, 0.7);
 }
 
 .info-card h3 {
   margin-top: 0;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--primary-text);
   font-size: 1.2rem;
 }
 
@@ -149,7 +154,7 @@
 .internship-details p,
 .task-stats p {
   margin: 10px 0;
-  color: #666;
+  color: var(--secondary-text);
 }
 
 .action-buttons {
@@ -160,30 +165,31 @@
 
 .action-btn {
   padding: 10px 15px;
-  background-color: #667eea;
-  color: white;
+  background-color: rgba(88, 166, 255, 0.9);
+  color: #081018;
   border: none;
-  border-radius: 5px;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 0.9rem;
   transition: background-color 0.3s ease;
 }
 
 .action-btn:hover {
-  background-color: #5a6fd8;
+  background-color: var(--accent-hover);
 }
 
 .stats-section {
-  background: white;
+  background: rgba(22, 27, 34, 0.8);
   padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 18px;
+  box-shadow: var(--shadow-light);
+  border: 1px solid rgba(48, 54, 61, 0.7);
 }
 
 .stats-section h3 {
   margin-top: 0;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--primary-text);
   font-size: 1.2rem;
 }
 
@@ -196,14 +202,15 @@
 .stat-card {
   text-align: center;
   padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #667eea;
+  background-color: rgba(13, 17, 23, 0.6);
+  border-radius: 14px;
+  border: 1px solid rgba(48, 54, 61, 0.7);
+  border-left: 4px solid rgba(88, 166, 255, 0.8);
 }
 
 .stat-card h4 {
   margin: 0 0 10px 0;
-  color: #666;
+  color: var(--secondary-text);
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -212,7 +219,7 @@
   margin: 0;
   font-size: 2rem;
   font-weight: bold;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .loading,
@@ -225,12 +232,12 @@
 }
 
 .error {
-  color: #e74c3c;
+  color: var(--error-color);
 }
 
 /* Task-specific styles */
 .tasks-section {
-  background: white;
+  background: rgba(22, 27, 34, 0.8);
   padding: 25px;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -239,7 +246,7 @@
 .tasks-section h2 {
   margin-top: 0;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--primary-text);
   font-size: 1.5rem;
 }
 
@@ -247,7 +254,7 @@
 .no-messages {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--secondary-text);
 }
 
 .tasks-grid {
@@ -257,8 +264,8 @@
 }
 
 .task-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 20px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -278,7 +285,7 @@
 
 .task-header h3 {
   margin: 0;
-  color: #333;
+  color: var(--primary-text);
   font-size: 1.1rem;
   line-height: 1.3;
 }
@@ -306,7 +313,7 @@
 
 .task-description p {
   margin: 0;
-  color: #666;
+  color: var(--secondary-text);
   line-height: 1.5;
 }
 
@@ -316,10 +323,10 @@
 
 /* Progress Report Styles */
 .progress-section {
-  background: white;
+  background: var(--surface);
   border-radius: 8px;
   padding: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-light);
 }
 
 .progress-report {
@@ -337,9 +344,9 @@
   flex: 1;
   text-align: center;
   padding: 1.5rem 1rem;
-  background: #f8f9fa;
+  background: var(--surface-hover);
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-light);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -352,23 +359,23 @@
   display: block;
   font-size: 2rem;
   font-weight: 700;
-  color: #2d3748;
+  color: var(--primary-text);
   margin-bottom: 0.5rem;
 }
 
 .stat-label {
   font-size: 0.9rem;
-  color: #718096;
+  color: var(--secondary-text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .progress-summary {
-  background: white;
+  background: var(--surface);
   border-radius: 8px;
   padding: 1.5rem;
   margin-top: 2rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
 }
 
 .progress-header {
@@ -376,13 +383,13 @@
   justify-content: space-between;
   margin-bottom: 1rem;
   font-weight: 600;
-  color: #2d3748;
+  color: var(--primary-text);
 }
 
 .progress-bar-container {
   width: 100%;
   height: 24px;
-  background-color: #e2e8f0;
+  background-color: rgba(48, 54, 61, 0.7);
   border-radius: 12px;
   overflow: hidden;
   margin: 1rem 0;
@@ -404,12 +411,12 @@
 .recent-tasks {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border);
 }
 
 .recent-tasks h3 {
   margin-bottom: 1rem;
-  color: #2d3748;
+  color: var(--primary-text);
 }
 
 .task-item {
@@ -417,20 +424,20 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: #f8f9fa;
+  background: var(--surface-hover);
   border-radius: 6px;
   margin-bottom: 0.75rem;
   transition: all 0.2s;
 }
 
 .task-item:hover {
-  background: #edf2f7;
+  background: rgba(88, 166, 255, 0.12);
   transform: translateX(5px);
 }
 
 .task-title {
   font-weight: 500;
-  color: #2d3748;
+  color: var(--primary-text);
 }
 
 .task-status {
@@ -443,49 +450,49 @@
 
 .task-meta p {
   margin: 5px 0;
-  color: #666;
+  color: var(--secondary-text);
   font-size: 0.9rem;
 }
 
 .task-comments {
   padding-top: 10px;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--border);
 }
 
 .task-comments p {
   margin: 0;
-  color: #666;
+  color: var(--secondary-text);
   font-size: 0.9rem;
 }
 
 /* Profile and Messages sections */
 .profile-section,
 .messages-section {
-  background: white;
+  background: var(--surface);
   padding: 25px;
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-light);
 }
 
 .profile-section h2,
 .messages-section h2 {
   margin-top: 0;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--primary-text);
   font-size: 1.5rem;
 }
 
 .profile-card {
-  background: #f8f9fa;
+  background: var(--surface-hover);
   padding: 25px;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border);
 }
 
 .profile-card h3 {
   margin-top: 0;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--primary-text);
   font-size: 1.2rem;
 }
 
@@ -530,4 +537,53 @@
     flex-direction: row;
     justify-content: flex-start;
   }
+}
+
+/* Dark palette overrides for legacy sections */
+.member-container .tasks-section,
+.member-container .progress-section,
+.member-container .profile-section,
+.member-container .messages-section,
+.member-container .profile-card,
+.member-container .progress-summary {
+  background: rgba(22, 27, 34, 0.8);
+  border: 1px solid rgba(48, 54, 61, 0.7);
+  border-radius: 18px;
+  box-shadow: var(--shadow-light);
+  color: var(--primary-text);
+}
+
+.member-container .task-card,
+.member-container .task-item,
+.member-container .stat-item {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(48, 54, 61, 0.6);
+  color: var(--primary-text);
+}
+
+.member-container .task-description p,
+.member-container .task-meta p,
+.member-container .task-comments p,
+.member-container .no-tasks,
+.member-container .no-messages,
+.member-container .stat-label {
+  color: var(--secondary-text);
+}
+
+.member-container .tasks-section h2,
+.member-container .profile-section h2,
+.member-container .messages-section h2,
+.member-container .profile-card h3,
+.member-container .recent-tasks h3,
+.member-container .task-header h3,
+.member-container .task-title {
+  color: var(--primary-text);
+}
+
+.member-container .progress-bar-container {
+  background-color: rgba(48, 54, 61, 0.7);
+}
+
+.member-container .progress-bar {
+  background: linear-gradient(90deg, rgba(88, 166, 255, 0.9), rgba(121, 192, 255, 0.9));
 }

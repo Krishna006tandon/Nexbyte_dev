@@ -264,8 +264,126 @@ const sendPasswordReset = async (clientEmail, clientName, clientPassword) => {
     }
 };
 
+
+// Send user credentials email (for Admin, Intern, Member)
+const sendUserCredentials = async (userEmail, details) => {
+    try {
+        const { role, password, internshipStartDate, internshipEndDate, acceptanceDate, offerLetterContent } = details;
+        const transporter = createTransporter();
+        const emailUser = process.env.EMAIL_USER || "nexbyte.dev@gmail.com";
+        
+        let subject = '';
+        let title = '';
+        let welcomeMessage = '';
+        let extraInfo = '';
+        let themeColor = '#4F46E5'; // Default indigo
+
+        if (role === 'admin') {
+            subject = '🛡️ Welcome to NexByte - Admin Account Created';
+            title = 'Admin Account Created';
+            welcomeMessage = 'Your administrator account has been successfully set up with full system access.';
+            themeColor = '#4F46E5';
+            extraInfo = `
+                <div style="margin-top: 20px; padding: 15px; background: #fef2f2; border-radius: 8px;">
+                    <h4 style="margin: 0 0 10px 0; color: #991b1b;">Admin Privileges:</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #7f1d1d; font-size: 14px;">
+                        <li>Manage clients and projects</li>
+                        <li>User & Role management</li>
+                        <li>Billing and Invoicing</li>
+                        <li>System-wide reports</li>
+                    </ul>
+                </div>
+            `;
+        } else if (role === 'intern') {
+            subject = '🎓 Welcome to NexByte - Internship Account Created';
+            title = 'Internship Account Created';
+            welcomeMessage = 'Congratulations! Your intern account has been created. We are excited to have you join our team.';
+            themeColor = '#10B981'; // Green
+            
+            const startDate = internshipStartDate ? new Date(internshipStartDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD';
+            const endDate = internshipEndDate ? new Date(internshipEndDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD';
+            const acceptBy = acceptanceDate ? new Date(acceptanceDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD';
+
+            extraInfo = `
+                <div style="margin-top: 20px; padding: 15px; background: #ecfdf5; border-radius: 8px;">
+                    <h4 style="margin: 0 0 10px 0; color: #065f46;">Internship Details:</h4>
+                    <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                        <tr><td style="padding: 4px 0; color: #064e3b;">Start Date:</td><td style="padding: 4px 0; font-weight: 600;">${startDate}</td></tr>
+                        <tr><td style="padding: 4px 0; color: #064e3b;">End Date:</td><td style="padding: 4px 0; font-weight: 600;">${endDate}</td></tr>
+                        <tr><td style="padding: 4px 0; color: #064e3b;">Accept Offer By:</td><td style="padding: 4px 0; font-weight: 600; color: #b91c1c;">${acceptBy}</td></tr>
+                    </table>
+                    ${offerLetterContent ? '<p style="margin: 10px 0 0; font-size: 13px; color: #047857;">📄 Your offer letter is available in your dashboard.</p>' : ''}
+                </div>
+            `;
+        } else {
+            subject = '👋 Welcome to NexByte - Account Created';
+            title = 'Account Created';
+            welcomeMessage = 'Your account has been successfully created. Welcome to the NexByte community!';
+            themeColor = '#6366F1';
+        }
+
+        const mailOptions = {
+            from: `"NexByte" <${emailUser}>`,
+            to: userEmail,
+            subject: subject,
+            html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 20px;">
+          <div style="background-color: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e5e7eb;">
+            <!-- Header -->
+            <div style="background-color: ${themeColor}; padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to NexByte</h1>
+            </div>
+            
+            <!-- Body -->
+            <div style="padding: 30px;">
+              <h2 style="color: #111827; margin-top: 0;">${title}</h2>
+              <p style="color: #4b5563; line-height: 1.6; font-size: 16px;">${welcomeMessage}</p>
+              
+              <div style="background-color: #f3f4f6; border-radius: 12px; padding: 20px; margin: 25px 0;">
+                <h3 style="margin-top: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Your Login Credentials</h3>
+                <div style="margin-bottom: 12px;">
+                  <span style="color: #374151; font-weight: 600;">Email:</span>
+                  <span style="color: #111827; margin-left: 8px;">${userEmail}</span>
+                </div>
+                <div>
+                  <span style="color: #374151; font-weight: 600;">Password:</span>
+                  <code style="background-color: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #d1d5db; margin-left: 8px; font-weight: bold; color: ${themeColor};">${password}</code>
+                </div>
+              </div>
+              
+              ${extraInfo}
+              
+              <div style="text-align: center; margin-top: 35px;">
+                <a href="https://nexbyte-dev.vercel.app/" style="background-color: ${themeColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+                  Login to your Dashboard
+                </a>
+              </div>
+              
+              <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
+                For security reasons, please change your password after logging in.
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; font-size: 14px; margin: 0;">Warm regards,<br>The NexByte Team</p>
+            </div>
+          </div>
+        </div>
+      `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('Error sending user credentials email:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 module.exports = {
     sendClientCredentials,
     sendPasswordChangeNotification,
-    sendPasswordReset
+    sendPasswordReset,
+    sendUserCredentials
 };

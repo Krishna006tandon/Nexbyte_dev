@@ -31,6 +31,7 @@ const Admin = () => {
   const [acceptanceDate, setAcceptanceDate] = useState('');
   const [clientPasswords, setClientPasswords] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [taskPageClientId, setTaskPageClientId] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -199,6 +200,8 @@ const Admin = () => {
   const handleAddMember = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    setSuccessMessage('');
+    setErrorMessage('');
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
@@ -206,29 +209,47 @@ const Admin = () => {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ email, password, role, internType: role === 'intern' ? internType : undefined, internshipStartDate: role === 'intern' ? internshipStartDate : undefined, internshipEndDate: role === 'intern' ? internshipEndDate : undefined, acceptanceDate: role === 'intern' ? acceptanceDate : undefined }),
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          role, 
+          internType: role === 'intern' ? internType : undefined, 
+          internshipStartDate: role === 'intern' ? internshipStartDate : undefined, 
+          internshipEndDate: role === 'intern' ? internshipEndDate : undefined, 
+          acceptanceDate: role === 'intern' ? acceptanceDate : undefined 
+        }),
       });
       const data = await res.json();
       if (res.ok) {
-        setMembers([...members, data]);
+        // Clear form
         setEmail('');
         setPassword('');
         setInternType('free');
         setInternshipStartDate('');
         setInternshipEndDate('');
         setAcceptanceDate('');
+        
+        // Show success message (might include warning about email)
+        setSuccessMessage(data.message);
+        if (data.warning) {
+          console.warn('Email warning:', data.warning);
+        }
+
+        // Refresh members list from server to get proper user objects
         const fetchRes = await fetch('/api/users', {
           headers: { 'x-auth-token': token },
         });
-                const updatedMembers = await fetchRes.json();
-                if (fetchRes.ok) {
-                  setMembers(updatedMembers);
-                  setSuccessMessage('Member added successfully!');
-                  setTimeout(() => setSuccessMessage(''), 5000); // Clear message after 5 seconds
-                }
-              } else {
-                console.error(data.message);
-              }     } catch (err) {
+        const updatedMembers = await fetchRes.json();
+        if (fetchRes.ok) {
+          setMembers(updatedMembers);
+        }
+        setTimeout(() => setSuccessMessage(''), 8000);
+      } else {
+        setErrorMessage(data.message || 'Failed to add member');
+        console.error(data.message);
+      }
+    } catch (err) {
+      setErrorMessage('Server connection error. Please try again.');
       console.error(err);
     }
   };
@@ -1001,6 +1022,7 @@ const Admin = () => {
         <div className="card">
           <h1>Admin Dashboard</h1>
           {successMessage && <div className="success-message">{successMessage}</div>}
+          {errorMessage && <div className="error-message" style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '5px', marginBottom: '20px', border: '1px solid #fecaca' }}>{errorMessage}</div>}
           {location.pathname === '/admin/contacts' && (
             <div>
               <h2>Contact Messages</h2>

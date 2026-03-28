@@ -12,18 +12,18 @@
 }
 
 .card {
-  background-color: var(--background-light);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: linear-gradient(165deg, rgba(22, 27, 34, 0.95), rgba(13, 17, 23, 0.9));
+  border: 1px solid rgba(48, 54, 61, 0.7);
+  border-radius: 18px;
   padding: 2rem;
   box-shadow: var(--shadow-light);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
 
 .card:hover {
-  transform: translateY(-5px);
-  border-color: var(--accent);
+  transform: translateY(-4px);
+  border-color: rgba(88, 166, 255, 0.5);
   box-shadow: var(--shadow);
 }

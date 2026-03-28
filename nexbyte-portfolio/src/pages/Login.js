@@ -7,7 +7,7 @@ import './Auth.css';
 import '../components/HomeSidebar.css';
 
 const Login = () => {
-  const { setIsAdmin, setIsClient, setIsIntern } = useContext(AuthContext);
+  const { setIsAdmin, setIsClient, setIsIntern, fetchUser } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,8 +32,14 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
-        
-        // Set auth context states based on role
+
+        setIsAdmin(false);
+        setIsClient(false);
+        setIsIntern(false);
+
+        await fetchUser();
+
+        // Route based on role
         if (data.role === 'admin') {
           setIsAdmin(true);
           navigate('/admin');
@@ -47,7 +53,7 @@ const Login = () => {
           navigate('/member');
         } else {
           navigate('/');
-        }  
+        }
       } else {
         setError(data.message || 'Login failed. Please check your credentials.');
       }
