@@ -37,13 +37,11 @@ const ApplicationDetail = () => {
   // });
 
   useEffect(() => {
-    const fetchApplication = async () => {
+    const fetchApplication = async (applicationId) => {
       try {
-        console.log('Fetching application with ID:', id);
         setLoading(true);
-        const response = await axios.get(`/api/internship/applications/${id}`);
+        const response = await axios.get(`/api/internship/applications/${applicationId}`);
         const applicationData = response.data;
-        console.log('Application data received:', applicationData);
         setApplication(applicationData);
         setNotes(applicationData.notes || '');
         setLoading(false);
@@ -56,14 +54,11 @@ const ApplicationDetail = () => {
 
     // Extract ID from URL if useParams doesn't work
     const urlId = window.location.pathname.split('/').pop();
-    console.log('ID from useParams:', id);
-    console.log('Extracted ID from URL:', urlId);
     
     const finalId = id || urlId;
-    console.log('Final ID to use:', finalId);
     
     if (finalId && finalId !== 'undefined') {
-      fetchApplication();
+      fetchApplication(finalId);
     } else {
       console.error('No valid ID provided');
       setLoading(false);

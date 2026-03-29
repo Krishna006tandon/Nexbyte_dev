@@ -203,6 +203,7 @@ const InternPanel = () => {
       if (response.ok) {
         toast.success('Offer accepted successfully!');
         await fetchInternData();
+        setActiveSection('dashboard');
       } else {
         throw new Error('Failed to accept offer');
       }
@@ -508,6 +509,7 @@ const InternPanel = () => {
     } catch (err) {
       toast.error(err.message);
     }
+  };
   const getTaskStats = () => {
     const total = tasks.length;
     const completed = tasks.filter(t => t.status === 'completed').length;
@@ -783,11 +785,6 @@ const InternPanel = () => {
                   <div className="offer-content" dangerouslySetInnerHTML={{ __html: offerLetter }} />
                   
                   <div className="offer-actions">
-                    {/* Debug: Show current offer status */}
-                    <div style={{background: '#f0f0f0', padding: '10px', marginBottom: '10px', fontSize: '12px', color: '#666'}}>
-                      DEBUG: Current offerStatus = {profile?.offerStatus || 'undefined'}
-                    </div>
-                    
                     <button 
                       className="btn btn-primary"
                       onClick={handleDownloadOfferLetter}
@@ -842,6 +839,14 @@ const InternPanel = () => {
                       <div className="offer-status accepted">
                         <i className="fas fa-check-circle"></i>
                         <span>Offer Accepted</span>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => setActiveSection('dashboard')}
+                          style={{ marginLeft: 12 }}
+                        >
+                          Go to Dashboard
+                        </button>
                       </div>
                     )}
                     
@@ -854,6 +859,16 @@ const InternPanel = () => {
                             <strong>Reason:</strong> {profile.rejectionReason}
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {profile?.offerStatus === 'expired' && (
+                      <div className="offer-status rejected">
+                        <i className="fas fa-exclamation-triangle"></i>
+                        <span>Offer Expired</span>
+                        <div className="rejection-reason">
+                          <strong>Note:</strong> Acceptance deadline passed. Please contact admin for next steps.
+                        </div>
                       </div>
                     )}
                   </div>

@@ -57,6 +57,15 @@ const InternshipApplicationSchema = new mongoose.Schema({
   rejectionReason: {
     type: String,
     required: false
+  },
+  internUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
+  internAccountCreatedAt: {
+    type: Date,
+    required: false
   }
 }, {
   timestamps: true

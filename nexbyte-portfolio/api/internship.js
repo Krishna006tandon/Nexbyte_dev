@@ -4,6 +4,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const InternshipApplication = require('./models/InternshipApplication');
+const User = require('./models/User');
+const bcrypt = require('bcryptjs');
+const mailSender = require('./mailSender');
 const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
 // Configure multer for file uploads
@@ -123,6 +126,34 @@ const sendMailLogged = async ({ type, to, subject, html }) => {
   }
 };
 
+const generateTempPassword = () => {
+  // 10 chars temp password
+  return Math.random().toString(36).slice(-10);
+};
+
+const parseDateOrNull = (value) => {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const generateOfferLetterHtml = (email, startDate, endDate, acceptanceDate) => {
+  const fmt = (d) => (d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD');
+  const date = fmt(new Date());
+  return `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <p><strong>Date:</strong> ${date}</p>
+      <p><strong>Subject: Offer of Internship at NexByte_Core</strong></p>
+      <p>Dear ${email},</p>
+      <p>We are pleased to offer you an internship position at NexByte_Core.</p>
+      <p>Your internship will be from <strong>${fmt(startDate)}</strong> to <strong>${fmt(endDate)}</strong>.</p>
+      <p>Please confirm your acceptance of this offer by <strong>${fmt(acceptanceDate)}</strong>.</p>
+      <p>Sincerely,</p>
+      <p>The Nexbyte_Core Team</p>
+    </div>
+  `;
+};
+
 // GET all applications
 router.get('/applications', async (req, res) => {
   try {
@@ -222,28 +253,121 @@ router.put('/applications/:id/status', async (req, res) => {
     }
     
     const previousStatus = application.status;
-    const { status, notes, interviewDate, rejectionReason } = req.body;
-    application.status = status;
-    if (notes) application.notes = notes;
-    if (interviewDate) application.interviewDate = interviewDate;
-    if (rejectionReason) application.rejectionReason = rejectionReason;
+    const { status, notes, interviewDate, rejectionReason, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
+
+    if (status) application.status = status;
+    if (typeof notes === 'string') application.notes = notes;
+    if (typeof rejectionReason === 'string') application.rejectionReason = rejectionReason;
+
+    if (typeof interviewDate !== 'undefined') {
+      const parsedInterview = parseDateOrNull(interviewDate);
+      application.interviewDate = parsedInterview;
+    }
     
     const updatedApplication = await application.save();
 
     // Send status email if status changed (best-effort)
     if (status && status !== previousStatus) {
-      if (status === 'approved') {
+      if (status === 'reviewing') {
         await sendMailLogged({
-          type: 'application_approved',
+          type: 'application_reviewing',
           to: updatedApplication.email,
-          subject: 'Congratulations! Your Internship Application is Approved - NexByte',
+          subject: 'Your Internship Application is Under Review - NexByte',
           html: `
             <p>Dear ${updatedApplication.name},</p>
-            <p>Congratulations! Your application for <strong>${updatedApplication.role}</strong> has been approved.</p>
-            <p>We will contact you with next steps shortly.</p>
+            <p>Your application for <strong>${updatedApplication.role}</strong> is now under review.</p>
+            <p>We will reach out with next steps soon.</p>
             <p>Regards,<br/>NexByte Team</p>
           `,
         });
+      } else if (status === 'interview') {
+        const when = updatedApplication.interviewDate ? new Date(updatedApplication.interviewDate).toLocaleString() : null;
+        await sendMailLogged({
+          type: 'application_interview',
+          to: updatedApplication.email,
+          subject: 'Internship Interview Update - NexByte',
+          html: `
+            <p>Dear ${updatedApplication.name},</p>
+            <p>Your application for <strong>${updatedApplication.role}</strong> has moved to the interview stage.</p>
+            ${when ? `<p><strong>Interview Date & Time:</strong> ${when}</p>` : `<p>We will share your interview schedule shortly.</p>`}
+            <p>Regards,<br/>NexByte Team</p>
+          `,
+        });
+      } else if (status === 'approved') {
+        // Auto-create intern account + email credentials (only once, to avoid resetting password repeatedly)
+        if (!application.internUser) {
+          const oneDayMs = 24 * 60 * 60 * 1000;
+          const start = parseDateOrNull(internshipStartDate) || new Date();
+          const end = parseDateOrNull(internshipEndDate) || new Date(Date.now() + 90 * oneDayMs);
+          const acceptBy = parseDateOrNull(acceptanceDate) || new Date(Date.now() + 2 * oneDayMs);
+          const safeInternType = internType === 'stipend' ? 'stipend' : 'free';
+
+          const offerLetterContent = generateOfferLetterHtml(updatedApplication.email, start, end, acceptBy);
+          const plainPassword = generateTempPassword();
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash(plainPassword, salt);
+
+          let internUserDoc = await User.findOne({ email: updatedApplication.email });
+          if (!internUserDoc) {
+            internUserDoc = new User({
+              email: updatedApplication.email,
+              password: hashedPassword,
+              role: 'intern',
+              internType: safeInternType,
+              internshipStartDate: start,
+              internshipEndDate: end,
+              acceptanceDate: acceptBy,
+              offerLetter: offerLetterContent,
+              offerStatus: 'pending',
+              internshipStatus: 'not_started',
+            });
+          } else {
+            internUserDoc.password = hashedPassword;
+            internUserDoc.role = 'intern';
+            internUserDoc.internType = safeInternType;
+            internUserDoc.internshipStartDate = start;
+            internUserDoc.internshipEndDate = end;
+            internUserDoc.acceptanceDate = acceptBy;
+            internUserDoc.offerLetter = offerLetterContent;
+            internUserDoc.offerStatus = internUserDoc.offerStatus || 'pending';
+          }
+
+          await internUserDoc.save();
+          application.internUser = internUserDoc._id;
+          application.internAccountCreatedAt = new Date();
+          await application.save();
+
+          const emailResult = await mailSender.sendUserCredentials(updatedApplication.email, {
+            role: 'intern',
+            password: plainPassword,
+            internshipStartDate: start,
+            internshipEndDate: end,
+            acceptanceDate: acceptBy,
+            offerLetterContent,
+          });
+
+          logEmail({
+            type: 'intern_credentials',
+            recipient: updatedApplication.email,
+            subject: '🎓 Welcome to NexByte - Internship Account Created',
+            status: emailResult.success ? 'sent' : 'failed',
+            error: emailResult.success ? undefined : emailResult.error,
+            messageId: emailResult.messageId,
+            previewUrl: emailResult.previewUrl,
+          });
+        } else {
+          await sendMailLogged({
+            type: 'application_approved',
+            to: updatedApplication.email,
+            subject: 'Your Internship Application is Approved - NexByte',
+            html: `
+              <p>Dear ${updatedApplication.name},</p>
+              <p>Your application for <strong>${updatedApplication.role}</strong> has been approved.</p>
+              <p>Your intern account is already created. Please use your existing credentials to login. If you don’t remember your password, use the “Forgot Password” option.</p>
+              <p>Regards,<br/>NexByte Team</p>
+            `,
+          });
+        }
       } else if (status === 'rejected') {
         await sendMailLogged({
           type: 'application_rejected',
@@ -258,21 +382,21 @@ router.put('/applications/:id/status', async (req, res) => {
             <p>Regards,<br/>NexByte Team</p>
           `,
         });
-      } else if (status === 'interview' && updatedApplication.interviewDate) {
+      } else if (status === 'hired') {
         await sendMailLogged({
-          type: 'application_interview',
+          type: 'application_hired',
           to: updatedApplication.email,
-          subject: 'Interview Scheduled - NexByte Internship',
+          subject: 'Welcome Onboard - NexByte Internship',
           html: `
             <p>Dear ${updatedApplication.name},</p>
-            <p>Your interview for <strong>${updatedApplication.role}</strong> has been scheduled.</p>
-            <p><strong>Date & Time:</strong> ${new Date(updatedApplication.interviewDate).toLocaleString()}</p>
+            <p>Great news! You have been marked as <strong>Hired</strong> for the <strong>${updatedApplication.role}</strong> internship.</p>
+            <p>Please login to your intern dashboard for next steps. If you need help accessing your account, use “Forgot Password” or reply to this email.</p>
             <p>Regards,<br/>NexByte Team</p>
           `,
         });
       }
     }
-    res.json(updatedApplication);
+    res.json(application);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

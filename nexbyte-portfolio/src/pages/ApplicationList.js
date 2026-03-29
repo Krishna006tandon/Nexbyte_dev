@@ -122,7 +122,7 @@ const ApplicationList = () => {
       filtered = filtered.filter(app => 
         app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.college.toLowerCase().includes(searchTerm.toLowerCase())
+        (app.education || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -181,10 +181,18 @@ const ApplicationList = () => {
     // Open edit modal or navigate to edit page
   };
 
-  const handleStatusChange = (appId, newStatus) => {
-    setApplications(applications.map(app => 
-      app._id === appId ? { ...app, status: newStatus } : app
-    ));
+  const handleStatusChange = async (appId, newStatus) => {
+    try {
+      const response = await axios.put(`/api/internship/applications/${appId}/status`, {
+        status: newStatus
+      });
+
+      const updated = response.data;
+      setApplications(prev => prev.map(app => (app._id === appId ? updated : app)));
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      alert('Failed to update status. Please try again.');
+    }
   };
 
   const clearFilters = () => {

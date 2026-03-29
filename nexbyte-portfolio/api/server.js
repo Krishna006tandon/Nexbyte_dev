@@ -25,7 +25,9 @@ const Notification = require('./models/Notification');
 const Resource = require('./models/Resource');
 const Project = require('./models/Project');
 const Internship = require('./models/Internship');
+const InternshipApplication = require('./models/InternshipApplication');
 const Certificate = require('./models/Certificate');
+const AutomationState = require('./models/AutomationState');
 const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
 const mailSender = require('./mailSender');
@@ -367,6 +369,226 @@ const sendMailSafe = async (mailOptions, label) => {
     return { success: false, error: error.message };
   }
 };
+
+// =========================
+// Portal automations
+// =========================
+let portalAutomationsStarted = false;
+
+function getZonedParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const out = {};
+  for (const p of parts) {
+    if (p.type !== 'literal') out[p.type] = p.value;
+  }
+  return out;
+}
+
+async function expirePendingOffersAndNotify({ now = new Date(), dryRun = false } = {}) {
+  const expiredInterns = await User.find({
+    role: 'intern',
+    offerStatus: 'pending',
+    acceptanceDate: { $exists: true, $ne: null, $lt: now },
+  }).select('email acceptanceDate');
+
+  if (expiredInterns.length === 0) return { expiredCount: 0 };
+
+  if (!dryRun) {
+    await User.updateMany(
+      { _id: { $in: expiredInterns.map(i => i._id) } },
+      { $set: { offerStatus: 'expired', offerExpiredDate: now, internshipStatus: 'not_started' } }
+    );
+  }
+
+  const admins = await User.find({ role: 'admin' }).select('email');
+  const adminEmails = admins.map(a => a.email).filter(Boolean);
+
+  const rows = expiredInterns
+    .map(i => `<li>${i.email} (deadline: ${new Date(i.acceptanceDate).toLocaleDateString()})</li>`)
+    .join('');
+
+  if (adminEmails.length > 0) {
+    const adminMailOptions = {
+      from: getFromAddress('NexByte'),
+      to: adminEmails.join(','),
+      subject: `Offer Expiry Alert (${expiredInterns.length}) - NexByte`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2>Expired Internship Offers</h2>
+          <p>The following intern offers have been marked as <strong>expired</strong> because the acceptance deadline passed:</p>
+          <ul>${rows}</ul>
+          <p>Time: ${now.toISOString()}</p>
+        </div>
+      `,
+    };
+    await sendMailSafe(adminMailOptions, 'offer-expiry-admin');
+  }
+
+  // Notify interns (best-effort)
+  for (const intern of expiredInterns) {
+    const internMailOptions = {
+      from: getFromAddress('NexByte'),
+      to: intern.email,
+      subject: 'Internship Offer Expired - NexByte',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <p>Dear ${intern.email},</p>
+          <p>Your internship offer has expired because we did not receive an acceptance by the deadline (${new Date(intern.acceptanceDate).toLocaleDateString()}).</p>
+          <p>If you are still interested, please contact the NexByte team.</p>
+          <p>Regards,<br/>NexByte Team</p>
+        </div>
+      `,
+    };
+    await sendMailSafe(internMailOptions, 'offer-expiry-intern');
+  }
+
+  return { expiredCount: expiredInterns.length, expiredEmails: expiredInterns.map(i => i.email) };
+}
+
+async function sendWeeklyProgressSummaries({ now = new Date(), force = false, dryRun = false } = {}) {
+  const oneDay = 24 * 60 * 60 * 1000;
+  const threshold = new Date(now.getTime() - 6 * oneDay);
+
+  await AutomationState.updateOne({ key: 'weekly_progress' }, { $setOnInsert: { key: 'weekly_progress' } }, { upsert: true });
+  if (!force) {
+    const state = await AutomationState.findOne({ key: 'weekly_progress' }).select('lastRunAt');
+    if (state?.lastRunAt && state.lastRunAt > threshold) {
+      return { skipped: true, reason: 'recently_run', lastRunAt: state.lastRunAt };
+    }
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return { skipped: true, reason: 'GEMINI_API_KEY_not_configured' };
+  }
+
+  const since = new Date(now.getTime() - 7 * oneDay);
+  const interns = await User.find({ role: 'intern', internshipStatus: 'in_progress' }).select('email');
+  if (interns.length === 0) return { sent: 0 };
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+  let sent = 0;
+  for (const intern of interns) {
+    const [completedTasks, recentTasks] = await Promise.all([
+      Task.find({ assignedTo: intern._id, completedAt: { $gte: since, $lt: now } })
+        .sort({ completedAt: -1 })
+        .limit(20)
+        .select('title completedAt status'),
+      Task.find({ assignedTo: intern._id, createdAt: { $gte: since, $lt: now } })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .select('title status'),
+    ]);
+
+    const payload = {
+      internEmail: intern.email,
+      range: { since: since.toISOString(), until: now.toISOString() },
+      completedTasks: completedTasks.map(t => ({ title: t.title, status: t.status, completedAt: t.completedAt })),
+      recentTasks: recentTasks.map(t => ({ title: t.title, status: t.status })),
+      metrics: { completedCount: completedTasks.length, createdCount: recentTasks.length },
+    };
+
+    const promptText = `
+You are an internship mentor. Write a concise weekly progress summary email for the intern.
+Keep it friendly, actionable, and short (max 120 words).
+Include:
+1) 2-4 bullet highlights (completed work)
+2) 1-2 next steps for next week
+Do not include any JSON or markdown fences.
+Data:
+${JSON.stringify(payload)}
+    `.trim();
+
+    let summaryText = '';
+    try {
+      const result = await model.generateContent(promptText);
+      const response = await result.response;
+      summaryText = String(response.text() || '').trim();
+    } catch (e) {
+      summaryText = `This week you completed ${completedTasks.length} task(s). Next week: pick 1 high-impact task and share a short update daily.`;
+      console.error('Weekly summary AI error for', intern.email, e?.message || e);
+    }
+
+    const mailOptions = {
+      from: getFromAddress('NexByte'),
+      to: intern.email,
+      subject: 'Weekly Progress Summary - NexByte Internship',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2>Weekly Progress Summary</h2>
+          <p>${summaryText.replace(/\n/g, '<br/>')}</p>
+          <p style="color:#6b7280;font-size:12px;">Range: ${since.toLocaleDateString()} - ${now.toLocaleDateString()}</p>
+        </div>
+      `,
+    };
+
+    if (!dryRun) {
+      const result = await sendMailSafe(mailOptions, 'weekly-progress');
+      if (result.success) sent += 1;
+    }
+  }
+
+  if (!dryRun) {
+    await AutomationState.updateOne({ key: 'weekly_progress' }, { $set: { lastRunAt: now } });
+  }
+
+  return { sent };
+}
+
+function startPortalAutomationJobs() {
+  if (portalAutomationsStarted) return;
+  portalAutomationsStarted = true;
+
+  if (process.env.AUTOMATION_ENABLED && String(process.env.AUTOMATION_ENABLED).trim().toLowerCase() === 'false') {
+    console.log('Portal automations disabled via AUTOMATION_ENABLED=false');
+    return;
+  }
+
+  // Vercel serverless functions should not rely on long-running timers.
+  // Use the protected /api/automation/cron/* endpoints via an external scheduler / Vercel Cron instead.
+  if (process.env.VERCEL) {
+    console.log('Portal automations disabled in Vercel serverless runtime. Use /api/automation/cron/* endpoints.');
+    return;
+  }
+
+  // Offer expiry check (hourly) + run once at startup
+  expirePendingOffersAndNotify().catch(e => console.error('Offer expiry job error:', e));
+  setInterval(() => {
+    expirePendingOffersAndNotify().catch(e => console.error('Offer expiry job error:', e));
+  }, 60 * 60 * 1000);
+
+  // Weekly progress summaries: every 15 minutes, run only on Monday 09:00-09:14 (configured TZ)
+  const tz = process.env.AUTOMATION_TIMEZONE || 'Asia/Kolkata';
+  setInterval(() => {
+    try {
+      const parts = getZonedParts(new Date(), tz);
+      const weekday = parts.weekday;
+      const hour = Number(parts.hour);
+      const minute = Number(parts.minute);
+      if (weekday === 'Mon' && hour === 9 && minute >= 0 && minute < 15) {
+        sendWeeklyProgressSummaries().catch(e => console.error('Weekly progress job error:', e));
+      }
+    } catch (e) {
+      console.error('Automation scheduler error:', e);
+    }
+  }, 15 * 60 * 1000);
+}
+
+function startPortalAutomationJobsWhenReady() {
+  if (portalAutomationsStarted) return;
+  if (connection.readyState === 1) return startPortalAutomationJobs();
+  connection.once('open', () => startPortalAutomationJobs());
+}
+
+startPortalAutomationJobsWhenReady();
 
 // @route   POST api/register
 // @desc    Register a new user (public)
@@ -2073,7 +2295,77 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     // Update the user's offer status
     user.offerStatus = 'accepted';
     user.offerAcceptedDate = new Date();
+    user.internshipStatus = 'in_progress';
+
+    // Create/link Internship record (so intern dashboard becomes "working")
+    let internship = null;
+    if (user.currentInternship) {
+      internship = await Internship.findById(user.currentInternship);
+    }
+
+    if (!internship) {
+      internship = await Internship.findOne({ intern: user._id, status: { $in: ['in_progress', 'completed'] } }).sort({ createdAt: -1 });
+    }
+
+    if (!internship) {
+      const application = await InternshipApplication.findOne({ internUser: user._id }).sort({ updatedAt: -1 });
+      const titleFromApp = application?.role ? `${application.role} Internship` : null;
+
+      internship = await Internship.create({
+        intern: user._id,
+        application: application?._id,
+        internshipTitle: titleFromApp || 'Nexbyte_Core Internship Program',
+        status: 'in_progress',
+        startDate: user.internshipStartDate || new Date(),
+        endDate: user.internshipEndDate || undefined,
+      });
+    }
+
+    user.currentInternship = internship._id;
     await user.save();
+
+    // AUTO-ASSIGN ONBOARDING TASKS
+    try {
+      const onboardingTasks = [
+        {
+          title: 'Complete Intern Profile',
+          description: 'Update your first name, last name, phone, bio and skills in the Profile Settings section of your dashboard.',
+          priority: 'High',
+          status: 'To Do',
+          reward_amount_in_INR: 100,
+          assignedTo: user._id,
+        },
+        {
+          title: 'Setup Dev Environment',
+          description: 'Follow the repository readme to set up your local development environment and ensure the project runs successfully.',
+          priority: 'High',
+          status: 'To Do',
+          reward_amount_in_INR: 200,
+          assignedTo: user._id,
+        },
+        {
+          title: 'Review Company Processes',
+          description: 'Read the company onboarding documents and understand the sprint cycles and reporting requirements.',
+          priority: 'Medium',
+          status: 'To Do',
+          reward_amount_in_INR: 50,
+          assignedTo: user._id,
+        }
+      ];
+
+      // Check if tasks already exist to avoid duplicates
+      const existingOnboardingTasks = await Task.find({ 
+        assignedTo: user._id, 
+        title: { $in: onboardingTasks.map(t => t.title) } 
+      });
+
+      if (existingOnboardingTasks.length === 0) {
+        await Task.insertMany(onboardingTasks);
+        console.log(`Successfully assigned ${onboardingTasks.length} onboarding tasks to ${user.email}`);
+      }
+    } catch (taskError) {
+      console.error('Error creating onboarding tasks:', taskError);
+    }
     
     // Send confirmation email
     const mailOptions = {
@@ -2101,7 +2393,9 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     
     res.json({ 
       message: 'Offer accepted successfully',
-      offerStatus: 'accepted'
+      offerStatus: 'accepted',
+      internshipStatus: user.internshipStatus,
+      currentInternship: user.currentInternship,
     });
     
   } catch (err) {
@@ -2136,6 +2430,8 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
     user.offerStatus = 'rejected';
     user.rejectionReason = reason.trim();
     user.offerRejectedDate = new Date();
+    user.internshipStatus = 'not_started';
+    user.currentInternship = undefined;
     await user.save();
     
     // Send rejection notification email
@@ -2188,6 +2484,88 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
   } catch (err) {
     console.error('Error rejecting offer:', err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// =========================
+// Automation (admin-only)
+// =========================
+app.post('/api/automation/offers/expire', auth, admin, async (req, res) => {
+  try {
+    const dryRun = Boolean(req.body && req.body.dryRun);
+    const result = await expirePendingOffersAndNotify({ dryRun });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Error running offer expiry automation:', err);
+    return res.status(500).json({ ok: false, message: 'Failed to run offer expiry automation', error: err.message });
+  }
+});
+
+app.post('/api/automation/weekly-progress', auth, admin, async (req, res) => {
+  try {
+    const dryRun = Boolean(req.body && req.body.dryRun);
+    const force = Boolean(req.body && req.body.force);
+    const result = await sendWeeklyProgressSummaries({ dryRun, force });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Error running weekly progress automation:', err);
+    return res.status(500).json({ ok: false, message: 'Failed to run weekly progress automation', error: err.message });
+  }
+});
+
+// Cron-friendly automation endpoints (no JWT; protected by AUTOMATION_SECRET)
+const isValidAutomationSecret = (req) => {
+  const expected = String(process.env.AUTOMATION_SECRET || '').trim();
+  if (!expected) return false;
+  const provided = String(req.query?.secret || req.params?.secret || req.header('x-automation-secret') || '').trim();
+  return provided && provided === expected;
+};
+
+app.get('/api/automation/cron/offers-expire', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await expirePendingOffersAndNotify({ dryRun });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron offers-expire error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
+  }
+});
+
+app.get('/api/automation/cron/offers-expire/:secret', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await expirePendingOffersAndNotify({ dryRun });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron offers-expire error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
+  }
+});
+
+app.get('/api/automation/cron/weekly-progress', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await sendWeeklyProgressSummaries({ dryRun, force: true });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron weekly-progress error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
+  }
+});
+
+app.get('/api/automation/cron/weekly-progress/:secret', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await sendWeeklyProgressSummaries({ dryRun, force: true });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron weekly-progress error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
   }
 });
 
@@ -2978,7 +3356,6 @@ app.post('/api/internships/:id/complete', auth, admin, async (req, res) => {
 
     const certificateId = generateCertificateId();
     const certificateUrl = `/certificate/${certificateId}`;
-
     const payload = {
       internName,
       internshipTitle: internship.internshipTitle,
@@ -3005,6 +3382,37 @@ app.post('/api/internships/:id/complete', auth, admin, async (req, res) => {
     intern.internshipEndDate = internship.endDate;
     await intern.save();
 
+    // AUTO-NOTIFY INTERN ABOUT COMPLETION
+    try {
+      const publicBaseUrl = String(process.env.PUBLIC_APP_URL || '').replace(/\/$/, '');
+      const certificateLink = publicBaseUrl ? `${publicBaseUrl}${certificateUrl}` : certificateUrl;
+
+      const mailOptions = {
+        from: getFromAddress('NexByte'),
+        to: intern.email,
+        subject: '🎉 Congratulations on Completing Your Internship! - NexByte',
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2>Congratulations, ${internName}!</h2>
+            <p>We are thrilled to inform you that you have successfully completed your internship as <strong>${internship.internshipTitle}</strong> at NexByte Core.</p>
+            <p>Your hard work and contributions have been greatly appreciated.</p>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
+              <p style="margin: 0;"><strong>Certificate ID:</strong> ${certificateId}</p>
+              <p style="margin: 5px 0 0 0;">Certificate Link: <a href="${certificateLink}">${certificateLink}</a></p>
+              <p style="margin: 5px 0 0 0;">You can also view and download your digital certificate from your intern dashboard.</p>
+            </div>
+            <p>We wish you all the best for your future career. Feel free to stay in touch!</p>
+            <p>Regards,<br/>The NexByte Core Team</p>
+          </div>
+        `,
+      };
+      
+      const result = await sendMailSafe(mailOptions, 'internship-completion');
+      if (result.success) console.log('Completion email sent to:', intern.email);
+    } catch (emailError) {
+      console.error('Error sending completion email:', emailError);
+    }
+
     res.status(201).json(certificate);
   } catch (err) {
     console.error('Error completing internship / generating certificate:', err);
@@ -3012,13 +3420,28 @@ app.post('/api/internships/:id/complete', auth, admin, async (req, res) => {
   }
 });
 
+
+
 // @route   GET api/internships/me
 // @desc    Get current intern's internship & certificate
 // @access  Private (intern)
 app.get('/api/internships/me', verifyIntern, async (req, res) => {
   try {
-    const internship = await Internship.findOne({ intern: req.user.id })
-      .populate('certificate');
+    const internUser = await User.findById(req.user.id).select('currentInternship');
+
+    let internship = null;
+    if (internUser?.currentInternship) {
+      internship = await Internship.findById(internUser.currentInternship).populate('certificate');
+      if (internship && internship.intern.toString() !== req.user.id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
+    if (!internship) {
+      internship = await Internship.findOne({ intern: req.user.id })
+        .sort({ createdAt: -1 })
+        .populate('certificate');
+    }
 
     if (!internship) {
       return res.status(404).json({ message: 'Internship not found' });

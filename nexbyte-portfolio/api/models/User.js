@@ -8,9 +8,10 @@ const userSchema = new mongoose.Schema({
 
   // Internship & offer management
   offerLetter: { type: String },
-  offerStatus: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+  offerStatus: { type: String, enum: ['pending', 'accepted', 'rejected', 'expired'], default: 'pending' },
   offerAcceptedDate: { type: Date },
   offerRejectedDate: { type: Date },
+  offerExpiredDate: { type: Date },
   rejectionReason: { type: String },
 
   internshipStartDate: { type: Date },
