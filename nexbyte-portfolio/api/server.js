@@ -1,6 +1,11 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Prefer project-level env, then API-level env (without overriding already-set vars)
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -211,10 +216,10 @@ app.post('/api/forgot-password', async (req, res) => {
       );
       
       if (emailResult.success) {
-        return res.json({ message: 'A new temporary password has been sent to your email.' });
+        return res.json({ message: 'A new temporary password has been sent to your email.', previewUrl: emailResult.previewUrl || null });
       } else {
         console.error('Failed to send reset email:', emailResult.error);
-        return res.status(500).json({ message: 'Account found, but could not send email. Please contact support.' });
+        return res.status(500).json({ message: 'Account found, but could not send email. Please contact support.', previewUrl: emailResult.previewUrl || null });
       }
     } catch (emailError) {
       console.error('Error in sendPasswordReset notification:', emailError);
@@ -310,7 +315,7 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
   }
 });
 
-const nodemailer = require('nodemailer');
+const { createTransporter, getFromAddress, getPreviewUrl, getSmtpConfig } = require('./utils/emailTransport');
 
 // Helper function to generate offer letter content
 const generateOfferLetter = (email, startDate, endDate, acceptanceDate) => {
@@ -335,23 +340,33 @@ const generateOfferLetter = (email, startDate, endDate, acceptanceDate) => {
   `;
 };
 
-// Check for EMAIL_PASSWORD environment variable
-if (!process.env.EMAIL_PASSWORD) {
-  console.warn('WARNING: process.env.EMAIL_PASSWORD is not set. Email sending may fail. Please ensure it is configured in your .env file.');
+let transporter = null;
+try {
+  transporter = createTransporter();
+} catch (e) {
+  const cfg = getSmtpConfig();
+  if (!cfg.allowNoAuth) {
+    console.warn('WARNING: Email transport is not configured. Emails will not be sent.');
+    console.warn('Set SMTP_USER and SMTP_PASS (recommended) or EMAIL_USER and EMAIL_PASSWORD/EMAIL_PASS.');
+    console.warn('Details:', e.message);
+  }
 }
 
-// Nodemailer transporter setup
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: "nexbyte.dev@gmail.com",
-    pass: process.env.EMAIL_PASSWORD,
-  },
-  debug: true, // Enable debug output
-  logger: true // Enable console logging
-});
+const sendMailSafe = async (mailOptions, label) => {
+  if (!transporter) {
+    console.warn(`Skipping email (${label}): SMTP not configured`);
+    return { success: false, error: 'SMTP not configured' };
+  }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    const previewUrl = getPreviewUrl(info);
+    if (previewUrl) console.log('Email preview URL:', previewUrl);
+    return { success: true, messageId: info.messageId, previewUrl };
+  } catch (error) {
+    console.error(`Error sending email (${label}):`, error);
+    return { success: false, error: error.message };
+  }
+};
 
 // @route   POST api/register
 // @desc    Register a new user (public)
@@ -458,12 +473,13 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
       if (emailResult.success) {
         console.log(`${role} credentials email sent successfully to ${email}`);
-        return res.json({ message: 'User created successfully and welcome email sent.' });
+        return res.json({ message: 'User created successfully and welcome email sent.', previewUrl: emailResult.previewUrl || null });
       } else {
         console.error(`Failed to send ${role} welcome email:`, emailResult.error);
         return res.status(201).json({ 
           message: 'User created successfully, but welcome email could not be sent. Please provide credentials manually.',
-          warning: emailResult.error 
+          warning: emailResult.error,
+          previewUrl: emailResult.previewUrl || null
         });
       }
     } catch (emailError) {
@@ -1113,7 +1129,7 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
     if (clientData && clientData.email) {
       // Send confirmation email
       const mailOptions = {
-        from: '"NexByte" <nexbyte.dev@gmail.com>',
+        from: getFromAddress('NexByte'),
         to: clientData.email,
         subject: 'Payment Confirmation Received',
         html: `
@@ -1127,8 +1143,8 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
 
       try {
         console.log('Attempting to send payment confirmation email...');
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Payment confirmation email sent:', info.response);
+        const result = await sendMailSafe(mailOptions, 'payment-confirmation');
+        if (result.success) console.log('Payment confirmation email sent:', result.messageId);
       } catch (error) {
         console.error('Error sending payment confirmation email:', error);
         // We don't want to fail the whole request if the email fails
@@ -1340,7 +1356,7 @@ app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
 
     // Send email to client
     const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      from: getFromAddress('NexByte'),
       to: client.email,
       subject: `SRS for ${client.projectName} is Ready`,
       html: `
@@ -1354,8 +1370,8 @@ app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
 
     try {
       console.log('Attempting to send SRS email to client...');
-      const info = await transporter.sendMail(mailOptions);
-      console.log('SRS Email sent:', info.response);
+      const result = await sendMailSafe(mailOptions, 'srs-to-client');
+      if (result.success) console.log('SRS email sent:', result.messageId);
     } catch (error) {
       console.error('Error sending SRS email:', error);
       // We don't want to fail the whole request if the email fails
@@ -2061,7 +2077,7 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     
     // Send confirmation email
     const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      from: getFromAddress('NexByte'),
       to: user.email,
       subject: 'Internship Offer Accepted - Confirmation',
       html: `
@@ -2076,8 +2092,8 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     };
     
     try {
-      await transporter.sendMail(mailOptions);
-      console.log('Offer acceptance email sent to:', user.email);
+      const result = await sendMailSafe(mailOptions, 'intern-offer-accepted');
+      if (result.success) console.log('Offer acceptance email sent to:', user.email);
     } catch (emailError) {
       console.error('Error sending acceptance email:', emailError);
       // Don't fail the request if email fails
@@ -2124,7 +2140,7 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
     
     // Send rejection notification email
     const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      from: getFromAddress('NexByte'),
       to: user.email,
       subject: 'Internship Offer Rejection Received',
       html: `
@@ -2141,8 +2157,8 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
     
     // Also notify admin about the rejection
     const adminMailOptions = {
-      from: '"NexByte System" <nexbyte.dev@gmail.com>',
-      to: 'nexbyte.dev@gmail.com',
+      from: getFromAddress('NexByte System'),
+      to: process.env.ADMIN_EMAIL || 'nexbyte.dev@gmail.com',
       subject: 'Internship Offer Rejected - Notification',
       html: `
         <p>Admin Notification:</p>
@@ -2156,8 +2172,8 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
     };
     
     try {
-      await transporter.sendMail(mailOptions);
-      await transporter.sendMail(adminMailOptions);
+      await sendMailSafe(mailOptions, 'intern-offer-rejected');
+      await sendMailSafe(adminMailOptions, 'intern-offer-rejected-admin');
       console.log('Rejection emails sent for:', user.email);
     } catch (emailError) {
       console.error('Error sending rejection emails:', emailError);

@@ -24,6 +24,7 @@
   --success-color-rgb: 40, 167, 69;
   --error-color-rgb: 220, 53, 69;
   --default-border-radius: 14px;
+  --container-max-width: 2400px;
 }
 
 *,
@@ -51,10 +52,10 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url("/NexByte_Core%20Logo%20.png");
+  background-image: url("./assets/nexbyte-logo.png");
   background-repeat: repeat;
-  background-size: 260px;
-  opacity: 0.03;
+  background-size: 180px;
+  opacity: 0.045;
   pointer-events: none;
   z-index: -1;
   line-height: 1.65;

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const InternshipApplication = require('./models/InternshipApplication');
+const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -61,6 +62,58 @@ let internshipRoles = [
 ];
 
 let emailLogs = [];
+let cachedTransporter = null;
+
+const getTransporter = () => {
+  if (cachedTransporter) return cachedTransporter;
+  try {
+    cachedTransporter = createTransporter();
+    return cachedTransporter;
+  } catch (e) {
+    console.warn('WARNING: Email transport is not configured. Internship emails will not be sent.', e.message);
+    cachedTransporter = null;
+    return null;
+  }
+};
+
+const logEmail = ({ type, recipient, subject, status, error, messageId, previewUrl }) => {
+  emailLogs.push({
+    id: Date.now(),
+    type,
+    recipient,
+    subject,
+    sentAt: new Date().toISOString(),
+    status,
+    error,
+    messageId,
+    previewUrl,
+  });
+};
+
+const sendMailLogged = async ({ type, to, subject, html }) => {
+  const transporter = getTransporter();
+  if (!transporter) {
+    logEmail({ type, recipient: to, subject, status: 'skipped', error: 'SMTP not configured' });
+    return { success: false, error: 'SMTP not configured' };
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: getFromAddress('NexByte'),
+      to,
+      subject,
+      html,
+    });
+
+    const previewUrl = getPreviewUrl(info);
+    logEmail({ type, recipient: to, subject, status: 'sent', messageId: info.messageId, previewUrl });
+    if (previewUrl) console.log('Email preview URL:', previewUrl);
+    return { success: true, messageId: info.messageId, previewUrl };
+  } catch (e) {
+    logEmail({ type, recipient: to, subject, status: 'failed', error: e.message });
+    return { success: false, error: e.message };
+  }
+};
 
 // GET all applications
 router.get('/applications', async (req, res) => {
@@ -82,6 +135,36 @@ router.post('/applications', upload.single('resume'), async (req, res) => {
     });
     
     const savedApplication = await application.save();
+
+    // Send applicant confirmation + admin notification (do not block the request on email issues)
+    const applicantSubject = 'Application Received - NexByte Internship';
+    const applicantHtml = `
+      <p>Dear ${savedApplication.name},</p>
+      <p>Thank you for applying to the NexByte Internship program. We have received your application.</p>
+      <p><strong>Role:</strong> ${savedApplication.role}</p>
+      <p><strong>Date Applied:</strong> ${new Date(savedApplication.dateApplied).toLocaleString()}</p>
+      <p>We will review your application and get back to you soon.</p>
+      <p>Regards,<br/>NexByte Team</p>
+    `;
+
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || process.env.SMTP_USER || '';
+    const adminSubject = `New Internship Application - ${savedApplication.role}`;
+    const adminHtml = `
+      <p>New internship application received.</p>
+      <ul>
+        <li><strong>Name:</strong> ${savedApplication.name}</li>
+        <li><strong>Email:</strong> ${savedApplication.email}</li>
+        <li><strong>Phone:</strong> ${savedApplication.phone}</li>
+        <li><strong>Role:</strong> ${savedApplication.role}</li>
+        <li><strong>Date Applied:</strong> ${new Date(savedApplication.dateApplied).toLocaleString()}</li>
+      </ul>
+    `;
+
+    await sendMailLogged({ type: 'application_received', to: savedApplication.email, subject: applicantSubject, html: applicantHtml });
+    if (adminEmail) {
+      await sendMailLogged({ type: 'application_received_admin', to: adminEmail, subject: adminSubject, html: adminHtml });
+    }
+
     res.status(201).json(savedApplication);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -113,6 +196,7 @@ router.put('/applications/:id/status', async (req, res) => {
       return res.status(404).json({ message: 'Application not found' });
     }
     
+    const previousStatus = application.status;
     const { status, notes, interviewDate, rejectionReason } = req.body;
     application.status = status;
     if (notes) application.notes = notes;
@@ -120,6 +204,49 @@ router.put('/applications/:id/status', async (req, res) => {
     if (rejectionReason) application.rejectionReason = rejectionReason;
     
     const updatedApplication = await application.save();
+
+    // Send status email if status changed (best-effort)
+    if (status && status !== previousStatus) {
+      if (status === 'approved') {
+        await sendMailLogged({
+          type: 'application_approved',
+          to: updatedApplication.email,
+          subject: 'Congratulations! Your Internship Application is Approved - NexByte',
+          html: `
+            <p>Dear ${updatedApplication.name},</p>
+            <p>Congratulations! Your application for <strong>${updatedApplication.role}</strong> has been approved.</p>
+            <p>We will contact you with next steps shortly.</p>
+            <p>Regards,<br/>NexByte Team</p>
+          `,
+        });
+      } else if (status === 'rejected') {
+        await sendMailLogged({
+          type: 'application_rejected',
+          to: updatedApplication.email,
+          subject: 'Regarding Your Internship Application - NexByte',
+          html: `
+            <p>Dear ${updatedApplication.name},</p>
+            <p>Thank you for applying for <strong>${updatedApplication.role}</strong>.</p>
+            <p>After careful consideration, we are unable to proceed with your application at this time.</p>
+            ${updatedApplication.rejectionReason ? `<p><strong>Reason:</strong> ${updatedApplication.rejectionReason}</p>` : ''}
+            <p>We wish you the best in your future endeavors.</p>
+            <p>Regards,<br/>NexByte Team</p>
+          `,
+        });
+      } else if (status === 'interview' && updatedApplication.interviewDate) {
+        await sendMailLogged({
+          type: 'application_interview',
+          to: updatedApplication.email,
+          subject: 'Interview Scheduled - NexByte Internship',
+          html: `
+            <p>Dear ${updatedApplication.name},</p>
+            <p>Your interview for <strong>${updatedApplication.role}</strong> has been scheduled.</p>
+            <p><strong>Date & Time:</strong> ${new Date(updatedApplication.interviewDate).toLocaleString()}</p>
+            <p>Regards,<br/>NexByte Team</p>
+          `,
+        });
+      }
+    }
     res.json(updatedApplication);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -183,34 +310,7 @@ router.delete('/roles/:id', (req, res) => {
   res.json({ message: 'Role deleted successfully' });
 });
 
-// Helper function to send emails (mock implementation)
-function sendEmail(to, template, data) {
-  // Replace template variables
-  let subject = template.subject;
-  let body = template.body;
-  
-  Object.keys(data).forEach(key => {
-    const regex = new RegExp(`{${key}}`, 'g');
-    subject = subject.replace(regex, data[key]);
-    body = body.replace(regex, data[key]);
-  });
-  
-  // Log the email (in production, this would use a real email service)
-  const logEntry = {
-    id: Date.now(),
-    type: 'test',
-    recipient: to,
-    subject: subject,
-    sentAt: new Date().toISOString(),
-    status: 'sent'
-  };
-  
-  emailLogs.push(logEntry);
-  
-  console.log('Email sent:', { to, subject, body: body.substring(0, 100) + '...' });
-  
-  return logEntry;
-}
+// Note: Email sending is implemented via SMTP using utils/emailTransport.
 
 // Create uploads directory if it doesn't exist
 const fs = require('fs');

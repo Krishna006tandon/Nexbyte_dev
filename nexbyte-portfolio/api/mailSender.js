@@ -1,38 +1,20 @@
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
 
-// Create a transporter using Gmail (configure this according to your email service)
-const createTransporter = () => {
-    // Check for required environment variables
-    const emailUser = process.env.EMAIL_USER || "nexbyte.dev@gmail.com";
-    const emailPass = process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS;
+// Prefer project-level env, then API-level env (without overriding already-set vars)
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-    if (!emailPass) {
-        console.warn('WARNING: Email password (EMAIL_PASSWORD or EMAIL_PASS) is not set.');
-    }
-
-    return nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-            user: emailUser,
-            pass: emailPass,
-        },
-        debug: false,
-        logger: false
-    });
-};
+const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
 // Send client credentials email
 const sendClientCredentials = async (clientEmail, details) => {
     try {
         const { clientName, contactPerson, password, projectName, phone, companyAddress, projectType, projectDeadline, totalBudget } = details;
         const transporter = createTransporter();
-        const emailUser = process.env.EMAIL_USER || "nexbyte.dev@gmail.com";
 
         const mailOptions = {
-            from: `"NexByte" <${emailUser}>`,
+            from: getFromAddress('NexByte'),
             to: clientEmail,
             subject: `🎉 Welcome to Nexbyte - Your Project "${projectName}" is Ready!`,
             html: `
@@ -112,8 +94,10 @@ const sendClientCredentials = async (clientEmail, details) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
+        const previewUrl = getPreviewUrl(info);
+        if (previewUrl) console.log('Email preview URL:', previewUrl);
         console.log('Email sent successfully:', info.messageId);
-        return { success: true, messageId: info.messageId };
+        return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
         console.error('Error sending email:', error);
         return { success: false, error: error.message };
@@ -125,10 +109,9 @@ const sendClientCredentials = async (clientEmail, details) => {
 const sendPasswordChangeNotification = async (clientEmail, clientName) => {
     try {
         const transporter = createTransporter();
-        const emailUser = process.env.EMAIL_USER || "nexbyte.dev@gmail.com";
 
         const mailOptions = {
-            from: `"NexByte Security" <${emailUser}>`,
+            from: getFromAddress('NexByte Security'),
             to: clientEmail,
             subject: `🔐 Nexbyte - Your Password Has Been Changed Successfully`,
             html: `
@@ -200,8 +183,10 @@ const sendPasswordChangeNotification = async (clientEmail, clientName) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
+        const previewUrl = getPreviewUrl(info);
+        if (previewUrl) console.log('Email preview URL:', previewUrl);
         console.log('Password change notification email sent successfully:', info.messageId);
-        return { success: true, messageId: info.messageId };
+        return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
         console.error('Error sending password change notification email:', error);
         return { success: false, error: error.message };
@@ -212,10 +197,9 @@ const sendPasswordChangeNotification = async (clientEmail, clientName) => {
 const sendPasswordReset = async (clientEmail, clientName, clientPassword) => {
     try {
         const transporter = createTransporter();
-        const emailUser = process.env.EMAIL_USER || "nexbyte.dev@gmail.com";
 
         const mailOptions = {
-            from: `"NexByte Security" <${emailUser}>`,
+            from: getFromAddress('NexByte Security'),
             to: clientEmail,
             subject: `🔐 Nexbyte - Your Password Has Been Reset Successfully`,
             html: `
@@ -256,8 +240,10 @@ const sendPasswordReset = async (clientEmail, clientName, clientPassword) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
+        const previewUrl = getPreviewUrl(info);
+        if (previewUrl) console.log('Email preview URL:', previewUrl);
         console.log('Password reset email sent successfully:', info.messageId);
-        return { success: true, messageId: info.messageId };
+        return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
         console.error('Error sending password reset email:', error);
         return { success: false, error: error.message };
@@ -270,7 +256,6 @@ const sendUserCredentials = async (userEmail, details) => {
     try {
         const { role, password, internshipStartDate, internshipEndDate, acceptanceDate, offerLetterContent } = details;
         const transporter = createTransporter();
-        const emailUser = process.env.EMAIL_USER || "nexbyte.dev@gmail.com";
         
         let subject = '';
         let title = '';
@@ -323,7 +308,7 @@ const sendUserCredentials = async (userEmail, details) => {
         }
 
         const mailOptions = {
-            from: `"NexByte" <${emailUser}>`,
+            from: getFromAddress('NexByte'),
             to: userEmail,
             subject: subject,
             html: `
@@ -374,7 +359,9 @@ const sendUserCredentials = async (userEmail, details) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        return { success: true, messageId: info.messageId };
+        const previewUrl = getPreviewUrl(info);
+        if (previewUrl) console.log('Email preview URL:', previewUrl);
+        return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
         console.error('Error sending user credentials email:', error);
         return { success: false, error: error.message };

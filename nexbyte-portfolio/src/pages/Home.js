@@ -22,9 +22,7 @@ const Home = () => {
         <link rel="canonical" href="https://nexbyte-dev.vercel.app/" />
       </Helmet>
       
-      <div className="home-container"> {/* New container for flexbox */}
-        <HomeSidebar /> {/* Add the sidebar */}
-        <div className="home-page">
+      <div className="home-page">
           {/* Hero Section */}
           <section className="hero-section">
             <h1 className="hero-title">NexByte_Core – Web Development & Digital Solutions</h1>
@@ -99,7 +97,6 @@ const Home = () => {
             <p>Our relationship doesn't end after deployment. We offer ongoing web development support and maintenance services to keep your website running smoothly. This includes regular updates, security patches, performance optimization, and feature enhancements to ensure your website continues to meet your business needs.</p>
           </section>
         </div>
-      </div>
     </>
   );
 };

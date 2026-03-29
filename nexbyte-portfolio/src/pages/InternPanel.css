@@ -6,7 +6,7 @@
 /* CSS Variables for consistent theming */
 :root {
   --primary-color: var(--accent);
-  --primary-dark: #4a97ee;
+  --primary-dark: #3a8ee6;
   --primary-light: var(--accent-hover);
   --secondary-color: var(--success-color);
   --danger-color: var(--error-color);
@@ -17,28 +17,28 @@
   --bg-primary: var(--background-dark);
   --bg-secondary: var(--background-light);
   --bg-tertiary: var(--surface);
-  --bg-card: rgba(22, 27, 34, 0.8);
-  --bg-hover: rgba(88, 166, 255, 0.12);
+  --bg-card: rgba(22, 27, 34, 0.7);
+  --bg-hover: rgba(88, 166, 255, 0.1);
   
   --text-primary: var(--primary-text);
   --text-secondary: var(--secondary-text);
-  --text-muted: var(--disabled-text);
-  --text-inverse: #081018;
+  --text-muted: var(--secondary-text);
+  --text-inverse: #0d1117;
   
   --border-color: var(--border);
-  --border-light: rgba(48, 54, 61, 0.9);
+  --border-light: rgba(48, 54, 61, 0.5);
   
-  --shadow-sm: var(--shadow-light);
-  --shadow-md: var(--shadow-light);
-  --shadow-lg: var(--shadow);
-  --shadow-xl: var(--shadow);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.25);
   
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
   
-  --transition: all 0.3s ease;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Base Styles */
@@ -109,7 +109,8 @@ body {
   left: 0;
   top: 0;
   z-index: 1000;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .sidebar-header {
@@ -323,7 +324,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  max-width: 1200px;
+  max-width: var(--container-max-width);
   margin: 0 auto;
 }
 
@@ -587,7 +588,7 @@ body {
 
 /* Tasks Section */
 .tasks-section {
-  max-width: 1200px;
+  max-width: var(--container-max-width);
   margin: 0 auto;
 }
 

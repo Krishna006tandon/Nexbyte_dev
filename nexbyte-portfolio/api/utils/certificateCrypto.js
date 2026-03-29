@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const ALGORITHM = 'aes-256-gcm';
 
 function getKey() {
-  const raw = process.env.CERT_ENC_KEY;
+  const raw = process.env.CERT_ENC_KEY || process.env.CERT_SECRET;
   if (!raw) {
     throw new Error('CERT_ENC_KEY is not configured');
   }

@@ -62,14 +62,28 @@ To get a local copy up and running, follow these steps.
     ```
 
 4.  **Set up environment variables:**
-    Create a `.env` file inside the `nexbyte-portfolio/api` directory. This file is crucial for storing sensitive information like your database connection string and JWT secret.
+    Create a `.env` file inside the `nexbyte-portfolio` directory (project root). This file is crucial for storing sensitive information like your database connection string, JWT secret, and email settings.
 
     ```env
-    MONGO_URI=your_mongodb_connection_string
+    MONGODB_URI=your_mongodb_connection_string
     JWT_SECRET=your_super_secret_jwt_key
+
+    # Simple email config (no SMTP_* required)
     EMAIL_USER=your_email@example.com
-    EMAIL_PASS=your_email_password
+    EMAIL_PASSWORD=your_email_password_or_app_password
+    # or: EMAIL_PASS=your_email_password_or_app_password
+
+    # Optional
+    EMAIL_FROM="NexByte" <your_email@example.com>
+    ADMIN_EMAIL=admin@example.com
+
+    # Certificate encryption (required for certificates)
+    CERT_ENC_KEY=32_byte_hex_or_base64_key
     ```
+
+    Notes:
+    - If you use Gmail, prefer an App Password (not your normal password).
+    - If you use Ethereal (test) SMTP, emails are for testing only and **won't be delivered** to real inboxes (you'll get preview URLs in logs).
 
 ### Running the Application
 

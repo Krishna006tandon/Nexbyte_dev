@@ -27,6 +27,8 @@ import { AuthProvider } from './context/AuthContext';
 
 import './App.css';
 
+import MainLayout from './components/MainLayout';
+
 function App() {
   return (
     <HelmetProvider>
@@ -37,12 +39,15 @@ function App() {
             <main className="main-content">
               <SrsProvider>
                 <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/services" element={<Services />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/login" element={<Login />} />
+                  <Route element={<MainLayout />}>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/services" element={<Services />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/internship" element={<Internship />} />
+                  </Route>
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/profile" element={<Profile />} />
@@ -53,7 +58,6 @@ function App() {
                   <Route path="/admin/task/:taskId" element={<TaskDetailPage />} />
                   <Route path="/srs-generator" element={<SrsGenerator />} />
                   <Route path="/member" element={<Member />} />
-                  <Route path="/internship" element={<Internship />} />
                   <Route path="/certificate/:certificateId" element={<CertificatePage />} />
                 </Routes>
               </SrsProvider>

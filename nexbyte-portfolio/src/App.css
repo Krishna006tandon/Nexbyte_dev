@@ -12,11 +12,11 @@
   content: '';
   position: fixed;
   z-index: -1;
-  width: 520px;
-  height: 520px;
+  width: 1000px;
+  height: 1000px;
   border-radius: 50%;
-  filter: blur(0px);
-  opacity: 0.45;
+  filter: blur(100px);
+  opacity: 0.12;
 }
 
 .app-container::before {
