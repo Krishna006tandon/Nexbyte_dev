@@ -1,12 +1,16 @@
 .admin-container {
   display: flex;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--primary-text);
+  background: transparent;
 }
 
 /* Task Management Styles */
 .task-management-section {
-  max-width: 1200px;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
+  padding: 0 24px;
 }
 
 .project-selector {
@@ -17,10 +21,11 @@
   width: 100%;
   max-width: 400px;
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid rgba(48, 54, 61, 0.7);
+  border-radius: 12px;
   font-size: 16px;
-  background: white;
+  background: rgba(22, 27, 34, 0.7);
+  color: var(--primary-text);
 }
 
 .task-stats {
@@ -37,10 +42,11 @@
 }
 
 .task-assignment-card {
-  background: white;
-  border-radius: 12px;
+  background: rgba(22, 27, 34, 0.8);
+  border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-light);
+  border: 1px solid rgba(48, 54, 61, 0.7);
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: 20px;
@@ -49,13 +55,13 @@
 
 .task-info h4 {
   margin: 0 0 8px 0;
-  color: #333;
+  color: var(--primary-text);
   font-size: 18px;
 }
 
 .task-info p {
   margin: 0 0 12px 0;
-  color: #666;
+  color: var(--secondary-text);
   line-height: 1.5;
 }
 
@@ -67,24 +73,24 @@
 
 .task-meta span {
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
 }
 
 .effort {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--accent-hover);
 }
 
 .reward {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: rgba(88, 166, 255, 0.1);
+  color: var(--primary-text);
 }
 
 .status {
-  background: #e8f5e8;
-  color: #2e7d32;
+  background: rgba(40, 167, 69, 0.15);
+  color: var(--success-color);
 }
 
 .assignment-controls {
@@ -97,14 +103,16 @@
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
-  color: #333;
+  color: var(--secondary-text);
 }
 
 .assignee-select, .status-select {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px;
+  border: 1px solid rgba(48, 54, 61, 0.7);
+  border-radius: 10px;
+  background: rgba(22, 27, 34, 0.7);
+  color: var(--primary-text);
 }
 
 .task-actions {
@@ -114,15 +122,15 @@
 
 .delete-btn {
   padding: 8px 12px;
-  background: #f44336;
-  color: white;
+  background: rgba(220, 53, 69, 0.85);
+  color: #f9fbff;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   cursor: pointer;
 }
 
 .delete-btn:hover {
-  background: #d32f2f;
+  background: rgba(220, 53, 69, 0.95);
 }
 
 .bulk-operations {
@@ -137,23 +145,23 @@
 
 .bulk-btn {
   padding: 10px 20px;
-  background: #2196f3;
-  color: white;
+  background: rgba(88, 166, 255, 0.9);
+  color: #081018;
   border: none;
-  border-radius: 6px;
+  border-radius: 999px;
   cursor: pointer;
 }
 
 .bulk-btn:hover {
-  background: #1976d2;
+  background: var(--accent-hover);
 }
 
 .export-btn {
-  background: #4caf50;
+  background: rgba(40, 167, 69, 0.9);
 }
 
 .export-btn:hover {
-  background: #388e3c;
+  background: rgba(40, 167, 69, 1);
 }
 
 .task-progress-section {
@@ -161,15 +169,16 @@
 }
 
 .progress-bar-container {
-  background: white;
+  background: rgba(22, 27, 34, 0.8);
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 16px;
+  box-shadow: var(--shadow-light);
+  border: 1px solid rgba(48, 54, 61, 0.7);
 }
 
 .progress-bar {
   height: 30px;
-  background: #f5f5f5;
+  background: rgba(48, 54, 61, 0.7);
   border-radius: 15px;
   overflow: hidden;
   display: flex;
@@ -182,11 +191,11 @@
 }
 
 .progress-fill.completed {
-  background: #4caf50;
+  background: rgba(40, 167, 69, 0.9);
 }
 
 .progress-fill.in-progress {
-  background: #ff9800;
+  background: rgba(255, 174, 66, 0.9);
 }
 
 .progress-legend {
@@ -210,7 +219,7 @@
 }
 
 .legend-item.completed::before {
-  background: #4caf50;
+  background: rgba(40, 167, 69, 0.9);
 }
 
 .legend-item.in-progress::before {

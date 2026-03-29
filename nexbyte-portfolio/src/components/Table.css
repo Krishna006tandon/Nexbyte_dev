@@ -12,9 +12,10 @@
 .table-container {
   width: 100%;
   height: auto;
-  background-color: transparent;
-  padding: 1rem;
-  border-radius: 15px;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+  background: rgba(22, 27, 34, 0.7);
+  padding: 1.5rem;
+  border-radius: 18px;
+  border: 1px solid rgba(48, 54, 61, 0.7);
+  box-shadow: var(--shadow-light);
   animation: fadeInUp 0.5s ease-out forwards;
 }

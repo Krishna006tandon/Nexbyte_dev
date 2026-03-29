@@ -23,6 +23,7 @@ const Internship = require('./models/Internship');
 const Certificate = require('./models/Certificate');
 const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
+const mailSender = require('./mailSender');
 
 
 const app = express();
@@ -125,7 +126,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
       // Handle client login
       const client = await Client.findOne({ email });
       if (!client) {
-        return res.status(400).json({ message: 'Invalid credentials' });
+        return res.status(400).json({ message: 'Invalid credentials', unlockForgotPassword: true });
       }
       user = client;
       role = 'client';
@@ -134,7 +135,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials', unlockForgotPassword: true });
     }
 
     const payload = {
@@ -159,6 +160,68 @@ app.post('/api/login', loginLimiter, async (req, res) => {
     );
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/forgot-password
+// @desc    Forgot password (public)
+app.post('/api/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+
+  try {
+    // Check in Users first
+    let user = await User.findOne({ email });
+    let isClient = false;
+    
+    if (!user) {
+      user = await Client.findOne({ email });
+      isClient = true;
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: 'Account not found with this email' });
+    }
+
+    // Generate new temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(tempPassword, salt);
+
+    // Update password in the database
+    if (isClient) {
+      user.password = hashedPassword;
+      await user.save();
+    } else {
+      user.password = hashedPassword;
+      await user.save();
+    }
+
+    // Send the password via email
+    try {
+      console.log(`Attempting to send password reset email to ${email}...`);
+      const emailResult = await mailSender.sendPasswordReset(
+        email, 
+        isClient ? (user.contactPerson || user.clientName) : (user.name || email), 
+        tempPassword
+      );
+      
+      if (emailResult.success) {
+        return res.json({ message: 'A new temporary password has been sent to your email.' });
+      } else {
+        console.error('Failed to send reset email:', emailResult.error);
+        return res.status(500).json({ message: 'Account found, but could not send email. Please contact support.' });
+      }
+    } catch (emailError) {
+      console.error('Error in sendPasswordReset notification:', emailError);
+      return res.status(500).json({ message: 'Error sending reset email.' });
+    }
+  } catch (err) {
+    console.error('Forgot password error:', err.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -381,109 +444,34 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
     await user.save();
 
-    // Send welcome email based on role
-    let emailHtml = '';
-    let emailSubject = '';
-    
-    if (role === 'admin') {
-      emailSubject = 'Welcome to NexByte - Admin Account Created';
-      emailHtml = `
-        <p>Dear ${email},</p>
-        <p>Welcome to Nexbyte_Core! Your admin account has been successfully created.</p>
-        <p>Please find your login credentials below:</p>
-        <ul>
-          <li><strong>Email:</strong> ${email}</li>
-          <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
-        </ul>
-        <p><strong>Admin Privileges:</strong></p>
-        <ul>
-          <li>Manage all clients and their projects</li>
-          <li>Create and manage user accounts (interns, members, admins)</li>
-          <li>Generate and manage bills and invoices</li>
-          <li>View and manage all system data</li>
-          <li>Access to admin dashboard and reports</li>
-        </ul>
-        <p>As an admin, you have full access to manage clients, users, bills, and all system features.</p>
-        <p>For security reasons, we recommend logging in to your Admin Panel at your earliest convenience and updating your password.</p>
-        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The Nexbyte_Core Team</p>
-      `;
-    } else if (role === 'intern') {
-      emailSubject = 'Welcome to NexByte - Intern Account Created';
-      emailHtml = `
-        <p>Dear ${email},</p>
-        <p>Welcome to Nexbyte_Core! Your intern account has been successfully created.</p>
-        <p>Please find your login credentials below:</p>
-        <ul>
-          <li><strong>Email:</strong> ${email}</li>
-          <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
-        <p>Website link:- https://nexbyte-dev.vercel.app/</p>
-          </ul>
-      `;
-      
-      // Add internship dates information if provided
-      if (internshipStartDate) {
-        const startDate = new Date(internshipStartDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        emailHtml += `<p><strong>Internship Start Date:</strong> ${startDate}</p>`;
-      }
-      
-      if (internshipEndDate) {
-        const endDate = new Date(internshipEndDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        emailHtml += `<p><strong>Internship End Date:</strong> ${endDate}</p>`;
-      }
-      
-      if (acceptanceDate) {
-        const acceptDate = new Date(acceptanceDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        emailHtml += `<p><strong>Offer Acceptance Deadline:</strong> ${acceptDate}</p>`;
-      }
-      
-      emailHtml += `<p>For security reasons, we recommend logging in to your Intern Panel at your earliest convenience and updating your password.</p>`;
-      
-      if (offerLetterContent) {
-        emailHtml += `<p>Your official offer letter is available for review and download within your dedicated Intern Panel once you log in.</p>`;
-      }
-      
-      emailHtml += `<p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The Nexbyte_Core Team</p>`;
-    } else {
-      emailSubject = 'Welcome to NexByte - Account Created';
-      emailHtml = `
-        <p>Dear ${email},</p>
-        <p>Welcome to Nexbyte_Core! Your account has been successfully created.</p>
-        <p>Please find your login credentials below:</p>
-        <ul>
-          <li><strong>Email:</strong> ${email}</li>
-          <li><strong>Temporary Password:</strong> ${plainTextPassword}</li>
-        </ul>
-        <p>For security reasons, we recommend logging in to your account at your earliest convenience and updating your password.</p>
-        <p>We are excited to have you join our team!</p><p>Sincerely,</p><p>The Nexbyte_Core Team</p>
-      `;
-    }
-
-    const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
-      to: email,
-      subject: emailSubject,
-      html: emailHtml,
-    };
-
-    // Explicitly check EMAIL_PASSWORD before attempting to send mail
-    if (!process.env.EMAIL_PASSWORD) {
-      console.error('Email not sent: process.env.EMAIL_PASSWORD is not defined. Please set it in your .env file.');
-      return res.status(500).json({ message: 'User created, but email could not be sent due to missing email password configuration.' });
-    }
-
+    // Send welcome email using the new mailSender service
     try {
-      console.log('Attempting to send email...');
-      const info = await transporter.sendMail(mailOptions);
-      console.log('Email sent:', info.response);
-    } catch (error) {
-      console.error('Error sending welcome email:', error.message, error.stack);
-      // Provide more specific guidance based on common errors
-      if (error.code === 'EAUTH') {
-        console.error('Authentication error: Check your EMAIL_PASSWORD. For Gmail, ensure you are using an App Password if 2FA is enabled, or have "Less secure app access" enabled.');
-      } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-        console.error('Connection error: The server could not reach the email host. Check network, firewall, and host/port settings.');
+      console.log(`Attempting to send ${role} credentials email to ${email}...`);
+      const emailResult = await mailSender.sendUserCredentials(email, {
+        role,
+        password: plainTextPassword,
+        internshipStartDate: role === 'intern' ? internshipStartDate : undefined,
+        internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
+        acceptanceDate: role === 'intern' ? acceptanceDate : undefined,
+        offerLetterContent: offerLetterContent
+      });
+
+      if (emailResult.success) {
+        console.log(`${role} credentials email sent successfully to ${email}`);
+        return res.json({ message: 'User created successfully and welcome email sent.' });
+      } else {
+        console.error(`Failed to send ${role} welcome email:`, emailResult.error);
+        return res.status(201).json({ 
+          message: 'User created successfully, but welcome email could not be sent. Please provide credentials manually.',
+          warning: emailResult.error 
+        });
       }
-      return res.status(500).json({ message: 'User created, but email could not be sent. Check server logs for details.' });
+    } catch (emailError) {
+      console.error('Error in sendUserCredentials notification:', emailError);
+      return res.status(201).json({ 
+        message: 'User created successfully, but an error occurred while sending the email.',
+        warning: emailError.message
+      });
     }
 
     res.json({ message: 'User created successfully' });
@@ -511,15 +499,26 @@ app.get('/api/users', auth, admin, async (req, res) => {
 // @access  Private
 app.get('/api/profile', auth, async (req, res) => {
   try {
+    if (req.user.role === 'client') {
+      const client = await Client.findById(req.user.id).select('-password');
+      if (!client) {
+        return res.status(404).json({ message: 'Client not found' });
+      }
+      return res.json({ ...client.toObject(), role: 'client' });
+    }
+
     let user = await User.findById(req.user.id).select('-password');
-    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     // For backward compatibility, convert 'user' role to 'member'
     if (user.role === 'user') {
       user.role = 'member';
       // Optional: Update the user's role in the database
       await User.findByIdAndUpdate(user._id, { role: 'member' });
     }
-    
+
     res.json(user);
   } catch (err) {
     console.error(err.message);
@@ -609,7 +608,7 @@ app.post('/api/clients', auth, admin, async (req, res) => {
   } = req.body;
 
   try {
-    const password = generatePassword();
+    const password = req.body.password || generatePassword();
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -637,59 +636,27 @@ app.post('/api/clients', auth, admin, async (req, res) => {
 
     await newClient.save();
 
-    // Send welcome email
-    const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
-      to: email,
-      subject: 'Welcome to NexByte!',
-      html: `
-        <p>Welcome! Your project "${projectName}" has been registered with us.</p>
-        <h2>Client Details:</h2>
-        <ul>
-          <li><strong>Client/Company Name:</strong> ${clientName}</li>
-          <li><strong>Contact Person's Name:</strong> ${contactPerson}</li>
-          <li><strong>Email Address:</strong> ${email}</li>
-          <li><strong>Phone Number:</strong> ${phone}</li>
-          <li><strong>Company Address:</strong> ${companyAddress}</li>
-        </ul>
-        <h2>Project Details:</h2>
-        <ul>
-          <li><strong>Project Name:</strong> ${projectName}</li>
-          <li><strong>Project Type:</strong> ${projectType}</li>
-          <li><strong>Project Requirements:</strong> ${projectRequirements}</li>
-          <li><strong>Project Deadline:</strong> ${projectDeadline}</li>
-          <li><strong>Total Budget:</strong> ${totalBudget}</li>
-        </ul>
-        <h2>Billing and Payment Information:</h2>
-        <ul>
-          <li><strong>Billing Address:</strong> ${billingAddress}</li>
-          <li><strong>GST Number:</strong> ${gstNumber}</li>
-          <li><strong>Payment Terms:</strong> ${paymentTerms}</li>
-          <li><strong>Payment Method:</strong> ${paymentMethod}</li>
-        </ul>
-        <h2>Technical Details:</h2>
-        <ul>
-          <li><strong>Domain Registrar Login:</strong> ${domainRegistrarLogin}</li>
-          <li><strong>Web Hosting Login:</strong> ${webHostingLogin}</li>
-          <li><strong>Logo and Branding Files:</strong> ${logoAndBrandingFiles}</li>
-          <li><strong>Content:</strong> ${content}</li>
-        </ul>
-        <h2>Login Credentials:</h2>
-        <ul>
-          <li><strong>Email:</strong> ${email}</li>
-          <li><strong>Password:</strong> ${password}</li>
-          <li><strong>website link:</strong>https://nexbyte-dev.vercel.app/ </li>
-        </ul>
-        <p><strong>Please save these credentials and change your password after first login.</strong></p>
-      `,
-    };
-
+    // Send welcome email using the new mailSender service
     try {
-      console.log('Attempting to send email...');
-      const info = await transporter.sendMail(mailOptions);
-      console.log('Email sent:', info.response);
+      console.log('Attempting to send client credentials email...');
+      const emailResult = await mailSender.sendClientCredentials(email, {
+        clientName,
+        contactPerson,
+        password,
+        projectName,
+        phone,
+        companyAddress,
+        projectType,
+        projectDeadline,
+        totalBudget
+      });
+      if (emailResult.success) {
+        console.log('Client credentials email sent successfully');
+      } else {
+        console.error('Failed to send client credentials email:', emailResult.error);
+      }
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('Error in sendClientCredentials:', error);
     }
 
     res.json({ message: 'Client added successfully' });
@@ -749,7 +716,7 @@ app.delete('/api/clients/:id', auth, admin, async (req, res) => {
 // @access  Private (admin)
 app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id).select('password');
+    const client = await Client.findById(req.params.id).select('email clientName contactPerson password');
     if (!client) {
       return res.status(404).json({ message: 'Client not found' });
     }
@@ -762,6 +729,23 @@ app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
     
     // Update client with new temporary password
     await Client.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+
+    // Send password reset email using the new mailSender service
+    try {
+      console.log('Attempting to send password reset email...');
+      const emailResult = await mailSender.sendPasswordReset(
+        client.email, 
+        client.contactPerson || client.clientName, 
+        tempPassword
+      );
+      if (emailResult.success) {
+        console.log('Password reset email sent successfully');
+      } else {
+        console.error('Failed to send password reset email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error in sendPasswordReset notification:', emailError);
+    }
     
     res.json({ password: tempPassword });
   } catch (err) {
@@ -828,6 +812,22 @@ app.put('/api/client/change-password', auth, client, async (req, res) => {
 
     // Update password
     await Client.findByIdAndUpdate(req.user.id, { password: hashedPassword });
+
+    // Send password change notification using the new mailSender service
+    try {
+      console.log('Attempting to send password change notification...');
+      const emailResult = await mailSender.sendPasswordChangeNotification(
+        clientRecord.email, 
+        clientRecord.contactPerson || clientRecord.clientName
+      );
+      if (emailResult.success) {
+        console.log('Password change notification sent successfully');
+      } else {
+        console.error('Failed to send password change notification:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error in sendPasswordChangeNotification:', emailError);
+    }
 
     res.json({ message: 'Password changed successfully' });
   } catch (err) {
