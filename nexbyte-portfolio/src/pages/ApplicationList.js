@@ -12,6 +12,12 @@ const ApplicationList = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [interviewTarget, setInterviewTarget] = useState(null);
+  const [interviewDateTime, setInterviewDateTime] = useState('');
+  const [interviewMeetLink, setInterviewMeetLink] = useState('');
+  const [interviewSubmitting, setInterviewSubmitting] = useState(false);
+  const [interviewError, setInterviewError] = useState('');
 
   const roles = ['Web Development Intern', 'Frontend Intern', 'Backend Intern', 'UI/UX Intern', 'Digital Marketing Intern'];
   const statuses = ['new', 'reviewing', 'interview', 'approved', 'rejected', 'hired'];
@@ -183,15 +189,79 @@ const ApplicationList = () => {
 
   const handleStatusChange = async (appId, newStatus) => {
     try {
+      if (newStatus === 'interview') {
+        const target = applications.find(a => a._id === appId) || null;
+        setInterviewTarget(target);
+        setInterviewDateTime(target?.interviewDate ? new Date(target.interviewDate).toISOString().slice(0, 16) : '');
+        setInterviewMeetLink(target?.interviewMeetLink || '');
+        setInterviewError('');
+        setShowInterviewModal(true);
+        return;
+      }
+
       const response = await axios.put(`/api/internship/applications/${appId}/status`, {
         status: newStatus
       });
 
       const updated = response.data;
       setApplications(prev => prev.map(app => (app._id === appId ? updated : app)));
+      setFilteredApplications(prev => prev.map(app => (app._id === appId ? updated : app)));
     } catch (error) {
       console.error('Error updating application status:', error);
       alert('Failed to update status. Please try again.');
+    }
+  };
+
+  const handleInterviewCancel = () => {
+    if (interviewSubmitting) return;
+    setShowInterviewModal(false);
+    setInterviewTarget(null);
+    setInterviewDateTime('');
+    setInterviewMeetLink('');
+    setInterviewError('');
+  };
+
+  const handleInterviewSubmit = async () => {
+    if (!interviewTarget?._id) return;
+    setInterviewError('');
+
+    if (!interviewDateTime) {
+      setInterviewError('Please select interview date & time.');
+      return;
+    }
+    if (!interviewMeetLink.trim()) {
+      setInterviewError('Please paste Google Meet link.');
+      return;
+    }
+
+    let isoDate = '';
+    try {
+      isoDate = new Date(interviewDateTime).toISOString();
+    } catch {
+      setInterviewError('Invalid date/time.');
+      return;
+    }
+
+    try {
+      setInterviewSubmitting(true);
+      const response = await axios.put(`/api/internship/applications/${interviewTarget._id}/status`, {
+        status: 'interview',
+        interviewDate: isoDate,
+        interviewMeetLink: interviewMeetLink.trim(),
+      });
+      const updated = response.data;
+      setApplications(prev => prev.map(app => (app._id === interviewTarget._id ? updated : app)));
+      setFilteredApplications(prev => prev.map(app => (app._id === interviewTarget._id ? updated : app)));
+      setShowInterviewModal(false);
+      setInterviewTarget(null);
+      setInterviewDateTime('');
+      setInterviewMeetLink('');
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+      const msg = error?.response?.data?.message || 'Failed to schedule interview. Please try again.';
+      setInterviewError(msg);
+    } finally {
+      setInterviewSubmitting(false);
     }
   };
 
@@ -330,7 +400,7 @@ const ApplicationList = () => {
                     </select>
                   </td>
                   <td className="resume-cell">
-                    {app.resume ? (
+                    {app.resumeUrl || app.resume ? (
                       <span className="resume-available">✓ Available</span>
                     ) : (
                       <span className="resume-missing">—</span>
@@ -356,6 +426,85 @@ const ApplicationList = () => {
           </tbody>
         </table>
       </div>
+
+      {showInterviewModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 16,
+          }}
+          onClick={handleInterviewCancel}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 520,
+              background: '#fff',
+              borderRadius: 12,
+              padding: 18,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginTop: 0 }}>Schedule Interview</h2>
+            <p style={{ marginTop: 6, color: '#555' }}>
+              Status will move to <strong>Interview</strong> and applicant ko email auto-send ho jayega date/time + Google Meet link ke saath.
+            </p>
+
+            <div style={{ marginTop: 14 }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Interview Date & Time</label>
+              <input
+                type="datetime-local"
+                value={interviewDateTime}
+                onChange={(e) => setInterviewDateTime(e.target.value)}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+              />
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Google Meet Link</label>
+              <input
+                type="url"
+                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                value={interviewMeetLink}
+                onChange={(e) => setInterviewMeetLink(e.target.value)}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+              />
+            </div>
+
+            {interviewError && (
+              <div style={{ marginTop: 10, color: '#b91c1c', fontWeight: 600 }}>
+                {interviewError}
+              </div>
+            )}
+
+            <div style={{ marginTop: 16, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="action-btn"
+                onClick={handleInterviewCancel}
+                disabled={interviewSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="action-btn view-btn"
+                onClick={handleInterviewSubmit}
+                disabled={interviewSubmitting}
+              >
+                {interviewSubmitting ? 'Sending...' : 'Save & Send Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination (if needed) */}
       <div className="pagination">

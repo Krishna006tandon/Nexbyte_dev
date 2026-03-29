@@ -11,6 +11,7 @@ const Internship = () => {
     education: '',
     experience: '',
     skills: '',
+    interviewAvailability: [''],
     resume: null,
     coverLetter: ''
   });
@@ -41,6 +42,29 @@ const Internship = () => {
     setFormData(prev => ({ ...prev, resume: e.target.files[0] }));
   };
 
+  const updateAvailabilitySlot = (index, value) => {
+    setFormData(prev => ({
+      ...prev,
+      interviewAvailability: (prev.interviewAvailability || ['']).map((slot, i) => (i === index ? value : slot))
+    }));
+  };
+
+  const addAvailabilitySlot = () => {
+    setFormData(prev => {
+      const current = Array.isArray(prev.interviewAvailability) ? prev.interviewAvailability : [''];
+      if (current.length >= 3) return prev;
+      return { ...prev, interviewAvailability: [...current, ''] };
+    });
+  };
+
+  const removeAvailabilitySlot = () => {
+    setFormData(prev => {
+      const current = Array.isArray(prev.interviewAvailability) ? prev.interviewAvailability : [''];
+      if (current.length <= 1) return prev;
+      return { ...prev, interviewAvailability: current.slice(0, -1) };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -53,6 +77,13 @@ const Internship = () => {
     formDataToSend.append('experience', formData.experience);
     formDataToSend.append('skills', formData.skills);
     formDataToSend.append('coverLetter', formData.coverLetter);
+
+    const availability = (formData.interviewAvailability || [])
+      .map((s) => (typeof s === 'string' ? s.trim() : s))
+      .filter(Boolean);
+    if (availability.length) {
+      formDataToSend.append('interviewAvailability', JSON.stringify(availability));
+    }
     
     if (formData.resume) {
       formDataToSend.append('resume', formData.resume);
@@ -74,6 +105,7 @@ const Internship = () => {
         education: '',
         experience: '',
         skills: '',
+        interviewAvailability: [''],
         resume: null,
         coverLetter: ''
       });
@@ -292,6 +324,29 @@ const Internship = () => {
                 placeholder="List your technical skills (e.g., React, Node.js, Python)"
                 required
               />
+            </div>
+            <div className="form-group">
+              <label>Interview Availability (Optional)</label>
+              <p style={{ marginTop: 6, marginBottom: 10, color: '#666', fontSize: 13 }}>
+                Share 1–3 time slots when you are free for an interview (your local time).
+              </p>
+              {(formData.interviewAvailability || ['']).map((slot, index) => (
+                <input
+                  key={index}
+                  type="datetime-local"
+                  value={slot}
+                  onChange={(e) => updateAvailabilitySlot(index, e.target.value)}
+                  style={{ marginBottom: 10 }}
+                />
+              ))}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={addAvailabilitySlot} disabled={(formData.interviewAvailability || ['']).length >= 3}>
+                  + Add Slot
+                </button>
+                <button type="button" onClick={removeAvailabilitySlot} disabled={(formData.interviewAvailability || ['']).length <= 1}>
+                  − Remove
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label>Resume (PDF only, max 5MB)</label>

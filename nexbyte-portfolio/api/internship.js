@@ -6,32 +6,87 @@ const fs = require('fs');
 const InternshipApplication = require('./models/InternshipApplication');
 const User = require('./models/User');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const mailSender = require('./mailSender');
 const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Portably handle uploads (use /tmp for Vercel, local for development)
-    const uploadsDir = process.env.VERCEL 
-      ? '/tmp/uploads/resumes' 
-      : path.join(__dirname, '../uploads/resumes');
-    
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
+const getUploadsDir = () =>
+  process.env.VERCEL ? '/tmp/uploads/resumes' : path.join(__dirname, '../uploads/resumes');
 
-const upload = multer({ 
-  storage: storage,
+const ensureUploadsDir = (uploadsDir) => {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+};
+
+const sanitizeFilename = (name) => String(name || 'resume.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
+
+const saveResumeToLocal = (file) => {
+  const uploadsDir = getUploadsDir();
+  ensureUploadsDir(uploadsDir);
+  const filename = `${Date.now()}-${sanitizeFilename(file.originalname)}`;
+  fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
+  return filename;
+};
+
+const getCloudinaryConfig = () => {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+};
+
+const sha1 = (input) => crypto.createHash('sha1').update(String(input)).digest('hex');
+
+const buildCloudinarySignature = (params, apiSecret) => {
+  const toSign = Object.keys(params)
+    .filter((k) => params[k] !== undefined && params[k] !== null && params[k] !== '')
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join('&');
+  return sha1(`${toSign}${apiSecret}`);
+};
+
+const uploadResumeToCloudinary = async (file) => {
+  const cfg = getCloudinaryConfig();
+  if (!cfg) return null;
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const publicId = `nexbyte_resume_${crypto.randomUUID()}`;
+  const signature = buildCloudinarySignature({ public_id: publicId, timestamp }, cfg.apiSecret);
+
+  const form = new FormData();
+  const blob = new Blob([file.buffer], { type: file.mimetype || 'application/pdf' });
+  form.append('file', blob, file.originalname || 'resume.pdf');
+  form.append('api_key', cfg.apiKey);
+  form.append('timestamp', String(timestamp));
+  form.append('public_id', publicId);
+  form.append('signature', signature);
+
+  const url = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/raw/upload`;
+  const response = await fetch(url, { method: 'POST', body: form });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg =
+      data && data.error && data.error.message
+        ? data.error.message
+        : `Cloudinary upload failed (${response.status})`;
+    throw new Error(msg);
+  }
+
+  return { publicId: data.public_id, secureUrl: data.secure_url };
+};
+
+// Configure multer for file uploads (memory storage; Cloudinary upload in route)
+const upload = multer({
+  storage: multer.memoryStorage(),
   fileFilter: function (req, file, cb) {
     // Allow only PDF files
-    if (file.mimetype === 'application/pdf') {
+    const isPdf =
+      file.mimetype === 'application/pdf' ||
+      (typeof file.originalname === 'string' && file.originalname.toLowerCase().endsWith('.pdf'));
+    if (isPdf) {
       cb(null, true);
     } else {
       cb(new Error('Only PDF files are allowed'), false);
@@ -137,6 +192,38 @@ const parseDateOrNull = (value) => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
+const parseAvailabilitySlots = (raw) => {
+  if (!raw) return [];
+
+  let values = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      values = parsed;
+    } catch (e) {
+      values = trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+
+  if (!Array.isArray(values)) values = [values];
+
+  const seen = new Set();
+  const slots = [];
+  for (const v of values) {
+    const d = parseDateOrNull(v);
+    if (!d) continue;
+    const key = d.toISOString();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    slots.push(d);
+    if (slots.length >= 10) break;
+  }
+
+  return slots;
+};
+
 const generateOfferLetterHtml = (email, startDate, endDate, acceptanceDate) => {
   const fmt = (d) => (d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD');
   const date = fmt(new Date());
@@ -167,9 +254,37 @@ router.get('/applications', async (req, res) => {
 // POST new application
 router.post('/applications', upload.single('resume'), async (req, res) => {
   try {
+    let resume = null;
+    let resumeUrl = null;
+    let resumePublicId = null;
+    let resumeOriginalName = null;
+
+    if (req.file) {
+      resumeOriginalName = req.file.originalname || null;
+      try {
+        const uploaded = await uploadResumeToCloudinary(req.file);
+        if (uploaded) {
+          resume = uploaded.publicId;
+          resumePublicId = uploaded.publicId;
+          resumeUrl = uploaded.secureUrl;
+        } else {
+          resume = saveResumeToLocal(req.file);
+        }
+      } catch (e) {
+        console.warn('Cloudinary resume upload failed; falling back to local storage.', e.message);
+        resume = saveResumeToLocal(req.file);
+      }
+    }
+
+    const interviewAvailability = parseAvailabilitySlots(req.body.interviewAvailability);
+
     const application = new InternshipApplication({
       ...req.body,
-      resume: req.file ? req.file.filename : null,
+      resume,
+      resumeUrl,
+      resumePublicId,
+      resumeOriginalName,
+      interviewAvailability,
       dateApplied: new Date()
     });
     
@@ -228,11 +343,9 @@ router.get('/applications/:id', async (req, res) => {
 });
 
 // GET resume file
-router.get('/resumes/:filename', (req, res) => {
+router.get('/resumes/:filename', async (req, res) => {
   const filename = req.params.filename;
-  const uploadsDir = process.env.VERCEL 
-    ? '/tmp/uploads/resumes' 
-    : path.join(__dirname, '../uploads/resumes');
+  const uploadsDir = getUploadsDir();
   const filePath = path.join(uploadsDir, filename);
 
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
@@ -240,6 +353,16 @@ router.get('/resumes/:filename', (req, res) => {
   if (fs.existsSync(absolutePath)) {
     res.sendFile(absolutePath);
   } else {
+    try {
+      const application = await InternshipApplication.findOne({
+        $or: [{ resume: filename }, { resumePublicId: filename }],
+      }).select('resumeUrl');
+      if (application && application.resumeUrl) {
+        return res.redirect(application.resumeUrl);
+      }
+    } catch (e) {
+      // ignore and fall through
+    }
     res.status(404).json({ message: 'Resume file not found' });
   }
 });
@@ -253,7 +376,7 @@ router.put('/applications/:id/status', async (req, res) => {
     }
     
     const previousStatus = application.status;
-    const { status, notes, interviewDate, rejectionReason, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
+    const { status, notes, interviewDate, interviewMeetLink, rejectionReason, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
 
     if (status) application.status = status;
     if (typeof notes === 'string') application.notes = notes;
@@ -262,6 +385,23 @@ router.put('/applications/:id/status', async (req, res) => {
     if (typeof interviewDate !== 'undefined') {
       const parsedInterview = parseDateOrNull(interviewDate);
       application.interviewDate = parsedInterview;
+    }
+
+    if (typeof interviewMeetLink === 'string') {
+      application.interviewMeetLink = interviewMeetLink.trim();
+    }
+
+    // If moving to interview stage, interview date + meet link are required
+    if (status === 'interview') {
+      if (!application.interviewDate) {
+        return res.status(400).json({ message: 'Interview date is required for interview status' });
+      }
+      if (!application.interviewMeetLink) {
+        return res.status(400).json({ message: 'Google Meet link is required for interview status' });
+      }
+      if (!/^https?:\/\//i.test(application.interviewMeetLink)) {
+        return res.status(400).json({ message: 'Interview meet link must be a valid URL' });
+      }
     }
     
     const updatedApplication = await application.save();
@@ -281,15 +421,29 @@ router.put('/applications/:id/status', async (req, res) => {
           `,
         });
       } else if (status === 'interview') {
-        const when = updatedApplication.interviewDate ? new Date(updatedApplication.interviewDate).toLocaleString() : null;
+        const tz = process.env.AUTOMATION_TIMEZONE || 'Asia/Kolkata';
+        const when = updatedApplication.interviewDate
+          ? new Date(updatedApplication.interviewDate).toLocaleString('en-IN', {
+              timeZone: tz,
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : null;
+
+        const meetLink = updatedApplication.interviewMeetLink || '';
         await sendMailLogged({
           type: 'application_interview',
           to: updatedApplication.email,
-          subject: 'Internship Interview Update - NexByte',
+          subject: 'Interview Scheduled - NexByte Internship',
           html: `
             <p>Dear ${updatedApplication.name},</p>
             <p>Your application for <strong>${updatedApplication.role}</strong> has moved to the interview stage.</p>
-            ${when ? `<p><strong>Interview Date & Time:</strong> ${when}</p>` : `<p>We will share your interview schedule shortly.</p>`}
+            ${when ? `<p><strong>Interview Date & Time:</strong> ${when} (${tz})</p>` : ``}
+            ${meetLink ? `<p><strong>Google Meet Link:</strong> <a href="${meetLink}">${meetLink}</a></p>` : ``}
+            <p>Please join the meeting on time. If you need to reschedule, reply to this email.</p>
             <p>Regards,<br/>NexByte Team</p>
           `,
         });

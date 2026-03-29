@@ -370,6 +370,78 @@ const sendMailSafe = async (mailOptions, label) => {
   }
 };
 
+const formatTaskDueDate = (value) => {
+  if (!value) return 'Not specified';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not specified';
+  return date.toLocaleString('en-IN', {
+    timeZone: process.env.AUTOMATION_TIMEZONE || 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+const sendTaskAssignmentEmail = async (taskInput, options = {}) => {
+  const assignedUserId =
+    taskInput?.assignedTo?._id ||
+    taskInput?.assignedTo?.id ||
+    taskInput?.assignedTo;
+
+  if (!assignedUserId) {
+    return { skipped: true, reason: 'No assigned user' };
+  }
+
+  const previousAssignedUserId =
+    options.previousAssignedTo?._id ||
+    options.previousAssignedTo?.id ||
+    options.previousAssignedTo;
+
+  if (
+    previousAssignedUserId &&
+    String(previousAssignedUserId) === String(assignedUserId) &&
+    !options.force
+  ) {
+    return { skipped: true, reason: 'Assignment unchanged' };
+  }
+
+  const [assignedUser, project] = await Promise.all([
+    User.findById(assignedUserId).select('email role'),
+    taskInput.project ? Project.findById(taskInput.project).select('projectName') : Promise.resolve(null)
+  ]);
+
+  if (!assignedUser || !assignedUser.email) {
+    return { skipped: true, reason: 'Assigned user email not found' };
+  }
+
+  const actionText = options.isNewTask ? 'A new task has been assigned to you.' : 'A task has been assigned or updated for you.';
+  const mailOptions = {
+    from: getFromAddress('NexByte'),
+    to: assignedUser.email,
+    subject: `Task Assigned - ${taskInput.title || 'NexByte Task'}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <p>Dear ${assignedUser.email.split('@')[0]},</p>
+        <p>${actionText}</p>
+        <ul>
+          <li><strong>Task:</strong> ${taskInput.title || 'Untitled Task'}</li>
+          <li><strong>Description:</strong> ${taskInput.description || 'No description provided'}</li>
+          <li><strong>Priority:</strong> ${taskInput.priority || 'Not specified'}</li>
+          <li><strong>Status:</strong> ${taskInput.status || 'pending'}</li>
+          <li><strong>Due Date:</strong> ${formatTaskDueDate(taskInput.dueDate)}</li>
+          <li><strong>Project:</strong> ${project?.projectName || 'General Task'}</li>
+        </ul>
+        <p>Please check your intern dashboard for full details.</p>
+        <p>Regards,<br/>NexByte Team</p>
+      </div>
+    `
+  };
+
+  return sendMailSafe(mailOptions, options.isNewTask ? 'task-assigned-create' : 'task-assigned-update');
+};
+
 // =========================
 // Portal automations
 // =========================
@@ -2184,8 +2256,10 @@ app.put('/api/tasks/:id/assign', auth, admin, async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        const previousAssignedTo = task.assignedTo;
         task.assignedTo = userId;
         await task.save();
+        await sendTaskAssignmentEmail(task, { previousAssignedTo });
 
         res.json(task);
     } catch (err) {
@@ -3057,6 +3131,7 @@ app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
     });
 
     await newTask.save();
+    await sendTaskAssignmentEmail(newTask, { isNewTask: true });
     
     const populatedTask = await Task.findById(newTask._id)
       .populate('assignedTo', 'email');
@@ -3108,8 +3183,9 @@ app.put('/api/tasks/:id/status', auth, admin, async (req, res) => {
 app.put('/api/tasks/bulk-assign', auth, admin, async (req, res) => {
   try {
     const { taskIds, assignedTo } = req.body;
+    const existingTasks = await Task.find({ _id: { $in: taskIds } }).select('assignedTo');
     
-    const updatedTasks = await Task.updateMany(
+    await Task.updateMany(
       { _id: { $in: taskIds } },
       { assignedTo },
       { new: true }
@@ -3125,6 +3201,18 @@ app.put('/api/tasks/bulk-assign', auth, admin, async (req, res) => {
       }
       return task;
     });
+
+    const previousAssignmentsById = new Map(
+      existingTasks.map((task) => [String(task._id), task.assignedTo])
+    );
+
+    await Promise.allSettled(
+      populatedTasks.map((task) =>
+        sendTaskAssignmentEmail(task, {
+          previousAssignedTo: previousAssignmentsById.get(String(task._id)),
+        })
+      )
+    );
     
     res.json(tasksWithNames);
   } catch (err) {
@@ -3237,6 +3325,7 @@ app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
     });
     
     await newTask.save();
+    await sendTaskAssignmentEmail(newTask, { isNewTask: true });
     console.log('Task saved successfully:', newTask._id); // Debug log
     
     const populatedTask = await Task.findById(newTask._id)

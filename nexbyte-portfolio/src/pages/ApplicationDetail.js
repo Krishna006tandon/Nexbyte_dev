@@ -11,6 +11,11 @@ const ApplicationDetail = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [notes, setNotes] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [interviewDateTime, setInterviewDateTime] = useState('');
+  const [interviewMeetLink, setInterviewMeetLink] = useState('');
+  const [interviewSubmitting, setInterviewSubmitting] = useState(false);
+  const [interviewError, setInterviewError] = useState('');
 
   // const getMockApplication = () => ({
   //   id: 1,
@@ -100,12 +105,71 @@ const ApplicationDetail = () => {
     }
     
     try {
+      if (newStatus === 'interview') {
+        setInterviewDateTime(application?.interviewDate ? new Date(application.interviewDate).toISOString().slice(0, 16) : '');
+        setInterviewMeetLink(application?.interviewMeetLink || '');
+        setInterviewError('');
+        setShowInterviewModal(true);
+        return;
+      }
+
       const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
         status: newStatus
       });
       setApplication(response.data);
     } catch (error) {
       console.error('Error updating status:', error);
+    }
+  };
+
+  const handleInterviewCancel = () => {
+    if (interviewSubmitting) return;
+    setShowInterviewModal(false);
+    setInterviewDateTime('');
+    setInterviewMeetLink('');
+    setInterviewError('');
+  };
+
+  const handleInterviewSubmit = async () => {
+    const urlId = window.location.pathname.split('/').pop();
+    const finalId = id || urlId;
+    if (!finalId || finalId === 'undefined') return;
+
+    setInterviewError('');
+    if (!interviewDateTime) {
+      setInterviewError('Please select interview date & time.');
+      return;
+    }
+    if (!interviewMeetLink.trim()) {
+      setInterviewError('Please paste Google Meet link.');
+      return;
+    }
+
+    let isoDate = '';
+    try {
+      isoDate = new Date(interviewDateTime).toISOString();
+    } catch {
+      setInterviewError('Invalid date/time.');
+      return;
+    }
+
+    try {
+      setInterviewSubmitting(true);
+      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
+        status: 'interview',
+        interviewDate: isoDate,
+        interviewMeetLink: interviewMeetLink.trim(),
+      });
+      setApplication(response.data);
+      setShowInterviewModal(false);
+      setInterviewDateTime('');
+      setInterviewMeetLink('');
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+      const msg = error?.response?.data?.message || 'Failed to schedule interview. Please try again.';
+      setInterviewError(msg);
+    } finally {
+      setInterviewSubmitting(false);
     }
   };
 
@@ -131,12 +195,19 @@ const ApplicationDetail = () => {
   };
 
   const handleDownloadResume = () => {
-    if (!application || !application.resume) {
-      console.error('No resume filename available');
+    const resumeUrl =
+      application && application.resumeUrl
+        ? application.resumeUrl
+        : application && application.resume
+          ? `/api/internship/resumes/${application.resume}`
+          : null;
+
+    if (!resumeUrl) {
+      console.error('No resume available');
       return;
     }
-    // Open resume in a new tab for preview/download
-    window.open(`/api/internship/resumes/${application.resume}`, '_blank');
+
+    window.open(resumeUrl, '_blank');
   };
 
   const handleSendEmail = () => {
@@ -270,6 +341,19 @@ const ApplicationDetail = () => {
                     <label>Date Applied:</label>
                     <span>{new Date(application.dateApplied).toLocaleDateString()}</span>
                   </div>
+                  {application.interviewAvailability && application.interviewAvailability.length > 0 && (
+                    <div className="detail-item">
+                      <label>Interview Availability:</label>
+                      <span>
+                        {application.interviewAvailability.map((slot, idx) => (
+                          <React.Fragment key={idx}>
+                            {new Date(slot).toLocaleString()}
+                            {idx < application.interviewAvailability.length - 1 ? ' | ' : ''}
+                          </React.Fragment>
+                        ))}
+                      </span>
+                    </div>
+                  )}
                   <div className="detail-item">
                     <label>Phone:</label>
                     <span>{application.phone || 'N/A'}</span>
@@ -307,7 +391,7 @@ const ApplicationDetail = () => {
               <div className="resume-info">
                 <h3>Resume</h3>
                 <div className="file-info">
-                  <span className="file-name">📄 {application.resume}</span>
+                  <span className="file-name">📄 {application.resumeOriginalName || application.resume}</span>
                   <button onClick={handleDownloadResume} className="download-resume-btn">
                     Download Resume
                   </button>
@@ -369,6 +453,85 @@ const ApplicationDetail = () => {
           )}
         </div>
       </div>
+
+      {showInterviewModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 16,
+          }}
+          onClick={handleInterviewCancel}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 520,
+              background: '#fff',
+              borderRadius: 12,
+              padding: 18,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginTop: 0 }}>Schedule Interview</h2>
+            <p style={{ marginTop: 6, color: '#555' }}>
+              Applicant ko email auto-send hoga date/time + Google Meet link ke saath.
+            </p>
+
+            <div style={{ marginTop: 14 }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Interview Date & Time</label>
+              <input
+                type="datetime-local"
+                value={interviewDateTime}
+                onChange={(e) => setInterviewDateTime(e.target.value)}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+              />
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Google Meet Link</label>
+              <input
+                type="url"
+                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                value={interviewMeetLink}
+                onChange={(e) => setInterviewMeetLink(e.target.value)}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+              />
+            </div>
+
+            {interviewError && (
+              <div style={{ marginTop: 10, color: '#b91c1c', fontWeight: 600 }}>
+                {interviewError}
+              </div>
+            )}
+
+            <div style={{ marginTop: 16, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="action-btn"
+                onClick={handleInterviewCancel}
+                disabled={interviewSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="action-btn view-btn"
+                onClick={handleInterviewSubmit}
+                disabled={interviewSubmitting}
+              >
+                {interviewSubmitting ? 'Sending...' : 'Save & Send Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer Info */}
       <div className="footer-info">
