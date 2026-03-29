@@ -13,8 +13,7 @@ const ClientPanel = () => {
   const [messageStatus, setMessageStatus] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
-  const [transactionId, setTransactionId] = useState('');
-  const [paidAmount, setPaidAmount] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [milestone, setMilestone] = useState(null); // Add state for milestone
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
@@ -31,8 +30,7 @@ const ClientPanel = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedBill(null);
-    setTransactionId('');
-    setPaidAmount('');
+    setIsProcessingPayment(false);
   };
 
   const handlePasswordChange = async (e) => {
@@ -183,30 +181,108 @@ const ClientPanel = () => {
     }
   };
 
-  const handleConfirmPayment = async () => {
+  const loadRazorpayCheckout = () => {
+    if (window.Razorpay) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayPayment = async () => {
+    if (!selectedBill) {
+      return;
+    }
+
+    setIsProcessingPayment(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/bills/${selectedBill._id}/confirm`, {
-        method: 'PUT',
+      const scriptLoaded = await loadRazorpayCheckout();
+      if (!scriptLoaded) {
+        throw new Error('Failed to load Razorpay checkout');
+      }
+
+      const orderRes = await fetch(`/api/bills/${selectedBill._id}/razorpay-order`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify({ transactionId, amount: paidAmount }),
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to confirm payment');
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) {
+        throw new Error(orderData.message || 'Failed to create payment order');
       }
 
-      setMessageStatus('Payment confirmation received. We will update your data shortly.');
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'NexByte',
+        description: `Bill payment for ${selectedBill._id}`,
+        order_id: orderData.orderId,
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch(`/api/bills/${selectedBill._id}/verify-razorpay-payment`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token,
+              },
+              body: JSON.stringify(response),
+            });
 
-      // Update the bill status in the local state
-      setBills(bills.map(b => b._id === selectedBill._id ? { ...b, status: 'Verification Pending' } : b));
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) {
+              throw new Error(verifyData.message || 'Payment verification failed');
+            }
 
-      closeModal();
+            setBills((currentBills) =>
+              currentBills.map((bill) => (bill._id === verifyData._id ? verifyData : bill))
+            );
+            setMessageStatus('Payment completed successfully.');
+            closeModal();
+          } catch (verifyError) {
+            setMessageStatus(verifyError.message || 'Payment verification failed');
+            setIsProcessingPayment(false);
+          }
+        },
+        prefill: {
+          name: data?.clientData?.name || '',
+          email: data?.clientData?.email || '',
+          contact: data?.clientData?.phone || '',
+        },
+        notes: {
+          billId: selectedBill._id,
+        },
+        theme: {
+          color: '#1f7a8c',
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessingPayment(false);
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.on('payment.failed', (response) => {
+        const description = response?.error?.description || 'Payment failed';
+        setMessageStatus(description);
+        setIsProcessingPayment(false);
+      });
+      razorpay.open();
     } catch (err) {
       setMessageStatus(err.message);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -669,32 +745,27 @@ const ClientPanel = () => {
                 />
               </div>
               <div className="transaction-id-input">
-                <label htmlFor="paidAmount">Amount Paid</label>
+                <label>Amount Due</label>
                 <input
-                  type="number"
-                  id="paidAmount"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                  placeholder="Enter the amount you paid"
-                  required
+                  type="text"
+                  value={`₹${Math.max((selectedBill.amount || 0) - (selectedBill.paidAmount || 0), 0).toFixed(2)}`}
+                  readOnly
                 />
               </div>
               <div className="transaction-id-input">
-                <label htmlFor="transactionId">Transaction ID</label>
+                <label>Payment Method</label>
                 <input
                   type="text"
-                  id="transactionId"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value.trim())}
-                  placeholder="Enter the transaction ID from your UPI app"
-                  required
+                  value="Razorpay Secure Checkout"
+                  readOnly
                 />
               </div>
               <div className="modal-actions">
                 <button
-                  onClick={handleConfirmPayment}
-                  disabled={!transactionId || !paidAmount}>
-                  Confirm Payment</button>
+                  onClick={handleRazorpayPayment}
+                  disabled={isProcessingPayment}>
+                  {isProcessingPayment ? 'Processing...' : 'Pay with Razorpay'}
+                </button>
                 <button onClick={closeModal}>Cancel</button>
               </div>
             </div>

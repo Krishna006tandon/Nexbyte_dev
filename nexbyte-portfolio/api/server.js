@@ -2,6 +2,7 @@ const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 const dotenv = require('dotenv');
+const crypto = require('crypto');
 
 // Prefer project-level env, then API-level env (without overriding already-set vars)
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -39,7 +40,18 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com"],
+      "connect-src": ["'self'", "https://api.razorpay.com"],
+      "frame-src": ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://*.razorpay.com"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+    },
+  },
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -368,6 +380,58 @@ const sendMailSafe = async (mailOptions, label) => {
     console.error(`Error sending email (${label}):`, error);
     return { success: false, error: error.message };
   }
+};
+
+const getRazorpayConfig = () => {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    return null;
+  }
+  return { keyId, keySecret };
+};
+
+const getBillRemainingAmount = (bill) => Math.max(0, Number(bill.amount || 0) - Number(bill.paidAmount || 0));
+
+const callRazorpayApi = async (endpoint, payload) => {
+  const config = getRazorpayConfig();
+  if (!config) {
+    throw new Error('Razorpay is not configured');
+  }
+
+  const response = await fetch(`https://api.razorpay.com/v1/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${config.keyId}:${config.keySecret}`).toString('base64')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorMessage =
+      data?.error?.description ||
+      data?.error?.message ||
+      `Razorpay request failed with status ${response.status}`;
+    throw new Error(errorMessage);
+  }
+
+  return data;
+};
+
+const verifyRazorpaySignature = ({ orderId, paymentId, signature }) => {
+  const config = getRazorpayConfig();
+  if (!config) {
+    return false;
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', config.keySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
+
+  return expectedSignature === signature;
 };
 
 const formatTaskDueDate = (value) => {
@@ -1392,6 +1456,147 @@ app.put('/api/bills/:billId', auth, admin, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/bills/:billId/razorpay-order
+// @desc    Create a Razorpay order for bill payment
+// @access  Private (client)
+app.post('/api/bills/:billId/razorpay-order', auth, client, async (req, res) => {
+  try {
+    const config = getRazorpayConfig();
+    if (!config) {
+      return res.status(500).json({ message: 'Razorpay is not configured' });
+    }
+
+    const bill = await Bill.findById(req.params.billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    if (bill.client.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const remainingAmount = getBillRemainingAmount(bill);
+    if (remainingAmount <= 0) {
+      return res.status(400).json({ message: 'This bill is already fully paid' });
+    }
+
+    const amountInPaise = Math.round(remainingAmount * 100);
+    const order = await callRazorpayApi('orders', {
+      amount: amountInPaise,
+      currency: 'INR',
+      receipt: `bill_${bill._id}_${Date.now()}`.slice(0, 40),
+      notes: {
+        billId: String(bill._id),
+        clientId: String(bill.client),
+      },
+    });
+
+    bill.razorpayOrders.push({
+      orderId: order.id,
+      amount: remainingAmount,
+      status: 'created',
+    });
+    await bill.save();
+
+    return res.json({
+      key: config.keyId,
+      orderId: order.id,
+      amount: amountInPaise,
+      currency: order.currency || 'INR',
+      billId: String(bill._id),
+      clientName: req.user.email ? req.user.email.split('@')[0] : 'Client',
+    });
+  } catch (err) {
+    console.error('Error creating Razorpay order:', err.message);
+    return res.status(500).json({ message: err.message || 'Failed to create Razorpay order' });
+  }
+});
+
+// @route   POST api/bills/:billId/verify-razorpay-payment
+// @desc    Verify Razorpay payment and mark bill as paid
+// @access  Private (client)
+app.post('/api/bills/:billId/verify-razorpay-payment', auth, client, async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ message: 'Payment verification details are required' });
+  }
+
+  try {
+    const bill = await Bill.findById(req.params.billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    if (bill.client.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const orderEntry = bill.razorpayOrders.find(
+      (entry) => entry.orderId === razorpay_order_id
+    );
+
+    if (!orderEntry) {
+      return res.status(404).json({ message: 'Razorpay order not found for this bill' });
+    }
+
+    if (orderEntry.status === 'paid') {
+      const populatedBill = await Bill.findById(bill._id).populate('client', 'clientName projectName totalBudget');
+      return res.json(populatedBill);
+    }
+
+    const isValid = verifyRazorpaySignature({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+    });
+
+    if (!isValid) {
+      orderEntry.status = 'failed';
+      await bill.save();
+      return res.status(400).json({ message: 'Invalid Razorpay payment signature' });
+    }
+
+    orderEntry.paymentId = razorpay_payment_id;
+    orderEntry.signature = razorpay_signature;
+    orderEntry.status = 'paid';
+    orderEntry.verifiedAt = new Date();
+
+    bill.paidAmount = Number(bill.paidAmount || 0) + Number(orderEntry.amount || 0);
+    bill.status = bill.paidAmount >= bill.amount ? 'Paid' : 'Partially Paid';
+    await bill.save();
+
+    const [populatedBill, clientData] = await Promise.all([
+      Bill.findById(bill._id).populate('client', 'clientName projectName totalBudget'),
+      Client.findById(bill.client),
+    ]);
+
+    if (clientData?.email) {
+      await sendMailSafe(
+        {
+          from: getFromAddress('NexByte'),
+          to: clientData.email,
+          subject: 'Payment Successful',
+          html: `
+            <p>Dear ${clientData.clientName},</p>
+            <p>Your payment for bill ID ${bill._id} has been received successfully.</p>
+            <p><strong>Amount:</strong> INR ${Number(orderEntry.amount || 0).toFixed(2)}</p>
+            <p><strong>Payment ID:</strong> ${razorpay_payment_id}</p>
+            <p>Thank you,</p>
+            <p>The NexByte Team</p>
+          `,
+        },
+        'razorpay-payment-success'
+      );
+    }
+
+    return res.json(populatedBill);
+  } catch (err) {
+    console.error('Error verifying Razorpay payment:', err.message);
+    return res.status(500).json({ message: err.message || 'Failed to verify Razorpay payment' });
   }
 });
 

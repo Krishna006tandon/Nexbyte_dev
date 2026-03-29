@@ -5,6 +5,20 @@ import '../components/HomeSidebar.css';
 
 const projects = [
   {
+    title: 'Poonam Cooking & Baking Classes Website',
+    description: 'A full-stack web platform designed for a local offline cooking and baking institute, focused on simplifying class enrollment and business management. The platform provides a seamless experience for both students and administrators.',
+    features: [
+      'Course Exploration: View detailed information for various cooking and baking classes.',
+      'Easy Enrollment: Structured form with integrated advance payment functionality.',
+      'Student Portal: Access to recipe notes and exclusive course-related content after enrollment.',
+      'Admin Dashboard: Efficient management of classes, products, student data, and learning materials.',
+      'Dynamic Content: Tools for tracking enrollments, handling payments, and updating content in real-time.',
+      'Responsive Design: Minimal and warm UI/UX optimized for all devices.'
+    ],
+    techStack: 'React.js, Node.js, Express.js, MongoDB, Payment Gateway Integration',
+    liveLink: 'https://poonamcookingclasses.vercel.app/'
+  },
+  {
     title: 'OverXchange',
     description: 'A web application designed to bridge the gap between suppliers and vendors in the food industry. The platform provides a robust solution for order management, inventory tracking, and analytics.',
     features: [
