@@ -135,24 +135,13 @@ const ApplicationDetail = () => {
     }
   };
 
-  const handleDownloadResume = async () => {
-    // Extract ID from URL if useParams doesn't work
-    const urlId = window.location.pathname.split('/').pop();
-    const finalId = id || urlId;
-    
-    if (!finalId || finalId === 'undefined') {
-      console.error('No valid application ID available');
+  const handleDownloadResume = () => {
+    if (!application || !application.resume) {
+      console.error('No resume filename available');
       return;
     }
-    
-    try {
-      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
-        resume: application.resume
-      });
-      setApplication(response.data);
-    } catch (error) {
-      console.error('Error updating resume download status:', error);
-    }
+    // Open resume in a new tab for preview/download
+    window.open(`/api/internship/resumes/${application.resume}`, '_blank');
   };
 
   const handleSendEmail = () => {

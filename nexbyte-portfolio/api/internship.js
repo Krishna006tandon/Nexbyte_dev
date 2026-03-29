@@ -2,13 +2,21 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const InternshipApplication = require('./models/InternshipApplication');
 const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadsDir = path.join(__dirname, '../uploads/resumes');
+    // Portably handle uploads (use /tmp for Vercel, local for development)
+    const uploadsDir = process.env.VERCEL 
+      ? '/tmp/uploads/resumes' 
+      : path.join(__dirname, '../uploads/resumes');
+    
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
@@ -188,6 +196,23 @@ router.get('/applications/:id', async (req, res) => {
   }
 });
 
+// GET resume file
+router.get('/resumes/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const uploadsDir = process.env.VERCEL 
+    ? '/tmp/uploads/resumes' 
+    : path.join(__dirname, '../uploads/resumes');
+  const filePath = path.join(uploadsDir, filename);
+
+  const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+  
+  if (fs.existsSync(absolutePath)) {
+    res.sendFile(absolutePath);
+  } else {
+    res.status(404).json({ message: 'Resume file not found' });
+  }
+});
+
 // UPDATE application status
 router.put('/applications/:id/status', async (req, res) => {
   try {
@@ -312,24 +337,23 @@ router.delete('/roles/:id', (req, res) => {
 
 // Note: Email sending is implemented via SMTP using utils/emailTransport.
 
-// Create uploads directory if it doesn't exist
-const fs = require('fs');
+// Create uploads directory if it doesn't exist (local dev only)
+if (!process.env.VERCEL) {
+  const uploadsDirLocal = path.join(__dirname, '../uploads/resumes');
+  const uploadsParentDirLocal = path.join(__dirname, '../uploads');
 
-// Create the full uploads directory path recursively
-const uploadsDir = path.join(__dirname, '../uploads/resumes');
-const uploadsParentDir = path.join(__dirname, '../uploads');
-
-try {
-  // Create parent uploads directory first
-  if (!fs.existsSync(uploadsParentDir)) {
-    fs.mkdirSync(uploadsParentDir, { recursive: true });
+  try {
+    // Create parent uploads directory first
+    if (!fs.existsSync(uploadsParentDirLocal)) {
+      fs.mkdirSync(uploadsParentDirLocal, { recursive: true });
+    }
+    // Create resumes directory
+    if (!fs.existsSync(uploadsDirLocal)) {
+      fs.mkdirSync(uploadsDirLocal, { recursive: true });
+    }
+  } catch (error) {
+    console.error('Error creating local upload directories:', error);
   }
-  // Create resumes directory
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-} catch (error) {
-  console.error('Error creating upload directories:', error);
 }
 
 module.exports = router;
