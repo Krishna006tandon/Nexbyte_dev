@@ -196,8 +196,8 @@ const ApplicationDetail = () => {
 
   const handleDownloadResume = () => {
     const resumeUrl =
-      application && application.resumeUrl
-        ? application.resumeUrl
+      application && application._id
+        ? `/api/internship/applications/${application._id}/resume`
         : application && application.resume
           ? `/api/internship/resumes/${application.resume}`
           : null;

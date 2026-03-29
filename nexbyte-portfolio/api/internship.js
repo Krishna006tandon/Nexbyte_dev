@@ -78,6 +78,26 @@ const uploadResumeToCloudinary = async (file) => {
   return { publicId: data.public_id, secureUrl: data.secure_url };
 };
 
+const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value);
+
+const buildCloudinaryRawUrl = (publicId) => {
+  const cfg = getCloudinaryConfig();
+  if (!cfg || !publicId) return null;
+  const encodedPublicId = String(publicId)
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return `https://res.cloudinary.com/${cfg.cloudName}/raw/upload/${encodedPublicId}`;
+};
+
+const getApplicationResumeRedirectUrl = (application) => {
+  if (!application) return null;
+  if (isHttpUrl(application.resumeUrl)) return application.resumeUrl;
+  if (isHttpUrl(application.resume)) return application.resume;
+  if (application.resumePublicId) return buildCloudinaryRawUrl(application.resumePublicId);
+  return null;
+};
+
 // Configure multer for file uploads (memory storage; Cloudinary upload in route)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -342,6 +362,37 @@ router.get('/applications/:id', async (req, res) => {
   }
 });
 
+// GET application resume by application ID
+router.get('/applications/:id/resume', async (req, res) => {
+  try {
+    const application = await InternshipApplication.findById(req.params.id).select(
+      'resume resumeUrl resumePublicId'
+    );
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    const redirectUrl = getApplicationResumeRedirectUrl(application);
+    if (redirectUrl) {
+      return res.redirect(redirectUrl);
+    }
+
+    if (application.resume && !isHttpUrl(application.resume)) {
+      const uploadsDir = getUploadsDir();
+      const filePath = path.join(uploadsDir, application.resume);
+      const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+      if (fs.existsSync(absolutePath)) {
+        return res.sendFile(absolutePath);
+      }
+    }
+
+    return res.status(404).json({ message: 'Resume file not found' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 // GET resume file
 router.get('/resumes/:filename', async (req, res) => {
   const filename = req.params.filename;
@@ -356,9 +407,10 @@ router.get('/resumes/:filename', async (req, res) => {
     try {
       const application = await InternshipApplication.findOne({
         $or: [{ resume: filename }, { resumePublicId: filename }],
-      }).select('resumeUrl');
-      if (application && application.resumeUrl) {
-        return res.redirect(application.resumeUrl);
+      }).select('resume resumeUrl resumePublicId');
+      const redirectUrl = getApplicationResumeRedirectUrl(application);
+      if (redirectUrl) {
+        return res.redirect(redirectUrl);
       }
     } catch (e) {
       // ignore and fall through
