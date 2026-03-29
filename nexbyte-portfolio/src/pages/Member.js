@@ -252,35 +252,7 @@ const Member = () => {
     }
   };
 
-  const handleBackendSave = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Save all tasks to backend
-      const savePromises = tasks.map(task => 
-        fetch(`/api/tasks/${task._id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify({ status: task.status })
-        })
-      );
-      
-      const results = await Promise.all(savePromises);
-      const successful = results.filter(r => r.ok).length;
-      
-      if (successful === tasks.length) {
-        alert(`✅ All ${tasks.length} tasks saved to backend successfully!`);
-      } else {
-        alert(`⚠️ ${successful}/${tasks.length} tasks saved to backend`);
-      }
-    } catch (err) {
-      console.error('Error saving to backend:', err);
-      alert('❌ Error saving to backend');
-    }
-  };
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -393,22 +365,7 @@ const Member = () => {
           <div className="user-info">
             <span>Welcome, {userData?.email}</span>
             <span className="role-badge">{userData?.role}</span>
-            <button 
-              onClick={handleBackendSave}
-              className="backend-save-btn"
-              style={{
-                marginLeft: '20px',
-                padding: '8px 16px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              💾 Save All to Backend
-            </button>
+
           </div>
         </div>
 
