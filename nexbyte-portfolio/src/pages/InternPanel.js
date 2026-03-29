@@ -23,6 +23,11 @@ const InternPanel = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [internshipInfo, setInternshipInfo] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
+
+  // AI Growth analysis (generated on demand)
+  const [growthAnalysis, setGrowthAnalysis] = useState(null);
+  const [growthAnalysisLoading, setGrowthAnalysisLoading] = useState(false);
+  const [growthAnalysisError, setGrowthAnalysisError] = useState(null);
   
   // Form states
   const [offerLetter, setOfferLetter] = useState(null);
@@ -44,20 +49,14 @@ const InternPanel = () => {
   const certificateRef = useRef(null);
 
   useEffect(() => {
-    console.log('InternPanel - User:', user);
-    console.log('InternPanel - isIntern:', isIntern);
-    console.log('InternPanel - authLoading:', authLoading);
-    
     if (authLoading) return;
     
     if (!user) {
-      console.log('No user found, redirecting to login');
       navigate('/login');
       return;
     }
     
     if (user.role !== 'intern') {
-      console.log(`User role is ${user.role}, not intern. Access denied.`);
       navigate('/dashboard');
       return;
     }
@@ -189,9 +188,6 @@ const InternPanel = () => {
 
   const handleAcceptOffer = async () => {
     if (!window.confirm('Are you sure you want to accept this internship offer?')) return;
-    
-    console.log('Before accept - current offerStatus:', profile?.offerStatus);
-    
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
@@ -206,9 +202,7 @@ const InternPanel = () => {
 
       if (response.ok) {
         toast.success('Offer accepted successfully!');
-        console.log('Accept API call successful, fetching updated data...');
         await fetchInternData();
-        console.log('After accept - updated offerStatus:', profile?.offerStatus);
       } else {
         throw new Error('Failed to accept offer');
       }
@@ -224,9 +218,6 @@ const InternPanel = () => {
       toast.error('Please provide a reason for rejection');
       return;
     }
-    
-    console.log('Before reject - current offerStatus:', profile?.offerStatus);
-    
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
@@ -246,9 +237,7 @@ const InternPanel = () => {
         toast.success('Offer rejected successfully');
         setShowRejectForm(false);
         setRejectionReason('');
-        console.log('Reject API call successful, fetching updated data...');
         await fetchInternData();
-        console.log('After reject - updated offerStatus:', profile?.offerStatus);
       } else {
         throw new Error('Failed to reject offer');
       }
@@ -262,7 +251,6 @@ const InternPanel = () => {
   const handleQuickStatusUpdate = async (taskId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      console.log('DEBUG: Intern quick updating task:', taskId, 'to status:', newStatus);
       
       // Try intern-specific endpoint first
       let response = await fetch(`/api/intern/tasks/${taskId}`, {
@@ -276,7 +264,6 @@ const InternPanel = () => {
       
       // If intern endpoint fails, try direct task update
       if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Intern endpoint failed, trying direct task update...');
         response = await fetch(`/api/tasks/${taskId}`, {
           method: 'PUT',
           headers: {
@@ -338,11 +325,6 @@ const InternPanel = () => {
     
     try {
       const token = localStorage.getItem('token');
-      console.log('DEBUG: Updating task:', selectedTask._id);
-      console.log('DEBUG: Task assignedTo:', selectedTask.assignedTo);
-      console.log('DEBUG: New status:', updateStatus);
-      console.log('DEBUG: Token exists:', !!token);
-      console.log('DEBUG: User details:', user);
       
       // Direct task update with task ID
       let response = await fetch(`/api/tasks/${selectedTask._id}`, {
@@ -356,7 +338,6 @@ const InternPanel = () => {
       
       // If direct update fails, try intern-specific endpoint for backend save
       if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Direct update failed, trying intern endpoint for backend save...');
         response = await fetch(`/api/intern/tasks/${selectedTask._id}`, {
           method: 'PUT',
           headers: {
@@ -369,7 +350,6 @@ const InternPanel = () => {
       
       // If intern endpoint fails, try status update endpoint
       if (!response.ok && (response.status === 403 || response.status === 404)) {
-        console.log('DEBUG: Intern endpoint failed, trying status update endpoint...');
         response = await fetch(`/api/tasks/${selectedTask._id}/status`, {
           method: 'PUT',
           headers: {
@@ -392,7 +372,6 @@ const InternPanel = () => {
         
         // If all API endpoints fail, update locally and show appropriate message
         if (response.status === 403 || response.status === 404) {
-          console.log('DEBUG: All endpoints failed, updating locally...');
           toast.success('Backend save failed - updated locally only');
           setShowUpdateModal(false);
           setSelectedTask(null);
@@ -453,6 +432,36 @@ const InternPanel = () => {
       }
     } catch (err) {
       toast.error(err.message);
+    }
+  };
+
+  const handleGenerateGrowthAnalysis = async () => {
+    try {
+      setGrowthAnalysisLoading(true);
+      setGrowthAnalysisError(null);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/intern/growth-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ windowDays: 30 }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to generate growth analysis');
+      }
+
+      setGrowthAnalysis(data);
+      toast.success('AI growth analysis generated');
+    } catch (e) {
+      setGrowthAnalysisError(e.message);
+      toast.error(e.message);
+    } finally {
+      setGrowthAnalysisLoading(false);
     }
   };
 
@@ -1123,24 +1132,104 @@ const InternPanel = () => {
               
               <div className="reports-grid">
                 <div className="report-card performance-chart">
-                  <h3>Performance Trend</h3>
-                  <div className="chart-placeholder">
-                    <i className="fas fa-chart-line"></i>
-                    <p>Performance chart will be displayed here</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <h3 style={{ margin: 0 }}>AI Growth Analysis</h3>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleGenerateGrowthAnalysis}
+                      disabled={growthAnalysisLoading}
+                      style={{ padding: '8px 14px', fontSize: 14 }}
+                    >
+                      {growthAnalysisLoading ? 'Generating...' : 'Generate'}
+                    </button>
                   </div>
+
+                  {growthAnalysisError && (
+                    <p style={{ marginTop: 12, color: '#ff6b6b' }}>{growthAnalysisError}</p>
+                  )}
+
+                  {growthAnalysis?.metrics ? (
+                    <div style={{ marginTop: 14 }}>
+                      <p style={{ margin: '6px 0' }}>
+                        <strong>Window:</strong> {growthAnalysis.metrics.windowDays} days
+                      </p>
+                      <p style={{ margin: '6px 0' }}>
+                        <strong>Tasks:</strong> {growthAnalysis.metrics.tasks?.completed || 0} completed / {growthAnalysis.metrics.tasks?.total || 0} total
+                      </p>
+                      <p style={{ margin: '6px 0' }}>
+                        <strong>Avg Score:</strong> {growthAnalysis.metrics.reports?.avgPerformanceScore ?? 'N/A'}
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{ marginTop: 12, opacity: 0.9 }}>
+                      Generate an AI summary based on your tasks, diary entries, and reports.
+                    </p>
+                  )}
+
+                  {growthAnalysis?.analysis && (
+                    <div style={{ marginTop: 14 }}>
+                      {typeof growthAnalysis.analysis.overall_score !== 'undefined' && (
+                        <p style={{ margin: '6px 0' }}>
+                          <strong>Overall Score:</strong> {growthAnalysis.analysis.overall_score}
+                        </p>
+                      )}
+                      {growthAnalysis.analysis.summary && (
+                        <p style={{ margin: '10px 0', lineHeight: 1.5 }}>{growthAnalysis.analysis.summary}</p>
+                      )}
+
+                      {Array.isArray(growthAnalysis.analysis.strengths) && growthAnalysis.analysis.strengths.length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <strong>Strengths</strong>
+                          <ul>
+                            {growthAnalysis.analysis.strengths.slice(0, 6).map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {Array.isArray(growthAnalysis.analysis.improvement_areas) && growthAnalysis.analysis.improvement_areas.length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <strong>Improve Next</strong>
+                          <ul>
+                            {growthAnalysis.analysis.improvement_areas.slice(0, 6).map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {Array.isArray(growthAnalysis.analysis.next_7_days_plan) && growthAnalysis.analysis.next_7_days_plan.length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <strong>Next 7 Days Plan</strong>
+                          <ul>
+                            {growthAnalysis.analysis.next_7_days_plan.slice(0, 7).map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="report-card skills-progress">
                   <h3>Skills Development</h3>
                   <div className="skills-list">
-                    {profileForm.skills?.map((skill, index) => (
-                      <div key={index} className="skill-item">
-                        <span className="skill-name">{skill}</span>
-                        <div className="skill-progress">
-                          <div className="progress-bar" style={{width: `${Math.random() * 100}%`}}></div>
+                    {Array.isArray(growthAnalysis?.analysis?.suggested_skills) && growthAnalysis.analysis.suggested_skills.length > 0 ? (
+                      growthAnalysis.analysis.suggested_skills.slice(0, 10).map((skill, index) => (
+                        <div key={index} className="skill-item">
+                          <span className="skill-name">{skill}</span>
                         </div>
-                      </div>
-                    )) || (
+                      ))
+                    ) : Array.isArray(profileForm.skills) && profileForm.skills.length > 0 ? (
+                      profileForm.skills.map((skill, index) => (
+                        <div key={index} className="skill-item">
+                          <span className="skill-name">{skill}</span>
+                        </div>
+                      ))
+                    ) : (
                       <p>No skills added yet</p>
                     )}
                   </div>
@@ -1177,65 +1266,58 @@ const InternPanel = () => {
             <div className="certificate-section">
               <div className="section-header">
                 <h2>Internship Certificate</h2>
-                <p>
-                  View your internship completion certificate. A demo certificate is shown while your internship is in progress.
-                </p>
+                <p>View your internship completion certificate.</p>
               </div>
 
-              <div className="certificate-card">
-                <div ref={certificateRef}>
-                  <CertificatePreview
-                    internName={profileForm.firstName || user.email.split('@')[0]}
-                    internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
-                    startDate={internshipInfo?.startDate || profile?.internshipStartDate}
-                    endDate={internshipInfo?.endDate || profile?.internshipEndDate}
-                    certificateId={certificateData?.certificateId}
-                    isSample={profile?.internshipStatus !== 'completed' || !certificateData}
-                  />
-                </div>
+              {profile?.internshipStatus === 'completed' && certificateData ? (
+                <div className="certificate-card">
+                  <div ref={certificateRef}>
+                    <CertificatePreview
+                      internName={profileForm.firstName || user.email.split('@')[0]}
+                      internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
+                      startDate={internshipInfo?.startDate || profile?.internshipStartDate}
+                      endDate={internshipInfo?.endDate || profile?.internshipEndDate}
+                      certificateId={certificateData?.certificateId}
+                      isSample={false}
+                    />
+                  </div>
 
-                <div className="certificate-actions">
-                  {profile?.internshipStatus !== 'completed' || !certificateData ? (
-                    <>
-                      <p className="certificate-info-text">
-                        Your internship is currently <strong>in progress</strong>. The above is a demo certificate.
-                      </p>
-                      <button className="btn btn-secondary" disabled>
-                        Download Disabled (Internship in Progress)
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => {
-                          if (!window.html2pdf || !certificateRef.current) {
-                            toast.error('Download is not available in this environment.');
-                            return;
-                          }
-                          window.html2pdf().from(certificateRef.current).save(`certificate_${certificateData.certificateId}.pdf`);
-                        }}
-                      >
-                        <i className="fas fa-download"></i>
-                        Download Certificate
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          if (!certificateData?.certificateId) {
-                            toast.error('Certificate not available.');
-                            return;
-                          }
-                          window.open(`/certificate/${certificateData.certificateId}`, '_blank');
-                        }}
-                      >
-                        <i className="fas fa-external-link-alt"></i>
-                        View Fullscreen
-                      </button>
-                    </>
-                  )}
+                  <div className="certificate-actions">
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (!window.html2pdf || !certificateRef.current) {
+                          toast.error('Download is not available in this environment.');
+                          return;
+                        }
+                        window.html2pdf().from(certificateRef.current).save(`certificate_${certificateData.certificateId}.pdf`);
+                      }}
+                    >
+                      <i className="fas fa-download"></i>
+                      Download Certificate
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        if (!certificateData?.certificateId) {
+                          toast.error('Certificate not available.');
+                          return;
+                        }
+                        window.open(`/certificate/${certificateData.certificateId}`, '_blank');
+                      }}
+                    >
+                      <i className="fas fa-external-link-alt"></i>
+                      View Fullscreen
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="certificate-card">
+                  <p className="certificate-info-text">
+                    Your certificate will be available after your internship is marked <strong>completed</strong>.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

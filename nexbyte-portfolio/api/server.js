@@ -2280,6 +2280,151 @@ app.get('/api/reports', verifyIntern, async (req, res) => {
   }
 });
 
+const tryParseJsonObject = (text) => {
+  if (!text) return null;
+  const trimmed = String(text).trim();
+
+  // Fast path: exact JSON
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    // continue
+  }
+
+  // Fallback: extract first {...} block
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null;
+
+  const slice = trimmed.slice(firstBrace, lastBrace + 1);
+  try {
+    const parsed = JSON.parse(slice);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+// AI Growth analysis for intern dashboard
+app.post('/api/intern/growth-analysis', verifyIntern, async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ message: 'GEMINI_API_KEY is not configured' });
+    }
+
+    const windowDaysRaw = Number(req.body?.windowDays);
+    const windowDays = Number.isFinite(windowDaysRaw) ? windowDaysRaw : 30;
+    const safeWindowDays = Math.max(7, Math.min(180, Math.floor(windowDays)));
+
+    const since = new Date(Date.now() - safeWindowDays * 24 * 60 * 60 * 1000);
+
+    const [tasks, reports, diary] = await Promise.all([
+      Task.find({ assignedTo: req.user.id, createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(50),
+      Report.find({ intern: req.user.id, date: { $gte: since } }).sort({ date: -1 }).limit(20),
+      Diary.find({ intern: req.user.id, date: { $gte: since } }).sort({ date: -1 }).limit(20),
+    ]);
+
+    const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+    const isCompleted = (status) => {
+      const st = normalizeStatus(status);
+      return st === 'completed' || st === 'done' || st === 'approved';
+    };
+
+    const completedTasks = tasks.filter(t => isCompleted(t.status));
+    const inProgressTasks = tasks.filter(t => {
+      const st = normalizeStatus(t.status);
+      return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing';
+    });
+
+    const sum = (arr, pick) => arr.reduce((acc, x) => acc + (Number(pick(x)) || 0), 0);
+
+    const metrics = {
+      windowDays: safeWindowDays,
+      tasks: {
+        total: tasks.length,
+        completed: completedTasks.length,
+        inProgress: inProgressTasks.length,
+        estimatedHoursTotal: sum(tasks, t => t.estimated_effort_hours),
+        rewardInrCompleted: sum(completedTasks, t => t.reward_amount_in_INR),
+      },
+      reports: {
+        count: reports.length,
+        avgPerformanceScore:
+          reports.length ? Math.round(sum(reports, r => r.performanceScore) / reports.length) : null,
+        totalHoursWorked: sum(reports, r => r.hoursWorked),
+      },
+      diary: {
+        count: diary.length,
+        moods: diary.reduce((acc, d) => {
+          const mood = String(d.mood || 'neutral');
+          acc[mood] = (acc[mood] || 0) + 1;
+          return acc;
+        }, {}),
+      },
+    };
+
+    const payload = {
+      metrics,
+      tasks: tasks.slice(0, 25).map(t => ({
+        title: t.title,
+        status: t.status,
+        estimated_effort_hours: t.estimated_effort_hours,
+        reward_amount_in_INR: t.reward_amount_in_INR,
+        createdAt: t.createdAt,
+        completedAt: t.completedAt,
+      })),
+      reports: reports.slice(0, 12).map(r => ({
+        date: r.date,
+        performanceScore: r.performanceScore,
+        tasksCompleted: r.tasksCompleted,
+        hoursWorked: r.hoursWorked,
+        skillsLearned: r.skillsLearned,
+        feedback: r.feedback,
+      })),
+      diary: diary.slice(0, 10).map(d => ({
+        date: d.date,
+        mood: d.mood,
+        content: String(d.content || '').slice(0, 500),
+      })),
+    };
+
+    const promptText = `
+You are an internship performance coach. Analyze the intern's activity for the last ${safeWindowDays} days.
+Return ONLY valid JSON (no markdown, no extra text).
+Schema:
+{
+  "overall_score": number (0-100 integer),
+  "summary": string,
+  "strengths": string[],
+  "improvement_areas": string[],
+  "next_7_days_plan": string[],
+  "suggested_skills": string[],
+  "risk_flags": string[]
+}
+If data is insufficient, be honest and keep arrays short.
+Data:
+${JSON.stringify(payload)}
+    `.trim();
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const text = response.text();
+    const parsed = tryParseJsonObject(text);
+
+    return res.json({
+      metrics,
+      analysis: parsed || { summary: text },
+    });
+  } catch (err) {
+    console.error('Error generating intern growth analysis:', err);
+    return res.status(500).json({ message: 'Failed to generate growth analysis', error: err.message });
+  }
+});
+
 // Get intern notifications
 app.get('/api/notifications', verifyIntern, async (req, res) => {
   try {
