@@ -4,7 +4,6 @@ import { Helmet } from 'react-helmet-async';
 import Card from '../components/Card';
 import { FaCode, FaMobileAlt, FaPaintBrush } from 'react-icons/fa';
 import './Home.css';
-import HomeSidebar from '../components/HomeSidebar'; // Import the sidebar
 
 export const metadata = {
   title: "Web Development & SEO Services | NexByte_Core",
