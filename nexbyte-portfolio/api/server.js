@@ -1346,6 +1346,11 @@ app.post('/api/bills', auth, admin, async (req, res) => {
   const { client, amount, dueDate, status, description } = req.body;
 
   try {
+    const clientData = await Client.findById(client).select('clientName email projectName');
+    if (!clientData) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
     const newBill = new Bill({
       client,
       amount,
@@ -1355,7 +1360,37 @@ app.post('/api/bills', auth, admin, async (req, res) => {
     });
 
     await newBill.save();
-    res.json(newBill);
+
+    const billLinkBase = process.env.PUBLIC_APP_URL || process.env.CLIENT_URL || '';
+    const billLink = billLinkBase ? `${billLinkBase.replace(/\/$/, '')}/client` : '';
+
+    await sendMailSafe(
+      {
+        from: getFromAddress('NexByte'),
+        to: clientData.email,
+        subject: `New Bill Generated - ${clientData.projectName || 'NexByte Project'}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <p>Dear ${clientData.clientName},</p>
+            <p>A new bill has been generated for your project.</p>
+            <ul>
+              <li><strong>Bill ID:</strong> ${newBill._id}</li>
+              <li><strong>Project:</strong> ${clientData.projectName || 'N/A'}</li>
+              <li><strong>Amount:</strong> INR ${Number(amount || 0).toFixed(2)}</li>
+              <li><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString('en-IN')}</li>
+              <li><strong>Status:</strong> ${status || 'Unpaid'}</li>
+              <li><strong>Description:</strong> ${description || 'N/A'}</li>
+            </ul>
+            ${billLink ? `<p>You can review and pay the bill from your client dashboard: <a href="${billLink}">${billLink}</a></p>` : ''}
+            <p>Regards,<br/>NexByte Team</p>
+          </div>
+        `,
+      },
+      'bill-created-client'
+    );
+
+    const populatedBill = await Bill.findById(newBill._id).populate('client', 'clientName projectName totalBudget');
+    res.json(populatedBill);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
