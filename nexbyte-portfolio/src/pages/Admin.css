@@ -420,6 +420,88 @@ tbody tr:hover {
   border-radius: 8px;
 }
 
+.resource-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.resource-admin-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resource-admin-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.resource-admin-meta span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  color: var(--secondary-text);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.resource-tags {
+  color: var(--secondary-text);
+  font-size: 14px;
+}
+
+.resource-intern-picker {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 15px;
+  background: var(--surface);
+}
+
+.resource-intern-picker h4 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.resource-intern-list {
+  display: grid;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.resource-intern-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary-text);
+}
+
+.resource-intern-option input {
+  width: auto;
+  margin: 0;
+}
+
+.resource-message {
+  margin: 0 0 12px;
+  font-weight: 500;
+}
+
+.resource-message.success {
+  color: var(--success-color);
+}
+
+.resource-message.error {
+  color: var(--error-color);
+}
+
 .generated-srs h1,
 .generated-srs h2 {
   border-bottom: none;

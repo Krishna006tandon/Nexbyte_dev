@@ -3,6 +3,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 const dotenv = require('dotenv');
 const crypto = require('crypto');
+const multer = require('multer');
 
 // Prefer project-level env, then API-level env (without overriding already-set vars)
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -29,6 +30,7 @@ const Internship = require('./models/Internship');
 const InternshipApplication = require('./models/InternshipApplication');
 const Certificate = require('./models/Certificate');
 const AutomationState = require('./models/AutomationState');
+const PresentationTopic = require('./models/PresentationTopic');
 const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
 const mailSender = require('./mailSender');
@@ -432,6 +434,77 @@ const verifyRazorpaySignature = ({ orderId, paymentId, signature }) => {
     .digest('hex');
 
   return expectedSignature === signature;
+};
+
+const uploadPdf = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: function (req, file, cb) {
+    const isPdf =
+      file.mimetype === 'application/pdf' ||
+      (typeof file.originalname === 'string' && file.originalname.toLowerCase().endsWith('.pdf'));
+    if (isPdf) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+});
+
+const getCloudinaryConfig = () => {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+};
+
+const sha1 = (input) => crypto.createHash('sha1').update(String(input)).digest('hex');
+
+const buildCloudinarySignature = (params, apiSecret) => {
+  const toSign = Object.keys(params)
+    .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join('&');
+  return sha1(`${toSign}${apiSecret}`);
+};
+
+const uploadPdfToCloudinary = async (file, folderPrefix) => {
+  const config = getCloudinaryConfig();
+  if (!config) {
+    throw new Error('Cloudinary is not configured');
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const publicId = `${folderPrefix}_${crypto.randomUUID()}`;
+  const signature = buildCloudinarySignature({ public_id: publicId, timestamp }, config.apiSecret);
+
+  const form = new FormData();
+  const blob = new Blob([file.buffer], { type: file.mimetype || 'application/pdf' });
+  form.append('file', blob, file.originalname || 'document.pdf');
+  form.append('api_key', config.apiKey);
+  form.append('timestamp', String(timestamp));
+  form.append('public_id', publicId);
+  form.append('signature', signature);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/raw/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorMessage =
+      data?.error?.message || `Cloudinary upload failed with status ${response.status}`;
+    throw new Error(errorMessage);
+  }
+
+  return {
+    publicId: data.public_id,
+    secureUrl: data.secure_url,
+  };
 };
 
 const formatTaskDueDate = (value) => {
@@ -3244,16 +3317,238 @@ app.put('/api/member/tasks/:id', auth, async (req, res) => {
 });
 
 // Get resources
-app.get('/api/resources', async (req, res) => {
+app.get('/api/resources', auth, async (req, res) => {
   try {
-    const resources = await Resource.find()
+    let query = {};
+
+    if (req.user.role === 'intern') {
+      query = {
+        $or: [
+          { assignmentMode: 'all' },
+          { assignmentMode: 'selected', assignedInterns: req.user.id }
+        ]
+      };
+    }
+
+    const resources = await Resource.find(query)
+      .populate('assignedInterns', 'email')
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(100);
     
     res.json(resources);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Create resource
+app.post('/api/resources', auth, admin, async (req, res) => {
+  try {
+    const { title, description, type, url, category, difficulty, tags, assignmentMode, assignedInterns } = req.body;
+
+    if (!title || !description || !url) {
+      return res.status(400).json({ message: 'Title, description and URL are required' });
+    }
+
+    const normalizedTags = Array.isArray(tags)
+      ? tags
+      : String(tags || '')
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean);
+
+    const normalizedAssignedInterns = Array.isArray(assignedInterns)
+      ? assignedInterns
+      : String(assignedInterns || '')
+          .split(',')
+          .map((internId) => internId.trim())
+          .filter(Boolean);
+
+    if (assignmentMode === 'selected') {
+      if (normalizedAssignedInterns.length === 0) {
+        return res.status(400).json({ message: 'Select at least one intern for targeted resources' });
+      }
+
+      const validInternCount = await User.countDocuments({
+        _id: { $in: normalizedAssignedInterns },
+        role: 'intern'
+      });
+
+      if (validInternCount !== normalizedAssignedInterns.length) {
+        return res.status(400).json({ message: 'One or more selected interns are invalid' });
+      }
+    }
+
+    const resource = new Resource({
+      title: String(title).trim(),
+      description: String(description).trim(),
+      type,
+      url: String(url).trim(),
+      category,
+      difficulty,
+      tags: normalizedTags,
+      assignmentMode: assignmentMode === 'selected' ? 'selected' : 'all',
+      assignedInterns: assignmentMode === 'selected' ? normalizedAssignedInterns : [],
+    });
+
+    await resource.save();
+    const populatedResource = await Resource.findById(resource._id).populate('assignedInterns', 'email');
+    res.status(201).json(populatedResource);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Delete resource
+app.delete('/api/resources/:id', auth, admin, async (req, res) => {
+  try {
+    const deletedResource = await Resource.findByIdAndDelete(req.params.id);
+    if (!deletedResource) {
+      return res.status(404).json({ message: 'Resource not found' });
+    }
+
+    res.json({ message: 'Resource deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get presentation topics (admin)
+app.get('/api/presentation-topics', auth, admin, async (req, res) => {
+  try {
+    const topics = await PresentationTopic.find()
+      .populate('intern', 'email')
+      .populate('assignedBy', 'email')
+      .sort({ createdAt: -1 });
+
+    res.json(topics);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Assign presentation topic to intern
+app.post('/api/presentation-topics', auth, admin, async (req, res) => {
+  try {
+    const { internId, title, description, dueDate } = req.body;
+
+    if (!internId || !title || !description) {
+      return res.status(400).json({ message: 'Intern, title and description are required' });
+    }
+
+    const intern = await User.findOne({ _id: internId, role: 'intern' }).select('email');
+    if (!intern) {
+      return res.status(404).json({ message: 'Intern not found' });
+    }
+
+    const topic = new PresentationTopic({
+      intern: internId,
+      assignedBy: req.user.id,
+      title: String(title).trim(),
+      description: String(description).trim(),
+      dueDate: dueDate || undefined,
+    });
+
+    await topic.save();
+
+    await sendMailSafe(
+      {
+        from: getFromAddress('NexByte'),
+        to: intern.email,
+        subject: `Presentation Topic Assigned - ${topic.title}`,
+        html: `
+          <p>Dear ${intern.email.split('@')[0]},</p>
+          <p>A new presentation topic has been assigned to you.</p>
+          <ul>
+            <li><strong>Topic:</strong> ${topic.title}</li>
+            <li><strong>Description:</strong> ${topic.description}</li>
+            <li><strong>Due Date:</strong> ${topic.dueDate ? new Date(topic.dueDate).toLocaleDateString('en-IN') : 'Not specified'}</li>
+          </ul>
+          <p>Please open your intern panel to review the topic and submit your research paper in PDF format.</p>
+          <p>Regards,<br/>NexByte Team</p>
+        `,
+      },
+      'presentation-topic-assigned'
+    );
+
+    const populatedTopic = await PresentationTopic.findById(topic._id)
+      .populate('intern', 'email')
+      .populate('assignedBy', 'email');
+
+    res.status(201).json(populatedTopic);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get presentation topics for current intern
+app.get('/api/intern/presentation-topics', verifyIntern, async (req, res) => {
+  try {
+    const topics = await PresentationTopic.find({ intern: req.user.id })
+      .populate('assignedBy', 'email')
+      .sort({ createdAt: -1 });
+
+    res.json(topics);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Submit research paper for a presentation topic
+app.post('/api/intern/presentation-topics/:id/submit', verifyIntern, uploadPdf.single('researchPaper'), async (req, res) => {
+  try {
+    const topic = await PresentationTopic.findOne({ _id: req.params.id, intern: req.user.id })
+      .populate('assignedBy', 'email')
+      .populate('intern', 'email');
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Presentation topic not found' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Research paper PDF is required' });
+    }
+
+    const uploadedPaper = await uploadPdfToCloudinary(req.file, 'nexbyte_presentation_paper');
+    topic.researchPaperUrl = uploadedPaper.secureUrl;
+    topic.researchPaperPublicId = uploadedPaper.publicId;
+    topic.researchPaperOriginalName = req.file.originalname || 'research-paper.pdf';
+    topic.submissionNotes = req.body.submissionNotes ? String(req.body.submissionNotes).trim() : '';
+    topic.status = 'submitted';
+    topic.submittedAt = new Date();
+    await topic.save();
+
+    if (topic.assignedBy?.email) {
+      await sendMailSafe(
+        {
+          from: getFromAddress('NexByte'),
+          to: topic.assignedBy.email,
+          subject: `Research Paper Submitted - ${topic.title}`,
+          html: `
+            <p>The assigned intern has submitted a research paper.</p>
+            <ul>
+              <li><strong>Intern:</strong> ${topic.intern?.email || 'Intern'}</li>
+              <li><strong>Topic:</strong> ${topic.title}</li>
+              <li><strong>Submitted At:</strong> ${topic.submittedAt ? new Date(topic.submittedAt).toLocaleString('en-IN') : 'Now'}</li>
+              <li><strong>Paper:</strong> <a href="${topic.researchPaperUrl}">Open Research Paper</a></li>
+            </ul>
+            ${topic.submissionNotes ? `<p><strong>Notes:</strong> ${topic.submissionNotes}</p>` : ''}
+          `,
+        },
+        'presentation-topic-submitted'
+      );
+    }
+
+    res.json(topic);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 

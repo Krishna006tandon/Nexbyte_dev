@@ -22,6 +22,9 @@ const Admin = () => {
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
   const [bills, setBills] = useState([]);
+  const [resources, setResources] = useState([]);
+  const [resourceInterns, setResourceInterns] = useState([]);
+  const [presentationTopics, setPresentationTopics] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
@@ -109,6 +112,25 @@ const Admin = () => {
     associatedClient: '',
   });
 
+  const [resourceData, setResourceData] = useState({
+    title: '',
+    description: '',
+    url: '',
+    type: 'documentation',
+    category: 'general',
+    difficulty: 'beginner',
+    tags: '',
+    assignmentMode: 'all',
+    assignedInterns: [],
+  });
+
+  const [presentationTopicData, setPresentationTopicData] = useState({
+    internId: '',
+    title: '',
+    description: '',
+    dueDate: '',
+  });
+
   const [localSrsData, setLocalSrsData] = useState({
     projectName: '',
     projectDescription: '',
@@ -163,6 +185,40 @@ const Admin = () => {
             setClients(data);
           } else {
             console.error(data.message);
+          }
+        } else if (location.pathname === '/admin/resources') {
+          const [resourceRes, usersRes] = await Promise.all([
+            fetch('/api/resources', { headers }),
+            fetch('/api/users', { headers })
+          ]);
+          const resourceData = await resourceRes.json();
+          const usersData = await usersRes.json();
+          if (resourceRes.ok) {
+            setResources(resourceData);
+          } else {
+            console.error(resourceData.message);
+          }
+          if (usersRes.ok) {
+            setResourceInterns(usersData.filter((member) => member.role === 'intern'));
+          } else {
+            console.error(usersData.message);
+          }
+        } else if (location.pathname === '/admin/presentation-topics') {
+          const [topicsRes, usersRes] = await Promise.all([
+            fetch('/api/presentation-topics', { headers }),
+            fetch('/api/users', { headers })
+          ]);
+          const topicsData = await topicsRes.json();
+          const usersData = await usersRes.json();
+          if (topicsRes.ok) {
+            setPresentationTopics(topicsData);
+          } else {
+            console.error(topicsData.message);
+          }
+          if (usersRes.ok) {
+            setMembers(usersData);
+          } else {
+            console.error(usersData.message);
           }
         }
 
@@ -442,6 +498,26 @@ const Admin = () => {
     setBillData({ ...billData, [e.target.name]: e.target.value });
   };
 
+  const handleResourceChange = (e) => {
+    setResourceData({ ...resourceData, [e.target.name]: e.target.value });
+  };
+
+  const handleResourceInternToggle = (internId) => {
+    setResourceData((current) => {
+      const alreadySelected = current.assignedInterns.includes(internId);
+      return {
+        ...current,
+        assignedInterns: alreadySelected
+          ? current.assignedInterns.filter((id) => id !== internId)
+          : [...current.assignedInterns, internId],
+      };
+    });
+  };
+
+  const handlePresentationTopicChange = (e) => {
+    setPresentationTopicData({ ...presentationTopicData, [e.target.name]: e.target.value });
+  };
+
   const handleGenerateBillDescription = async () => {
     if (!billData.client || !billData.amount) {
       alert('Please select a client and enter an amount first.');
@@ -544,6 +620,110 @@ const Admin = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleAddResource = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('/api/resources', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(resourceData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.message || 'Failed to add resource');
+        return;
+      }
+
+      setResources((currentResources) => [data, ...currentResources]);
+      setResourceData({
+        title: '',
+        description: '',
+        url: '',
+        type: 'documentation',
+        category: 'general',
+        difficulty: 'beginner',
+        tags: '',
+        assignmentMode: 'all',
+        assignedInterns: [],
+      });
+      setSuccessMessage('Resource added successfully.');
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Failed to add resource.');
+    }
+  };
+
+  const handleDeleteResource = async (id) => {
+    const token = localStorage.getItem('token');
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`/api/resources/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.message || 'Failed to delete resource');
+        return;
+      }
+
+      setResources((currentResources) => currentResources.filter((resource) => resource._id !== id));
+      setSuccessMessage('Resource deleted successfully.');
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Failed to delete resource.');
+    }
+  };
+
+  const handleAddPresentationTopic = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('/api/presentation-topics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(presentationTopicData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.message || 'Failed to assign presentation topic');
+        return;
+      }
+
+      setPresentationTopics((currentTopics) => [data, ...currentTopics]);
+      setPresentationTopicData({
+        internId: '',
+        title: '',
+        description: '',
+        dueDate: '',
+      });
+      setSuccessMessage('Presentation topic assigned successfully.');
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Failed to assign presentation topic.');
     }
   };
 
@@ -1433,6 +1613,208 @@ const Admin = () => {
               </div>
             );
           })()}
+
+          {location.pathname === '/admin/resources' && (
+            <div>
+              <h2>Intern Resources</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddResource}>
+                  <h3>Add New Resource</h3>
+                  <input
+                    type="text"
+                    name="title"
+                    placeholder="Resource title"
+                    value={resourceData.title}
+                    onChange={handleResourceChange}
+                    required
+                  />
+                  <textarea
+                    name="description"
+                    placeholder="Short description"
+                    value={resourceData.description}
+                    onChange={handleResourceChange}
+                    required
+                  />
+                  <input
+                    type="url"
+                    name="url"
+                    placeholder="https://example.com/resource"
+                    value={resourceData.url}
+                    onChange={handleResourceChange}
+                    required
+                  />
+                  <select name="type" value={resourceData.type} onChange={handleResourceChange}>
+                    <option value="documentation">Documentation</option>
+                    <option value="tutorial">Tutorial</option>
+                    <option value="video">Video</option>
+                    <option value="article">Article</option>
+                    <option value="tool">Tool</option>
+                  </select>
+                  <select name="category" value={resourceData.category} onChange={handleResourceChange}>
+                    <option value="general">General</option>
+                    <option value="frontend">Frontend</option>
+                    <option value="backend">Backend</option>
+                    <option value="fullstack">Fullstack</option>
+                    <option value="devops">DevOps</option>
+                    <option value="design">Design</option>
+                  </select>
+                  <select name="difficulty" value={resourceData.difficulty} onChange={handleResourceChange}>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                  <select name="assignmentMode" value={resourceData.assignmentMode} onChange={handleResourceChange}>
+                    <option value="all">All Interns</option>
+                    <option value="selected">Selected Interns</option>
+                  </select>
+                  {resourceData.assignmentMode === 'selected' && (
+                    <div className="resource-intern-picker">
+                      <h4>Select Interns</h4>
+                      {resourceInterns.length > 0 ? (
+                        <div className="resource-intern-list">
+                          {resourceInterns.map((intern) => (
+                            <label key={intern._id} className="resource-intern-option">
+                              <input
+                                type="checkbox"
+                                checked={resourceData.assignedInterns.includes(intern._id)}
+                                onChange={() => handleResourceInternToggle(intern._id)}
+                              />
+                              <span>{intern.email}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="resource-tags">No interns available for assignment.</p>
+                      )}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    name="tags"
+                    placeholder="react, api, ui"
+                    value={resourceData.tags}
+                    onChange={handleResourceChange}
+                  />
+                  {successMessage && <p className="resource-message success">{successMessage}</p>}
+                  {errorMessage && <p className="resource-message error">{errorMessage}</p>}
+                  <button type="submit" className="btn btn-primary">Add Resource</button>
+                </form>
+              </div>
+
+              <div className="resource-admin-grid">
+                {resources.length > 0 ? (
+                  resources.map((resource) => (
+                    <div key={resource._id} className="resource-admin-card">
+                      <div className="resource-admin-meta">
+                        <span>{resource.type}</span>
+                        <span>{resource.category}</span>
+                        <span>{resource.difficulty}</span>
+                        <span>{resource.assignmentMode === 'selected' ? 'Selected Interns' : 'All Interns'}</span>
+                      </div>
+                      <h3>{resource.title}</h3>
+                      <p>{resource.description}</p>
+                      <a href={resource.url} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                        Open Resource
+                      </a>
+                      {resource.assignmentMode === 'selected' && resource.assignedInterns && resource.assignedInterns.length > 0 && (
+                        <p className="resource-tags">
+                          Assigned to: {resource.assignedInterns.map((intern) => intern.email).join(', ')}
+                        </p>
+                      )}
+                      {resource.tags && resource.tags.length > 0 && (
+                        <p className="resource-tags">{resource.tags.join(', ')}</p>
+                      )}
+                      <button onClick={() => handleDeleteResource(resource._id)} className="btn btn-danger">
+                        Delete Resource
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="generated-srs">
+                    <h3>No resources added yet</h3>
+                    <p>Admin se add karoge to intern panel me yahin se resources dikh jayenge.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {location.pathname === '/admin/presentation-topics' && (
+            <div>
+              <h2>Presentation Topics</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddPresentationTopic}>
+                  <h3>Assign Topic to Intern</h3>
+                  <select
+                    name="internId"
+                    value={presentationTopicData.internId}
+                    onChange={handlePresentationTopicChange}
+                    required
+                  >
+                    <option value="">Select an Intern</option>
+                    {members.filter((member) => member.role === 'intern').map((intern) => (
+                      <option key={intern._id} value={intern._id}>{intern.email}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    name="title"
+                    placeholder="Presentation topic title"
+                    value={presentationTopicData.title}
+                    onChange={handlePresentationTopicChange}
+                    required
+                  />
+                  <textarea
+                    name="description"
+                    placeholder="Topic details and expectations"
+                    value={presentationTopicData.description}
+                    onChange={handlePresentationTopicChange}
+                    required
+                  />
+                  <input
+                    type="date"
+                    name="dueDate"
+                    value={presentationTopicData.dueDate}
+                    onChange={handlePresentationTopicChange}
+                  />
+                  {successMessage && <p className="resource-message success">{successMessage}</p>}
+                  {errorMessage && <p className="resource-message error">{errorMessage}</p>}
+                  <button type="submit" className="btn btn-primary">Assign Topic</button>
+                </form>
+              </div>
+
+              <div className="resource-admin-grid">
+                {presentationTopics.length > 0 ? (
+                  presentationTopics.map((topic) => (
+                    <div key={topic._id} className="resource-admin-card">
+                      <div className="resource-admin-meta">
+                        <span>{topic.status}</span>
+                        <span>{topic.dueDate ? new Date(topic.dueDate).toLocaleDateString() : 'No Due Date'}</span>
+                      </div>
+                      <h3>{topic.title}</h3>
+                      <p>{topic.description}</p>
+                      <p className="resource-tags">Assigned to: {topic.intern?.email || 'Intern'}</p>
+                      {topic.researchPaperUrl ? (
+                        <a href={topic.researchPaperUrl} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                          View Research Paper
+                        </a>
+                      ) : (
+                        <p className="resource-tags">Research paper not submitted yet.</p>
+                      )}
+                      {topic.submissionNotes && (
+                        <p className="resource-tags">Submission Notes: {topic.submissionNotes}</p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="generated-srs">
+                    <h3>No presentation topics assigned</h3>
+                    <p>Assign a topic to an intern and they will be able to submit their research paper from the intern panel.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {location.pathname === '/admin/srs-generator' && (
             <div>

@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/static/css/main.e7432432.css",
+    "main.js": "/static/js/main.951e09e2.js",
+    "static/js/453.78664728.chunk.js": "/static/js/453.78664728.chunk.js",
+    "static/media/nexbyte-logo.png": "/static/media/nexbyte-logo.30f0f454fa24f3781b98.png",
+    "index.html": "/index.html",
+    "main.e7432432.css.map": "/static/css/main.e7432432.css.map",
+    "main.951e09e2.js.map": "/static/js/main.951e09e2.js.map",
+    "453.78664728.chunk.js.map": "/static/js/453.78664728.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e7432432.css",
+    "static/js/main.951e09e2.js"
+  ]
+}

@@ -11,6 +11,8 @@ const Sidebar = () => {
     { to: "/admin/billing", text: "Billing" },
     { to: "/admin/clients", text: "Clients" },
     { to: "/admin/projects", text: "Projects" },
+    { to: "/admin/presentation-topics", text: "Presentation Topics" },
+    { to: "/admin/resources", text: "Resources" },
     { to: "/admin/messages", text: "Client Messages" },
     { to: "/admin/contacts", text: "Contact Messages" },
     { to: "/admin/members", text: "Members" },

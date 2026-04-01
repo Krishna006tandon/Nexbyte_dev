@@ -1026,6 +1026,80 @@ body {
   line-height: 1.6;
 }
 
+.resource-admin-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.resource-admin-meta span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.presentation-topics-section {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.presentation-topic-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.presentation-topic-card {
+  background: var(--bg-card);
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.presentation-topic-card h3 {
+  color: var(--text-primary);
+}
+
+.presentation-topic-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.presentation-topic-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.presentation-submit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: auto;
+}
+
+.presentation-submit-box input,
+.presentation-submit-box textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+.presentation-submit-box textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
 /* Team Section */
 .team-section {
   max-width: 1200px;

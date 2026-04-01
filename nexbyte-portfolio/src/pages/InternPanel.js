@@ -20,6 +20,7 @@ const InternPanel = () => {
   const [reports, setReports] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [resources, setResources] = useState([]);
+  const [presentationTopics, setPresentationTopics] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [internshipInfo, setInternshipInfo] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
@@ -40,6 +41,9 @@ const InternPanel = () => {
   const [updateStatus, setUpdateStatus] = useState('');
   const [diaryEntry, setDiaryEntry] = useState('');
   const [profileForm, setProfileForm] = useState({});
+  const [paperFiles, setPaperFiles] = useState({});
+  const [submissionNotes, setSubmissionNotes] = useState({});
+  const [submittingTopicId, setSubmittingTopicId] = useState(null);
   const [settings, setSettings] = useState({
     emailNotifications: true,
     pushNotifications: false,
@@ -86,13 +90,14 @@ const InternPanel = () => {
       };
 
       // Fetch data with fallbacks
-      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, teamData, internshipRes] = await Promise.all([
+      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, teamData, internshipRes] = await Promise.all([
         fetchWithErrorHandling('/api/profile', null),
         fetchWithErrorHandling('/api/tasks', []), // Use regular tasks endpoint with auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
         fetchWithErrorHandling('/api/notifications', []),
         fetchWithErrorHandling('/api/resources', []),
+        fetchWithErrorHandling('/api/intern/presentation-topics', []),
         fetchWithErrorHandling('/api/team', []),
         fetchWithErrorHandling('/api/internships/me', null)
       ]);
@@ -118,6 +123,7 @@ const InternPanel = () => {
       setReports(reportsData);
       setNotifications(notificationsData);
       setResources(resourcesData);
+      setPresentationTopics(presentationTopicsData);
       setTeamMembers(teamData);
 
     } catch (err) {
@@ -510,6 +516,61 @@ const InternPanel = () => {
       toast.error(err.message);
     }
   };
+
+  const handlePaperFileChange = (topicId, file) => {
+    setPaperFiles((currentFiles) => ({
+      ...currentFiles,
+      [topicId]: file || null,
+    }));
+  };
+
+  const handleTopicNotesChange = (topicId, value) => {
+    setSubmissionNotes((currentNotes) => ({
+      ...currentNotes,
+      [topicId]: value,
+    }));
+  };
+
+  const handleResearchPaperSubmit = async (topicId) => {
+    const file = paperFiles[topicId];
+    if (!file) {
+      toast.error('Please choose a PDF research paper first.');
+      return;
+    }
+
+    try {
+      setSubmittingTopicId(topicId);
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('researchPaper', file);
+      formData.append('submissionNotes', submissionNotes[topicId] || '');
+
+      const response = await fetch(`/api/intern/presentation-topics/${topicId}/submit`, {
+        method: 'POST',
+        headers: {
+          'x-auth-token': token,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit research paper');
+      }
+
+      setPresentationTopics((currentTopics) =>
+        currentTopics.map((topic) => (topic._id === data._id ? data : topic))
+      );
+      setPaperFiles((currentFiles) => ({ ...currentFiles, [topicId]: null }));
+      setSubmissionNotes((currentNotes) => ({ ...currentNotes, [topicId]: '' }));
+      toast.success('Research paper submitted successfully.');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSubmittingTopicId(null);
+    }
+  };
+
   const getTaskStats = () => {
     const total = tasks.length;
     const completed = tasks.filter(t => t.status === 'completed').length;
@@ -638,6 +699,15 @@ const InternPanel = () => {
               >
                 <i className="fas fa-book-open"></i>
                 Resources
+              </button>
+            </li>
+            <li>
+              <button 
+                className={`nav-btn ${activeSection === 'presentation-topics' ? 'active' : ''}`}
+                onClick={() => setActiveSection('presentation-topics')}
+              >
+                <i className="fas fa-file-pdf"></i>
+                Presentation Topics
               </button>
             </li>
             <li>
@@ -1316,6 +1386,70 @@ const InternPanel = () => {
                     <i className="fas fa-book-open"></i>
                     <h3>No resources available</h3>
                     <p>Learning materials will be added soon.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'presentation-topics' && (
+            <div className="presentation-topics-section">
+              <div className="section-header">
+                <h2>Presentation Topics</h2>
+                <p>View assigned topics and submit your research paper in PDF format</p>
+              </div>
+
+              <div className="presentation-topic-list">
+                {presentationTopics.length > 0 ? (
+                  presentationTopics.map((topic) => (
+                    <div key={topic._id} className="presentation-topic-card">
+                      <div className="resource-admin-meta">
+                        <span>{topic.status}</span>
+                        <span>{topic.dueDate ? new Date(topic.dueDate).toLocaleDateString() : 'No Due Date'}</span>
+                      </div>
+                      <h3>{topic.title}</h3>
+                      <p>{topic.description}</p>
+                      {topic.researchPaperUrl ? (
+                        <div className="presentation-topic-links">
+                          <a href={topic.researchPaperUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                            <i className="fas fa-external-link-alt"></i>
+                            View Submitted Paper
+                          </a>
+                          <p className="resource-tags">
+                            Submitted: {topic.researchPaperOriginalName || 'Research Paper.pdf'}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="resource-tags">Research paper not submitted yet.</p>
+                      )}
+
+                      <div className="presentation-submit-box">
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          onChange={(e) => handlePaperFileChange(topic._id, e.target.files && e.target.files[0])}
+                        />
+                        <textarea
+                          placeholder="Optional notes for admin"
+                          value={submissionNotes[topic._id] || ''}
+                          onChange={(e) => handleTopicNotesChange(topic._id, e.target.value)}
+                        />
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleResearchPaperSubmit(topic._id)}
+                          disabled={submittingTopicId === topic._id}
+                        >
+                          <i className="fas fa-upload"></i>
+                          {submittingTopicId === topic._id ? 'Submitting...' : topic.researchPaperUrl ? 'Resubmit Paper' : 'Submit Paper'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <i className="fas fa-file-alt"></i>
+                    <h3>No presentation topics assigned</h3>
+                    <p>Admin will assign a presentation topic here when ready.</p>
                   </div>
                 )}
               </div>
