@@ -2632,20 +2632,32 @@ app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
 
     const tasks = await Task.find({ client: clientId });
 
-    let newMilestone = 'Planning'; // Default milestone
+    const normalizedStatuses = tasks.map((task) => String(task.status || '').trim().toLowerCase());
+    const hasSrs = Boolean(client.srsDocument && client.srsDocument.trim());
+    const currentMilestone = client.milestone || 'Planning';
+    const allTasksCompleted =
+      normalizedStatuses.length > 0 &&
+      normalizedStatuses.every((status) => ['done', 'completed', 'approved', 'cancelled'].includes(status));
+    const hasTestingTasks = normalizedStatuses.some((status) =>
+      ['needs review', 'defect', 'review', 'under review', 'testing'].includes(status)
+    );
+    const hasDevelopmentTasks = normalizedStatuses.some((status) =>
+      ['in progress', 'in-progress', 'done', 'completed', 'approved'].includes(status)
+    );
+    const allTasksPending =
+      normalizedStatuses.length > 0 &&
+      normalizedStatuses.every((status) => ['to do', 'pending', 'on hold', 'on-hold'].includes(status));
 
-    if (tasks.length > 0) {
-      const taskStatuses = tasks.map(task => task.status);
+    let newMilestone = 'Planning';
 
-      if (taskStatuses.every(status => status === 'Done')) {
-        newMilestone = 'Completed';
-      } else if (taskStatuses.some(status => status === 'Needs Review' || status === 'Defect')) {
-        newMilestone = 'Testing';
-      } else if (taskStatuses.some(status => status === 'In Progress' || status === 'Done')) {
-        newMilestone = 'Development';
-      } else if (taskStatuses.every(status => status === 'To Do')) {
-        newMilestone = 'Planning';
-      }
+    if (allTasksCompleted) {
+      newMilestone = ['Deployment', 'Completed'].includes(currentMilestone) ? 'Completed' : 'Deployment';
+    } else if (hasTestingTasks) {
+      newMilestone = 'Testing';
+    } else if (hasDevelopmentTasks) {
+      newMilestone = 'Development';
+    } else if (allTasksPending || hasSrs) {
+      newMilestone = hasSrs ? 'Design' : 'Planning';
     }
 
     if (client.milestone !== newMilestone) {

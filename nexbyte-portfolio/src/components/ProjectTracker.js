@@ -3,6 +3,24 @@ import './ProjectTracker.css';
 
 const milestones = ['Planning', 'Design', 'Development', 'Testing', 'Deployment', 'Completed'];
 
+const milestoneAliases = {
+  planning: 'Planning',
+  design: 'Design',
+  development: 'Development',
+  testing: 'Testing',
+  deployment: 'Deployment',
+  completed: 'Completed',
+};
+
+const normalizeMilestone = (milestone) => {
+  if (typeof milestone !== 'string') {
+    return 'Planning';
+  }
+
+  const normalized = milestoneAliases[milestone.trim().toLowerCase()];
+  return normalized || 'Planning';
+};
+
 const getMilestoneIcon = (milestone, status) => {
   if (status === 'completed') {
     return '✅';
@@ -26,7 +44,8 @@ const getMilestoneIcon = (milestone, status) => {
 };
 
 const ProjectTracker = ({ currentMilestone }) => {
-  const currentMilestoneIndex = milestones.indexOf(currentMilestone);
+  const activeMilestone = normalizeMilestone(currentMilestone);
+  const currentMilestoneIndex = milestones.indexOf(activeMilestone);
 
   return (
     <div className="project-tracker-container">

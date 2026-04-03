@@ -102,13 +102,15 @@ const ClientPanel = () => {
     fetchData();
   }, []);
 
+  const resolvedClientId = data?.clientData?._id || data?.clientData?.id;
+
   // Fetch milestone data
   useEffect(() => {
     const fetchMilestone = async () => {
-      if (data && data.clientData) {
+      if (resolvedClientId) {
         try {
           const token = localStorage.getItem('token');
-          const res = await fetch(`/api/clients/${data.clientData.id}/milestone`, {
+          const res = await fetch(`/api/clients/${resolvedClientId}/milestone`, {
             headers: {
               'x-auth-token': token,
             },
@@ -127,7 +129,7 @@ const ClientPanel = () => {
     };
 
     fetchMilestone();
-  }, [data]);
+  }, [resolvedClientId]);
 
   useEffect(() => {
     const fetchBills = async () => {
@@ -465,9 +467,11 @@ const ClientPanel = () => {
     return <div className="client-panel-loading">Loading...</div>;
   }
 
+  const resolvedClientMilestone = milestone || data?.clientData?.milestone;
+
   const renderDashboard = () => (
     <div className="client-data">
-      {milestone && <ProjectTracker currentMilestone={milestone} />}
+      <ProjectTracker currentMilestone={resolvedClientMilestone} />
       <h2>Project Details</h2>
       <p><strong>Project:</strong> {data.clientData.project}</p>
       <p><strong>Status:</strong> {data.clientData.status}</p>

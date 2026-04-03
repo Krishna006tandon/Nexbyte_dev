@@ -51,6 +51,7 @@ const Admin = () => {
   const [selectedSrsClient, setSelectedSrsClient] = useState(null);
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
+  const activeTrackerMilestone = milestone || selectedClientForTracker?.milestone;
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -2018,11 +2019,11 @@ const Admin = () => {
           </Modal>
         )}
 
-        {isTrackerModalOpen && selectedClientForTracker && milestone && (
+        {isTrackerModalOpen && selectedClientForTracker && (
           <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
             <div className="project-tracker-modal">
               <h2>Project Tracker for {selectedClientForTracker.projectName}</h2>
-              <ProjectTracker currentMilestone={milestone} />
+              <ProjectTracker currentMilestone={activeTrackerMilestone} />
             </div>
           </Modal>
         )}
