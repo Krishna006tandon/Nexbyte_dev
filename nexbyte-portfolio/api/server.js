@@ -2630,32 +2630,47 @@ app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
       return res.status(404).json({ message: 'Client not found' });
     }
 
-    const tasks = await Task.find({ client: clientId });
+    const relatedProjects = await Project.find({ associatedClient: clientId }).select('_id');
+    const relatedProjectIds = relatedProjects.map((project) => project._id);
+    const taskQuery = relatedProjectIds.length > 0
+      ? {
+          $or: [
+            { client: clientId },
+            { project: { $in: relatedProjectIds } }
+          ]
+        }
+      : { client: clientId };
+
+    const tasks = await Task.find(taskQuery);
 
     const normalizedStatuses = tasks.map((task) => String(task.status || '').trim().toLowerCase());
     const hasSrs = Boolean(client.srsDocument && client.srsDocument.trim());
     const currentMilestone = client.milestone || 'Planning';
+    const planningStatuses = ['pending', 'to do', 'on hold', 'on-hold'];
+    const developmentStatuses = ['in progress', 'in-progress', 'defect', 'done', 'approved', 'completed'];
+    const testingStatuses = ['needs review', 'review', 'under review', 'testing'];
+    const completionStatuses = ['done', 'approved', 'completed', 'cancelled'];
     const allTasksCompleted =
       normalizedStatuses.length > 0 &&
-      normalizedStatuses.every((status) => ['done', 'completed', 'approved', 'cancelled'].includes(status));
+      normalizedStatuses.every((status) => completionStatuses.includes(status));
     const hasTestingTasks = normalizedStatuses.some((status) =>
-      ['needs review', 'defect', 'review', 'under review', 'testing'].includes(status)
+      testingStatuses.includes(status)
     );
     const hasDevelopmentTasks = normalizedStatuses.some((status) =>
-      ['in progress', 'in-progress', 'done', 'completed', 'approved'].includes(status)
+      developmentStatuses.includes(status)
     );
     const allTasksPending =
       normalizedStatuses.length > 0 &&
-      normalizedStatuses.every((status) => ['to do', 'pending', 'on hold', 'on-hold'].includes(status));
+      normalizedStatuses.every((status) => planningStatuses.includes(status));
 
     let newMilestone = 'Planning';
 
     if (allTasksCompleted) {
       newMilestone = ['Deployment', 'Completed'].includes(currentMilestone) ? 'Completed' : 'Deployment';
-    } else if (hasTestingTasks) {
-      newMilestone = 'Testing';
     } else if (hasDevelopmentTasks) {
       newMilestone = 'Development';
+    } else if (hasTestingTasks) {
+      newMilestone = 'Testing';
     } else if (allTasksPending || hasSrs) {
       newMilestone = hasSrs ? 'Design' : 'Planning';
     }
