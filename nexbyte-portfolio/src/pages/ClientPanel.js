@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../components/Modal';
 import ProjectTracker from '../components/ProjectTracker'; // Import ProjectTracker
 import './ClientPanel.css';
@@ -739,15 +738,8 @@ const ClientPanel = () => {
         {isModalOpen && selectedBill && (
           <Modal isOpen={isModalOpen} onClose={closeModal}>
             <div className="manual-payment-modal">
-              <h2>Manual Payment</h2>
-              <p>Scan the QR code with your UPI app to pay.</p>
-              <div className="qr-code-container">
-                <QRCodeSVG
-                  value={
-                    `upi://pay?pa=9175603240@upi&pn=Nexbyte&tn=Payment for ${data.clientData.project} - Bill ${selectedBill._id}`
-                  }
-                />
-              </div>
+              <h2>Complete Payment</h2>
+              <p>Proceed with Razorpay secure checkout to pay this bill.</p>
               <div className="transaction-id-input">
                 <label>Amount Due</label>
                 <input
@@ -768,7 +760,7 @@ const ClientPanel = () => {
                 <button
                   onClick={handleRazorpayPayment}
                   disabled={isProcessingPayment}>
-                  {isProcessingPayment ? 'Processing...' : 'Pay with Razorpay'}
+                  {isProcessingPayment ? 'Processing...' : 'Continue to Razorpay'}
                 </button>
                 <button onClick={closeModal}>Cancel</button>
               </div>
