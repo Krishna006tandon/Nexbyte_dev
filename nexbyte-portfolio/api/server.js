@@ -3264,6 +3264,15 @@ app.post('/api/group-meetings', auth, admin, async (req, res) => {
       return res.status(400).json({ message: 'Title, description, meet link and scheduled date/time are required' });
     }
 
+    const scheduledAtValue = String(scheduledAt).trim();
+    const parsedScheduledAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(scheduledAtValue)
+      ? new Date(`${scheduledAtValue}:00+05:30`)
+      : new Date(scheduledAtValue);
+
+    if (Number.isNaN(parsedScheduledAt.getTime())) {
+      return res.status(400).json({ message: 'Invalid scheduled date/time' });
+    }
+
     const normalizedAudience = audience === 'selected' ? 'selected' : 'all';
     const normalizedInvitedInterns = Array.isArray(invitedInterns)
       ? invitedInterns.filter(Boolean)
@@ -3291,7 +3300,7 @@ app.post('/api/group-meetings', auth, admin, async (req, res) => {
       title: String(title).trim(),
       description: String(description).trim(),
       meetLink: String(meetLink).trim(),
-      scheduledAt,
+      scheduledAt: parsedScheduledAt,
       durationMinutes: Number(durationMinutes) || 60,
       audience: normalizedAudience,
       invitedInterns: normalizedAudience === 'selected' ? normalizedInvitedInterns : [],
@@ -3300,7 +3309,7 @@ app.post('/api/group-meetings', auth, admin, async (req, res) => {
 
     await meeting.save();
 
-    const meetingDate = new Date(scheduledAt);
+    const meetingDate = parsedScheduledAt;
     const formattedDate = meetingDate.toLocaleDateString('en-IN');
     const formattedTime = meetingDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
