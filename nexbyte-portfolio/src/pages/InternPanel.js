@@ -21,6 +21,7 @@ const InternPanel = () => {
   const [notifications, setNotifications] = useState([]);
   const [resources, setResources] = useState([]);
   const [presentationTopics, setPresentationTopics] = useState([]);
+  const [groupMeetings, setGroupMeetings] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [internshipInfo, setInternshipInfo] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
@@ -90,7 +91,7 @@ const InternPanel = () => {
       };
 
       // Fetch data with fallbacks
-      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, teamData, internshipRes] = await Promise.all([
+      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes] = await Promise.all([
         fetchWithErrorHandling('/api/profile', null),
         fetchWithErrorHandling('/api/tasks', []), // Use regular tasks endpoint with auth middleware
         fetchWithErrorHandling('/api/diary', []),
@@ -98,6 +99,7 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/notifications', []),
         fetchWithErrorHandling('/api/resources', []),
         fetchWithErrorHandling('/api/intern/presentation-topics', []),
+        fetchWithErrorHandling('/api/intern/group-meetings', []),
         fetchWithErrorHandling('/api/team', []),
         fetchWithErrorHandling('/api/internships/me', null)
       ]);
@@ -124,6 +126,7 @@ const InternPanel = () => {
       setNotifications(notificationsData);
       setResources(resourcesData);
       setPresentationTopics(presentationTopicsData);
+      setGroupMeetings(groupMeetingsData);
       setTeamMembers(teamData);
 
     } catch (err) {
@@ -708,6 +711,15 @@ const InternPanel = () => {
               >
                 <i className="fas fa-file-pdf"></i>
                 Presentation Topics
+              </button>
+            </li>
+            <li>
+              <button
+                className={`nav-btn ${activeSection === 'meetings' ? 'active' : ''}`}
+                onClick={() => setActiveSection('meetings')}
+              >
+                <i className="fas fa-video"></i>
+                Group Meetings
               </button>
             </li>
             <li>
@@ -1450,6 +1462,43 @@ const InternPanel = () => {
                     <i className="fas fa-file-alt"></i>
                     <h3>No presentation topics assigned</h3>
                     <p>Admin will assign a presentation topic here when ready.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'meetings' && (
+            <div className="resources-section">
+              <div className="section-header">
+                <h2>Group Meetings</h2>
+                <p>Check upcoming intern meetings and join directly from here</p>
+              </div>
+
+              <div className="resources-grid">
+                {groupMeetings.length > 0 ? (
+                  groupMeetings.map((meeting) => (
+                    <div key={meeting._id} className="resource-card">
+                      <div className="resource-icon">
+                        <i className="fas fa-video"></i>
+                      </div>
+                      <div className="resource-content">
+                        <h3>{meeting.title}</h3>
+                        <p>{meeting.description}</p>
+                        <p><strong>Date:</strong> {new Date(meeting.scheduledAt).toLocaleDateString()}</p>
+                        <p><strong>Time:</strong> {new Date(meeting.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p><strong>Duration:</strong> {meeting.durationMinutes} minutes</p>
+                        <a href={meeting.meetLink} target="_blank" rel="noreferrer" className="btn btn-primary">
+                          Join Meet
+                        </a>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <i className="fas fa-video-slash"></i>
+                    <h3>No group meetings scheduled</h3>
+                    <p>Admin jab next intern meet schedule karega to woh yahan dikh jayegi.</p>
                   </div>
                 )}
               </div>

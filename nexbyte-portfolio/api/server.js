@@ -24,6 +24,7 @@ const Task = require('./models/Task');
 const Diary = require('./models/Diary');
 const Report = require('./models/Report');
 const Notification = require('./models/Notification');
+const GroupMeeting = require('./models/GroupMeeting');
 const Resource = require('./models/Resource');
 const Project = require('./models/Project');
 const Internship = require('./models/Internship');
@@ -3228,6 +3229,148 @@ app.get('/api/notifications', verifyIntern, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
+  }
+});
+
+// Get group meetings for admin
+app.get('/api/group-meetings', auth, admin, async (req, res) => {
+  try {
+    const meetings = await GroupMeeting.find()
+      .populate('invitedInterns', 'email')
+      .populate('createdBy', 'email')
+      .sort({ scheduledAt: 1, createdAt: -1 });
+
+    res.json(meetings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Create a group meeting for interns
+app.post('/api/group-meetings', auth, admin, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      meetLink,
+      scheduledAt,
+      durationMinutes,
+      audience = 'all',
+      invitedInterns = [],
+    } = req.body;
+
+    if (!title || !description || !meetLink || !scheduledAt) {
+      return res.status(400).json({ message: 'Title, description, meet link and scheduled date/time are required' });
+    }
+
+    const normalizedAudience = audience === 'selected' ? 'selected' : 'all';
+    const normalizedInvitedInterns = Array.isArray(invitedInterns)
+      ? invitedInterns.filter(Boolean)
+      : [];
+
+    let targetInterns = [];
+    if (normalizedAudience === 'selected') {
+      if (normalizedInvitedInterns.length === 0) {
+        return res.status(400).json({ message: 'Select at least one intern for a selected group meet' });
+      }
+
+      targetInterns = await User.find({
+        _id: { $in: normalizedInvitedInterns },
+        role: 'intern',
+      }).select('email');
+
+      if (targetInterns.length !== normalizedInvitedInterns.length) {
+        return res.status(400).json({ message: 'One or more selected interns are invalid' });
+      }
+    } else {
+      targetInterns = await User.find({ role: 'intern' }).select('email');
+    }
+
+    const meeting = new GroupMeeting({
+      title: String(title).trim(),
+      description: String(description).trim(),
+      meetLink: String(meetLink).trim(),
+      scheduledAt,
+      durationMinutes: Number(durationMinutes) || 60,
+      audience: normalizedAudience,
+      invitedInterns: normalizedAudience === 'selected' ? normalizedInvitedInterns : [],
+      createdBy: req.user.id,
+    });
+
+    await meeting.save();
+
+    const meetingDate = new Date(scheduledAt);
+    const formattedDate = meetingDate.toLocaleDateString('en-IN');
+    const formattedTime = meetingDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    if (targetInterns.length > 0) {
+      await Notification.insertMany(
+        targetInterns.map((intern) => ({
+          user: intern._id,
+          title: `Group Meet: ${meeting.title}`,
+          message: `A group meet is scheduled on ${formattedDate} at ${formattedTime}. Join via the shared meeting link.`,
+          type: 'general',
+          date: meetingDate,
+        }))
+      );
+
+      await Promise.all(
+        targetInterns.map((intern) =>
+          sendMailSafe(
+            {
+              from: getFromAddress('NexByte'),
+              to: intern.email,
+              subject: `Group Meet Scheduled: ${meeting.title}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                  <p>Dear ${intern.email.split('@')[0]},</p>
+                  <p>A group meet has been scheduled for interns.</p>
+                  <ul>
+                    <li><strong>Title:</strong> ${meeting.title}</li>
+                    <li><strong>Date:</strong> ${formattedDate}</li>
+                    <li><strong>Time:</strong> ${formattedTime}</li>
+                    <li><strong>Duration:</strong> ${meeting.durationMinutes} minutes</li>
+                  </ul>
+                  <p><strong>Agenda:</strong> ${meeting.description}</p>
+                  <p><a href="${meeting.meetLink}" target="_blank" rel="noreferrer">Join Group Meet</a></p>
+                  <p>Regards,<br/>NexByte Team</p>
+                </div>
+              `,
+            },
+            'group-meeting-scheduled'
+          )
+        )
+      );
+    }
+
+    const populatedMeeting = await GroupMeeting.findById(meeting._id)
+      .populate('invitedInterns', 'email')
+      .populate('createdBy', 'email');
+
+    res.status(201).json(populatedMeeting);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get group meetings for current intern
+app.get('/api/intern/group-meetings', verifyIntern, async (req, res) => {
+  try {
+    const meetings = await GroupMeeting.find({
+      $or: [
+        { audience: 'all' },
+        { audience: 'selected', invitedInterns: req.user.id },
+      ],
+    })
+      .populate('createdBy', 'email')
+      .sort({ scheduledAt: 1, createdAt: -1 });
+
+    res.json(meetings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 

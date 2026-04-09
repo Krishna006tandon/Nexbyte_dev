@@ -25,6 +25,7 @@ const Admin = () => {
   const [resources, setResources] = useState([]);
   const [resourceInterns, setResourceInterns] = useState([]);
   const [presentationTopics, setPresentationTopics] = useState([]);
+  const [groupMeetings, setGroupMeetings] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
@@ -132,6 +133,16 @@ const Admin = () => {
     dueDate: '',
   });
 
+  const [groupMeetingData, setGroupMeetingData] = useState({
+    title: '',
+    description: '',
+    meetLink: '',
+    scheduledAt: '',
+    durationMinutes: 60,
+    audience: 'all',
+    invitedInterns: [],
+  });
+
   const [localSrsData, setLocalSrsData] = useState({
     projectName: '',
     projectDescription: '',
@@ -198,6 +209,23 @@ const Admin = () => {
             setResources(resourceData);
           } else {
             console.error(resourceData.message);
+          }
+          if (usersRes.ok) {
+            setResourceInterns(usersData.filter((member) => member.role === 'intern'));
+          } else {
+            console.error(usersData.message);
+          }
+        } else if (location.pathname === '/admin/group-meetings') {
+          const [meetingsRes, usersRes] = await Promise.all([
+            fetch('/api/group-meetings', { headers }),
+            fetch('/api/users', { headers })
+          ]);
+          const meetingsData = await meetingsRes.json();
+          const usersData = await usersRes.json();
+          if (meetingsRes.ok) {
+            setGroupMeetings(meetingsData);
+          } else {
+            console.error(meetingsData.message);
           }
           if (usersRes.ok) {
             setResourceInterns(usersData.filter((member) => member.role === 'intern'));
@@ -519,6 +547,22 @@ const Admin = () => {
     setPresentationTopicData({ ...presentationTopicData, [e.target.name]: e.target.value });
   };
 
+  const handleGroupMeetingChange = (e) => {
+    setGroupMeetingData({ ...groupMeetingData, [e.target.name]: e.target.value });
+  };
+
+  const handleGroupMeetingInternToggle = (internId) => {
+    setGroupMeetingData((current) => {
+      const alreadySelected = current.invitedInterns.includes(internId);
+      return {
+        ...current,
+        invitedInterns: alreadySelected
+          ? current.invitedInterns.filter((id) => id !== internId)
+          : [...current.invitedInterns, internId],
+      };
+    });
+  };
+
   const handleGenerateBillDescription = async () => {
     if (!billData.client || !billData.amount) {
       alert('Please select a client and enter an amount first.');
@@ -725,6 +769,51 @@ const Admin = () => {
     } catch (err) {
       console.error(err);
       setErrorMessage('Failed to assign presentation topic.');
+    }
+  };
+
+  const handleAddGroupMeeting = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    try {
+      const payload = {
+        ...groupMeetingData,
+        durationMinutes: Number(groupMeetingData.durationMinutes) || 60,
+        invitedInterns: groupMeetingData.audience === 'selected' ? groupMeetingData.invitedInterns : [],
+      };
+
+      const res = await fetch('/api/group-meetings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.message || 'Failed to schedule group meet');
+        return;
+      }
+
+      setGroupMeetings((currentMeetings) => [data, ...currentMeetings]);
+      setGroupMeetingData({
+        title: '',
+        description: '',
+        meetLink: '',
+        scheduledAt: '',
+        durationMinutes: 60,
+        audience: 'all',
+        invitedInterns: [],
+      });
+      setSuccessMessage('Group meet scheduled and email notifications sent.');
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Failed to schedule group meet.');
     }
   };
 
@@ -1811,6 +1900,119 @@ const Admin = () => {
                   <div className="generated-srs">
                     <h3>No presentation topics assigned</h3>
                     <p>Assign a topic to an intern and they will be able to submit their research paper from the intern panel.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {location.pathname === '/admin/group-meetings' && (
+            <div>
+              <h2>Group Meetings</h2>
+              <div className="form-container">
+                <form onSubmit={handleAddGroupMeeting}>
+                  <h3>Schedule a Group Meet</h3>
+                  <input
+                    type="text"
+                    name="title"
+                    placeholder="Meeting title"
+                    value={groupMeetingData.title}
+                    onChange={handleGroupMeetingChange}
+                    required
+                  />
+                  <textarea
+                    name="description"
+                    placeholder="Agenda / meeting purpose"
+                    value={groupMeetingData.description}
+                    onChange={handleGroupMeetingChange}
+                    required
+                  />
+                  <input
+                    type="url"
+                    name="meetLink"
+                    placeholder="https://meet.google.com/..."
+                    value={groupMeetingData.meetLink}
+                    onChange={handleGroupMeetingChange}
+                    required
+                  />
+                  <input
+                    type="datetime-local"
+                    name="scheduledAt"
+                    value={groupMeetingData.scheduledAt}
+                    onChange={handleGroupMeetingChange}
+                    required
+                  />
+                  <input
+                    type="number"
+                    name="durationMinutes"
+                    min="15"
+                    step="15"
+                    placeholder="Duration in minutes"
+                    value={groupMeetingData.durationMinutes}
+                    onChange={handleGroupMeetingChange}
+                    required
+                  />
+                  <select
+                    name="audience"
+                    value={groupMeetingData.audience}
+                    onChange={handleGroupMeetingChange}
+                  >
+                    <option value="all">All Interns</option>
+                    <option value="selected">Selected Interns</option>
+                  </select>
+                  {groupMeetingData.audience === 'selected' && (
+                    <div className="resource-intern-picker">
+                      <h4>Select Interns</h4>
+                      {resourceInterns.length > 0 ? (
+                        <div className="resource-intern-list">
+                          {resourceInterns.map((intern) => (
+                            <label key={intern._id} className="resource-intern-option">
+                              <input
+                                type="checkbox"
+                                checked={groupMeetingData.invitedInterns.includes(intern._id)}
+                                onChange={() => handleGroupMeetingInternToggle(intern._id)}
+                              />
+                              <span>{intern.email}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="resource-tags">No interns available for meeting invitation.</p>
+                      )}
+                    </div>
+                  )}
+                  {successMessage && <p className="resource-message success">{successMessage}</p>}
+                  {errorMessage && <p className="resource-message error">{errorMessage}</p>}
+                  <button type="submit" className="btn btn-primary">Schedule Group Meet</button>
+                </form>
+              </div>
+
+              <div className="resource-admin-grid">
+                {groupMeetings.length > 0 ? (
+                  groupMeetings.map((meeting) => (
+                    <div key={meeting._id} className="resource-admin-card">
+                      <div className="resource-admin-meta">
+                        <span>{new Date(meeting.scheduledAt).toLocaleDateString()}</span>
+                        <span>{new Date(meeting.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{meeting.durationMinutes} mins</span>
+                      </div>
+                      <h3>{meeting.title}</h3>
+                      <p>{meeting.description}</p>
+                      <a href={meeting.meetLink} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                        Open Meet Link
+                      </a>
+                      <p className="resource-tags">
+                        Audience: {meeting.audience === 'all' ? 'All interns' : (meeting.invitedInterns || []).map((intern) => intern.email).join(', ')}
+                      </p>
+                      <p className="resource-tags">
+                        Created by: {meeting.createdBy?.email || 'Admin'}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="generated-srs">
+                    <h3>No group meets scheduled yet</h3>
+                    <p>Yahan se admin interns ke liye group meet schedule kar sakta hai aur mail notification automatically chali jayegi.</p>
                   </div>
                 )}
               </div>
