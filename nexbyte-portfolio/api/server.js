@@ -3310,8 +3310,17 @@ app.post('/api/group-meetings', auth, admin, async (req, res) => {
     await meeting.save();
 
     const meetingDate = parsedScheduledAt;
-    const formattedDate = meetingDate.toLocaleDateString('en-IN');
-    const formattedTime = meetingDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const formattedDate = meetingDate.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const formattedTime = meetingDate.toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
     if (targetInterns.length > 0) {
       await Notification.insertMany(
