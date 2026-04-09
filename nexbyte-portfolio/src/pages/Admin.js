@@ -53,6 +53,17 @@ const Admin = () => {
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
   const activeTrackerMilestone = milestone || selectedClientForTracker?.milestone;
+  const formatMeetingDate = (value) =>
+    new Date(value).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  const formatMeetingTime = (value) =>
+    new Date(value).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -781,6 +792,7 @@ const Admin = () => {
     try {
       const payload = {
         ...groupMeetingData,
+        scheduledAt: new Date(groupMeetingData.scheduledAt).toISOString(),
         durationMinutes: Number(groupMeetingData.durationMinutes) || 60,
         invitedInterns: groupMeetingData.audience === 'selected' ? groupMeetingData.invitedInterns : [],
       };
@@ -1992,8 +2004,8 @@ const Admin = () => {
                   groupMeetings.map((meeting) => (
                     <div key={meeting._id} className="resource-admin-card">
                       <div className="resource-admin-meta">
-                        <span>{new Date(meeting.scheduledAt).toLocaleDateString()}</span>
-                        <span>{new Date(meeting.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{formatMeetingDate(meeting.scheduledAt)}</span>
+                        <span>{formatMeetingTime(meeting.scheduledAt)}</span>
                         <span>{meeting.durationMinutes} mins</span>
                       </div>
                       <h3>{meeting.title}</h3>

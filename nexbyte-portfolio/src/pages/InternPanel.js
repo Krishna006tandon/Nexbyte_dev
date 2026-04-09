@@ -51,6 +51,17 @@ const InternPanel = () => {
     theme: 'dark',
     language: 'en'
   });
+  const formatMeetingDate = (value) =>
+    new Date(value).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  const formatMeetingTime = (value) =>
+    new Date(value).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   const certificateRef = useRef(null);
 
   useEffect(() => {
@@ -1485,8 +1496,8 @@ const InternPanel = () => {
                       <div className="resource-content">
                         <h3>{meeting.title}</h3>
                         <p>{meeting.description}</p>
-                        <p><strong>Date:</strong> {new Date(meeting.scheduledAt).toLocaleDateString()}</p>
-                        <p><strong>Time:</strong> {new Date(meeting.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p><strong>Date:</strong> {formatMeetingDate(meeting.scheduledAt)}</p>
+                        <p><strong>Time:</strong> {formatMeetingTime(meeting.scheduledAt)}</p>
                         <p><strong>Duration:</strong> {meeting.durationMinutes} minutes</p>
                         <a href={meeting.meetLink} target="_blank" rel="noreferrer" className="btn btn-primary">
                           Join Meet
