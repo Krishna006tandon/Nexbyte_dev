@@ -15,7 +15,7 @@ const teamMembers = [
   {
     name: 'Krishna Tandon',
     role: 'Full Stack Developer',
-    imageUrl: 'nexbyte-portfolio\public\krishna.jpeg',
+    imageUrl: '/krishna.jpeg',
     bio: 'MERN stack specialist, passionate about building scalable and efficient web applications. Loves to turn complex problems into simple and elegant solutions.',
     github: 'https://github.com/Krishna006tandon',
     linkedin: 'https://www.linkedin.com/in/krishna-tandon-9879a7367',
@@ -23,7 +23,7 @@ const teamMembers = [
   {
     name: 'Kajal Mantapurwar',
     role: 'AI & ML Enthusiast',
-    imageUrl: 'nexbyte-portfolio\public\kajal.jpeg',
+    imageUrl: '/kajal.jpeg',
     bio: 'Aspiring AI & ML engineer. Skilled in Python and data analysis. Eager to learn and apply cutting-edge technologies to solve real-world problems.',
     github: 'https://github.com/KajalMantapurwar',
     linkedin: 'https://www.linkedin.com/in/kajal-mantapurwar-748844298/',
@@ -31,7 +31,7 @@ const teamMembers = [
   {
     name: 'Abhishek Mutthalkar',
     role: 'Data Analyst and Python Developer ',
-    imageUrl: 'nexbyte-portfolio\public\abhishek.jpeg',
+    imageUrl: '/abhishek.jpeg',
     bio: 'Skilled in Python, OOPs, and Web Development, with a good understanding of DSA.Capable of creating clean, reliable solutions and visualizing data using Power BI.Curious learner with a focus on improving every day and building meaningful digital tools.',
     github: 'https://github.com/ABHISHEK120906',
     linkedin: 'https://www.linkedin.com/in/abhishek-mutthalkar-93726b377?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app ',
