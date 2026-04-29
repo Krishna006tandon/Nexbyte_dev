@@ -83,10 +83,31 @@ const projects = [
     ],
     techStack: 'WordPress, WooCommerce, PHP, MySQL, JavaScript',
     liveLink: null
+  },
+  {
+    title: 'UNEXA SuperApp',
+    description: 'UNEXA is a real-time SuperApp combining WhatsApp-style messaging, Instagram media sharing, and YouTube communication features in a unified platform.',
+    features: [
+      'Real-time messaging with read receipts & typing indicators',
+      'Photo/video capture and sharing',
+      'Voice/video calling',
+      'Group chats and message reactions',
+      'Story viewer analytics',
+      'Cross-platform deployment'
+    ],
+    techStack: 'React Native + Expo, Node.js + Express + MongoDB, Socket.IO, Cloudinary, Agora WebRTC, JWT',
+    liveLink: null
   }
 ];
 
 const Projects = () => {
+  const handleMoreDetails = (projectTitle) => {
+    const subject = `Request for More Details: ${projectTitle}`;
+    const body = `Hi,\n\nI am interested in learning more about your project: ${projectTitle}.\n\nCould you please provide additional information about this project?\n\nThank you!`;
+    const mailtoLink = `mailto:nexbyte.dev@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+  };
+
   return (
     <div className="container mt-5">
       <h1 className="text-center mb-5">My Projects</h1>
@@ -105,11 +126,19 @@ const Projects = () => {
                 </ul>
                 <h6>Tech Stack:</h6>
                 <p>{project.techStack}</p>
-                {project.liveLink && (
-                  <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-auto">
-                    Live Demo
-                  </a>
-                )}
+                <div className="mt-auto d-flex gap-2">
+                  {project.liveLink && (
+                    <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+                      Live Demo
+                    </a>
+                  )}
+                  <button 
+                    onClick={() => handleMoreDetails(project.title)} 
+                    className="btn btn-outline-primary"
+                  >
+                    More Details
+                  </button>
+                </div>
               </div>
             </div>
           </div>
