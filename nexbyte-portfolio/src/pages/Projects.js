@@ -30,7 +30,7 @@ const projects = [
       'Secure Authentication & Payments: Secure login using JWT (JSON Web Tokens) and a secure structure for payment processing.'
     ],
     techStack: 'Python, Flask, MongoDB, HTML, CSS, JavaScript',
-    liveLink: 'https://over-xchange-zrvi.vercel.app/'
+    liveLink: 'https://over-xchange.vercel.app/'
   },
   {
     title: 'ZenSpace',
