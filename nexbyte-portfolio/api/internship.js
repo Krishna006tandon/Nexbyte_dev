@@ -811,4 +811,25 @@ if (!process.env.VERCEL) {
   }
 }
 
+// Multer / upload error handler (keeps errors JSON for the frontend)
+router.use((err, req, res, next) => {
+  if (!err) return next();
+
+  // Multer errors (e.g. size limit)
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'Resume file is too large. Max size is 5MB.' });
+    }
+    return res.status(400).json({ message: err.message || 'File upload failed' });
+  }
+
+  // File filter errors
+  if (typeof err.message === 'string' && err.message.toLowerCase().includes('only pdf')) {
+    return res.status(400).json({ message: 'Only PDF files are allowed for resume upload.' });
+  }
+
+  console.error('Internship router error:', err);
+  return res.status(500).json({ message: 'Server error' });
+});
+
 module.exports = router;

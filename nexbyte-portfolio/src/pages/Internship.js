@@ -66,7 +66,32 @@ const Internship = () => {
   };
 
   const handleFileChange = (e) => {
-    setFormData(prev => ({ ...prev, resume: e.target.files[0] }));
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    if (!file) {
+      setFormData(prev => ({ ...prev, resume: null }));
+      return;
+    }
+
+    const isPdf =
+      file.type === 'application/pdf' ||
+      (typeof file.name === 'string' && file.name.toLowerCase().endsWith('.pdf'));
+
+    if (!isPdf) {
+      alert('Only PDF files are allowed for resume upload.');
+      e.target.value = '';
+      setFormData(prev => ({ ...prev, resume: null }));
+      return;
+    }
+
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      alert('Resume file is too large. Max size is 5MB.');
+      e.target.value = '';
+      setFormData(prev => ({ ...prev, resume: null }));
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, resume: file }));
   };
 
   const updateAvailabilitySlot = (index, value) => {
@@ -138,7 +163,11 @@ const Internship = () => {
       });
     } catch (error) {
       console.error('Error submitting application:', error);
-      alert('Error submitting application. Please try again.');
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Error submitting application. Please try again.';
+      alert(message);
     }
   };
 
@@ -378,12 +407,15 @@ const Internship = () => {
               </div>
             </div>
             <div className="form-group">
-              <label>Resume (PDF only, max 5MB)</label>
+              <label>Resume</label>
+              <small style={{ display: 'block', marginTop: 6, marginBottom: 10, color: '#666', fontSize: 13 }}>
+                Allowed types: PDF only (.pdf). Max size: 5MB.
+              </small>
               <input
                 type="file"
                 name="resume"
                 onChange={handleFileChange}
-                accept=".pdf"
+                accept="application/pdf,.pdf"
               />
             </div>
             <div className="form-group">
