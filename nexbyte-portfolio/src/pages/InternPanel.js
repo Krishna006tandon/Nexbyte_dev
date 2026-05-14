@@ -118,7 +118,7 @@ const InternPanel = () => {
         });
       }
 
-      if (profileData && profileData.internFeeStatus !== 'paid') {
+      if (profileData && profileData.offerStatus !== 'accepted' && profileData.internFeeStatus !== 'paid') {
         setTasks([]);
         setDiaryEntries([]);
         setReports([]);
@@ -747,7 +747,7 @@ const InternPanel = () => {
     return <div className="intern-panel-error">Error: {error}</div>;
   }
 
-  if (profile && profile.internFeeStatus !== 'paid') {
+  if (profile && profile.offerStatus !== 'accepted' && profile.internFeeStatus !== 'paid') {
     return (
       <div className="intern-panel-container">
         <ToastContainer position="top-right" autoClose={5000} />

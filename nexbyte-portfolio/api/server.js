@@ -2705,13 +2705,9 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     if (user.role !== 'intern') {
       return res.status(403).json({ message: 'Only interns can accept offers' });
-    }
-
-    if (user.internFeeStatus !== 'paid') {
-      return res.status(400).json({ message: 'Please complete the internship fee payment before accepting the offer.' });
     }
     
     // Update the user's offer status
@@ -3127,7 +3123,8 @@ const verifyIntern = (req, res, next) => {
       if (!user || user.role !== 'intern') {
         return res.status(403).json({ message: 'Access denied. Intern role required.' });
       }
-      if (user.internFeeStatus !== 'paid') {
+      // Gate access unless offer is accepted OR fee is paid
+      if (user.offerStatus !== 'accepted' && user.internFeeStatus !== 'paid') {
         return res.status(402).json({ message: 'Payment required. Please complete internship fee payment.' });
       }
       req.userObj = user;
