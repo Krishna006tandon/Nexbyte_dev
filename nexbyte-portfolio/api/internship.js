@@ -77,7 +77,12 @@ const uploadResumeToCloudinary = async (file) => {
 
   const timestamp = Math.floor(Date.now() / 1000);
   const publicId = `nexbyte_resume_${crypto.randomUUID()}`;
-  const signature = buildCloudinarySignature({ public_id: publicId, timestamp }, cfg.apiSecret);
+  // Ensure files are publicly downloadable (avoid 401 on delivery)
+  const accessMode = 'public';
+  const signature = buildCloudinarySignature(
+    { public_id: publicId, timestamp, access_mode: accessMode },
+    cfg.apiSecret
+  );
 
   const form = new FormData();
   const blob = new Blob([file.buffer], { type: file.mimetype || 'application/pdf' });
@@ -85,6 +90,7 @@ const uploadResumeToCloudinary = async (file) => {
   form.append('api_key', cfg.apiKey);
   form.append('timestamp', String(timestamp));
   form.append('public_id', publicId);
+  form.append('access_mode', accessMode);
   form.append('signature', signature);
 
   const url = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/raw/upload`;
