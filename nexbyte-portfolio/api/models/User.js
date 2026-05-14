@@ -26,6 +26,9 @@ const userSchema = new mongoose.Schema({
   internFeeStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
   internFeeTransactionId: { type: String },
   internFeePaidAt: { type: Date },
+  internFeeRazorpayOrderId: { type: String },
+  internFeeRazorpayPaymentId: { type: String },
+  internFeeRazorpaySignature: { type: String },
 
   // Track current internship & certificate status
   internshipStatus: { 

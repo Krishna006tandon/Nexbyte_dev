@@ -210,7 +210,7 @@ const ApplicationDetail = () => {
     }
 
     // Let the browser handle the download/redirect (works for both local and Cloudinary storage).
-    window.open(`/api/internship/applications/${finalId}/resume`, '_blank');
+    window.open(`/api/internship/applications/${finalId}/resume?download=1`, '_blank');
   };
 
   const handleSendEmail = () => {

@@ -210,6 +210,16 @@ const getApplicationResumeRedirectUrl = (application) => {
   return null;
 };
 
+const isCloudinaryRawUploadUrl = (value) =>
+  typeof value === 'string' && /^https?:\/\/res\.cloudinary\.com\/[^/]+\/raw\/upload\//i.test(value);
+
+const toCloudinaryAttachmentUrl = (rawUploadUrl) => {
+  if (!isCloudinaryRawUploadUrl(rawUploadUrl)) return null;
+  // Insert `fl_attachment/` directly after `/raw/upload/`.
+  if (/\/raw\/upload\/fl_attachment\//i.test(rawUploadUrl)) return rawUploadUrl;
+  return rawUploadUrl.replace(/\/raw\/upload\//i, '/raw/upload/fl_attachment/');
+};
+
 // Configure multer for file uploads (memory storage; Cloudinary upload in route)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -543,17 +553,45 @@ router.get('/applications/:id', async (req, res) => {
 // GET application resume by application ID
 router.get('/applications/:id/resume', async (req, res) => {
   try {
+    const forceDownload =
+      req.query.download === '1' || String(req.query.download || '').toLowerCase() === 'true';
+
     const application = await InternshipApplication.findById(req.params.id).select(
-      'resume resumeUrl resumePublicId'
+      'resume resumeUrl resumePublicId resumeOriginalName'
     );
 
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
 
+    const cloudinaryPublicId =
+      application.resumePublicId ||
+      (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_')
+        ? application.resume
+        : null);
+
+    // Cloudinary: prefer forcing browser download when requested.
+    if (cloudinaryPublicId) {
+      if (forceDownload) {
+        const signedDownloadUrl = getCloudinarySignedDownloadUrl({ publicId: cloudinaryPublicId });
+        if (signedDownloadUrl) return res.redirect(302, signedDownloadUrl);
+
+        const rawUrl = buildCloudinaryRawUrl(cloudinaryPublicId);
+        const attachmentUrl = rawUrl ? toCloudinaryAttachmentUrl(rawUrl) : null;
+        if (attachmentUrl) return res.redirect(302, attachmentUrl);
+      }
+
+      const rawUrl = buildCloudinaryRawUrl(cloudinaryPublicId);
+      if (rawUrl) return res.redirect(302, rawUrl);
+    }
+
     const redirectUrl = getApplicationResumeRedirectUrl(application);
     if (redirectUrl) {
-      return res.redirect(redirectUrl);
+      if (forceDownload) {
+        const attachmentUrl = toCloudinaryAttachmentUrl(redirectUrl);
+        if (attachmentUrl) return res.redirect(302, attachmentUrl);
+      }
+      return res.redirect(302, redirectUrl);
     }
 
     if (application.resume && !isHttpUrl(application.resume)) {
@@ -561,7 +599,8 @@ router.get('/applications/:id/resume', async (req, res) => {
       const filePath = path.join(uploadsDir, application.resume);
       const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
       if (fs.existsSync(absolutePath)) {
-        return res.sendFile(absolutePath);
+        const downloadName = sanitizeFilename(application.resumeOriginalName || application.resume);
+        return forceDownload ? res.download(absolutePath, downloadName) : res.sendFile(absolutePath);
       }
     }
 
@@ -796,62 +835,6 @@ router.delete('/applications/:id', async (req, res) => {
     res.json({ message: 'Application deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-});
-
-// GET application resume download
-router.get('/applications/:id/resume', async (req, res) => {
-  try {
-    const application = await InternshipApplication.findById(req.params.id);
-    if (!application) return res.status(404).json({ message: 'Application not found' });
-    if (!application.resume && !application.resumeUrl && !application.resumePublicId) {
-      return res.status(404).json({ message: 'Resume not found' });
-    }
-
-    // If resume is stored on Cloudinary, DO NOT redirect to raw/upload (it can be ACL-protected and 401).
-    // Instead, generate a signed authenticated delivery URL.
-    if (application.resumePublicId || (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_'))) {
-      const cfg = getCloudinaryConfig();
-      if (!cfg) {
-        return res.status(500).json({
-          message:
-            'Cloudinary is not configured for signed resume delivery. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.',
-        });
-      }
-
-      const publicId = application.resumePublicId || application.resume;
-      const version = extractCloudinaryVersionFromUrl(application.resumeUrl);
-      const resumeCloudName = extractCloudinaryCloudNameFromUrl(application.resumeUrl);
-      if (resumeCloudName && resumeCloudName !== cfg.cloudName) {
-        return res.status(500).json({
-          message: `Cloudinary config mismatch: resume is stored in cloud "${resumeCloudName}" but server is configured for "${cfg.cloudName}". Update Vercel env vars to match.`,
-        });
-      }
-
-      const signedDeliveryUrl = getCloudinaryAuthenticatedRawDeliveryUrl({ publicId, version });
-      if (!signedDeliveryUrl) {
-        return res.status(500).json({
-          message:
-            'Failed to generate signed Cloudinary resume URL. Check CLOUDINARY_* env vars.',
-        });
-      }
-      return res.redirect(302, signedDeliveryUrl);
-    }
-
-    // If resume lives on an external URL, redirect the browser to it (may still be public).
-    const redirectUrl = getApplicationResumeRedirectUrl(application) || application.resumeUrl;
-    if (redirectUrl) return res.redirect(302, redirectUrl);
-
-    const safeFileName = path.basename(application.resume);
-    const resumePath = path.join(__dirname, '../uploads/resumes', safeFileName);
-
-    if (!fs.existsSync(resumePath)) {
-      return res.status(404).json({ message: 'Resume file missing on server' });
-    }
-
-    return res.download(resumePath, safeFileName);
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
   }
 });
 
