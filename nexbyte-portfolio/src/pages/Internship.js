@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './Internship.css';
 import axios from 'axios';
 
@@ -17,13 +17,40 @@ const Internship = () => {
 
   const [showFAQ, setShowFAQ] = useState({});
 
-  const roles = [
-    'Web Development Intern',
-    'Frontend Intern',
-    'Backend Intern',
-    'UI/UX Intern',
-    'Digital Marketing Intern'
-  ];
+  const [availableRoles, setAvailableRoles] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchRoles = async () => {
+      try {
+        const res = await axios.get('/api/internship/roles');
+        if (!isMounted) return;
+        setAvailableRoles(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        // Fallback to local list if API is unavailable
+        if (!isMounted) return;
+        setAvailableRoles([
+          { id: 1, name: 'Web Development Intern', isActive: true },
+          { id: 2, name: 'Frontend Intern', isActive: true },
+          { id: 3, name: 'Backend Intern', isActive: true },
+          { id: 4, name: 'UI/UX Intern', isActive: true },
+          { id: 5, name: 'Digital Marketing Intern', isActive: true }
+        ]);
+      }
+    };
+
+    fetchRoles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const roles = useMemo(
+    () => availableRoles.filter(r => r?.isActive !== false),
+    [availableRoles]
+  );
 
   const faqs = [
     { q: 'Is this internship paid?', a: 'No, this is an unpaid learning-focused internship.' },
@@ -137,11 +164,11 @@ const Internship = () => {
         <div className="container">
           <h2>Available Internship Roles</h2>
           <div className="roles-grid">
-            {roles.map((role, index) => (
-              <div key={index} className="role-card">
-                <h3>{role}</h3>
+            {roles.map((role) => (
+              <div key={role.id || role.name} className="role-card">
+                <h3>{role.name}</h3>
                 <button className="role-apply-btn" onClick={() => {
-                  setFormData(prev => ({ ...prev, role }));
+                  setFormData(prev => ({ ...prev, role: role.name }));
                   document.getElementById('application-form').scrollIntoView({ behavior: 'smooth' });
                 }}>
                   Apply

@@ -26,6 +26,8 @@ const InternPanel = () => {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentTxnId, setPaymentTxnId] = useState('');
+  const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -207,6 +209,42 @@ const InternPanel = () => {
       toast.error(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitPayment = async () => {
+    if (!paymentTxnId.trim()) {
+      toast.error('Please enter a transaction ID');
+      return;
+    }
+
+    try {
+      setIsPaymentSubmitting(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/intern/submit-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({
+          amount: profile?.internFeeAmountInINR ?? 600,
+          transactionId: paymentTxnId.trim()
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.message || 'Failed to submit payment');
+      }
+
+      toast.success('Payment submitted successfully!');
+      setPaymentTxnId('');
+      await fetchInternData();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsPaymentSubmitting(false);
     }
   };
 
@@ -804,11 +842,6 @@ const InternPanel = () => {
                   <div className="offer-content" dangerouslySetInnerHTML={{ __html: offerLetter }} />
                   
                   <div className="offer-actions">
-                    {/* Debug: Show current offer status */}
-                    <div style={{background: '#f0f0f0', padding: '10px', marginBottom: '10px', fontSize: '12px', color: '#666'}}>
-                      DEBUG: Current offerStatus = {profile?.offerStatus || 'undefined'}
-                    </div>
-                    
                     <button 
                       className="btn btn-primary"
                       onClick={handleDownloadOfferLetter}
@@ -819,23 +852,51 @@ const InternPanel = () => {
                     
                     {(!profile?.offerStatus || profile?.offerStatus === 'pending') && (
                       <>
-                        <button 
-                          className="btn btn-success"
-                          onClick={handleAcceptOffer}
-                          disabled={isSubmitting}
-                        >
-                          <i className="fas fa-check"></i>
-                          {isSubmitting ? 'Processing...' : 'Accept Offer'}
-                        </button>
-                        
-                        <button 
-                          className="btn btn-danger"
-                          onClick={() => setShowRejectForm(!showRejectForm)}
-                          disabled={isSubmitting}
-                        >
-                          <i className="fas fa-times"></i>
-                          {showRejectForm ? 'Cancel' : 'Reject Offer'}
-                        </button>
+                        {profile?.internFeeStatus !== 'paid' ? (
+                          <div style={{ width: '100%', marginTop: '12px' }}>
+                            <div className="reject-form" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                              <h4>Internship Fee Payment</h4>
+                              <p style={{ marginTop: '6px' }}>
+                                Amount: <strong>{profile?.internFeeAmountInINR ?? 600} INR</strong>
+                              </p>
+                              <input
+                                type="text"
+                                placeholder="Enter transaction ID"
+                                value={paymentTxnId}
+                                onChange={(e) => setPaymentTxnId(e.target.value)}
+                                style={{ width: '100%', marginTop: '10px' }}
+                              />
+                              <button
+                                className="btn btn-success"
+                                onClick={handleSubmitPayment}
+                                disabled={isPaymentSubmitting || !paymentTxnId.trim()}
+                                style={{ marginTop: '10px' }}
+                              >
+                                {isPaymentSubmitting ? 'Submitting...' : 'Submit Payment'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button 
+                              className="btn btn-success"
+                              onClick={handleAcceptOffer}
+                              disabled={isSubmitting}
+                            >
+                              <i className="fas fa-check"></i>
+                              {isSubmitting ? 'Processing...' : 'Accept Offer'}
+                            </button>
+                            
+                            <button 
+                              className="btn btn-danger"
+                              onClick={() => setShowRejectForm(!showRejectForm)}
+                              disabled={isSubmitting}
+                            >
+                              <i className="fas fa-times"></i>
+                              {showRejectForm ? 'Cancel' : 'Reject Offer'}
+                            </button>
+                          </>
+                        )}
                         
                         {showRejectForm && (
                           <div className="reject-form">

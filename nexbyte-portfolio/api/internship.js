@@ -2,7 +2,29 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const InternshipApplication = require('./models/InternshipApplication');
+
+const auth = (req, res, next) => {
+  const token = req.cookies?.token || req.header('x-auth-token');
+  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+const admin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  next();
+};
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -139,6 +161,26 @@ router.delete('/applications/:id', async (req, res) => {
   }
 });
 
+// GET application resume download
+router.get('/applications/:id/resume', async (req, res) => {
+  try {
+    const application = await InternshipApplication.findById(req.params.id);
+    if (!application) return res.status(404).json({ message: 'Application not found' });
+    if (!application.resume) return res.status(404).json({ message: 'Resume not found' });
+
+    const safeFileName = path.basename(application.resume);
+    const resumePath = path.join(__dirname, '../uploads/resumes', safeFileName);
+
+    if (!fs.existsSync(resumePath)) {
+      return res.status(404).json({ message: 'Resume file missing on server' });
+    }
+
+    return res.download(resumePath, safeFileName);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 // GET email logs
 router.get('/email-logs', (req, res) => {
   res.json(emailLogs);
@@ -150,7 +192,7 @@ router.get('/roles', (req, res) => {
 });
 
 // POST new role
-router.post('/roles', (req, res) => {
+router.post('/roles', auth, admin, (req, res) => {
   const role = {
     id: Date.now(),
     ...req.body,
@@ -162,7 +204,7 @@ router.post('/roles', (req, res) => {
 });
 
 // PUT update role
-router.put('/roles/:id', (req, res) => {
+router.put('/roles/:id', auth, admin, (req, res) => {
   const roleIndex = internshipRoles.findIndex(role => role.id === parseInt(req.params.id));
   if (roleIndex === -1) {
     return res.status(404).json({ message: 'Role not found' });
@@ -173,7 +215,7 @@ router.put('/roles/:id', (req, res) => {
 });
 
 // DELETE role
-router.delete('/roles/:id', (req, res) => {
+router.delete('/roles/:id', auth, admin, (req, res) => {
   const roleIndex = internshipRoles.findIndex(role => role.id === parseInt(req.params.id));
   if (roleIndex === -1) {
     return res.status(404).json({ message: 'Role not found' });
@@ -211,9 +253,6 @@ function sendEmail(to, template, data) {
   
   return logEntry;
 }
-
-// Create uploads directory if it doesn't exist
-const fs = require('fs');
 
 // Create the full uploads directory path recursively
 const uploadsDir = path.join(__dirname, '../uploads/resumes');

@@ -146,12 +146,26 @@ const ApplicationDetail = () => {
     }
     
     try {
-      const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
-        resume: application.resume
+      if (!application?.resume) {
+        alert('No resume available for this application.');
+        return;
+      }
+
+      const response = await axios.get(`/api/internship/applications/${finalId}/resume`, {
+        responseType: 'blob'
       });
-      setApplication(response.data);
+
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', application.resume);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      console.error('Error updating resume download status:', error);
+      console.error('Error downloading resume:', error);
+      alert('Error downloading resume. Please try again.');
     }
   };
 
