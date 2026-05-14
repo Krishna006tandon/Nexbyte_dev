@@ -127,6 +127,12 @@ const extractCloudinaryVersionFromUrl = (url) => {
   return match ? match[1] : null;
 };
 
+const extractCloudinaryCloudNameFromUrl = (url) => {
+  if (typeof url !== 'string') return null;
+  const match = url.match(/^https?:\/\/res\.cloudinary\.com\/([^/]+)\//i);
+  return match ? match[1] : null;
+};
+
 const getCloudinaryAuthenticatedRawDeliveryUrl = ({ publicId, version }) => {
   const cfg = getCloudinaryConfig();
   if (!cfg) return null;
@@ -802,15 +808,31 @@ router.get('/applications/:id/resume', async (req, res) => {
       return res.status(404).json({ message: 'Resume not found' });
     }
 
-    // If resume is stored on Cloudinary and is protected, generate a signed authenticated delivery URL.
+    // If resume is stored on Cloudinary, DO NOT redirect to raw/upload (it can be ACL-protected and 401).
+    // Instead, generate a signed authenticated delivery URL.
     if (application.resumePublicId || (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_'))) {
+      const cfg = getCloudinaryConfig();
+      if (!cfg) {
+        return res.status(500).json({
+          message:
+            'Cloudinary is not configured for signed resume delivery. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.',
+        });
+      }
+
       const publicId = application.resumePublicId || application.resume;
       const version = extractCloudinaryVersionFromUrl(application.resumeUrl);
+      const resumeCloudName = extractCloudinaryCloudNameFromUrl(application.resumeUrl);
+      if (resumeCloudName && resumeCloudName !== cfg.cloudName) {
+        return res.status(500).json({
+          message: `Cloudinary config mismatch: resume is stored in cloud "${resumeCloudName}" but server is configured for "${cfg.cloudName}". Update Vercel env vars to match.`,
+        });
+      }
+
       const signedDeliveryUrl = getCloudinaryAuthenticatedRawDeliveryUrl({ publicId, version });
       if (!signedDeliveryUrl) {
         return res.status(500).json({
           message:
-            'Cloudinary is not configured for signed downloads. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.',
+            'Failed to generate signed Cloudinary resume URL. Check CLOUDINARY_* env vars.',
         });
       }
       return res.redirect(302, signedDeliveryUrl);
