@@ -114,8 +114,10 @@ const sha1Base64Url = (input) =>
 
 const buildCloudinaryDeliverySignatureComponent = ({ pathToSign, apiSecret }) => {
   // Signature format: s--SIGNATURE-- where SIGNATURE is first 8 chars of url-safe sha1 base64 digest.
+  // Cloudinary signs the path that follows the signature component and typically includes a leading '/'.
   // See: https://cloudinary.com/documentation/delivery_url_signatures
-  const digest = sha1Base64Url(`${pathToSign}${apiSecret}`);
+  const normalized = pathToSign.startsWith('/') ? pathToSign : `/${pathToSign}`;
+  const digest = sha1Base64Url(`${normalized}${apiSecret}`);
   return `s--${digest.slice(0, 8)}--`;
 };
 
@@ -132,7 +134,12 @@ const getCloudinaryAuthenticatedRawDeliveryUrl = ({ publicId, version }) => {
 
   // Build path that comes AFTER the signature component.
   const versionPart = version ? `v${version}/` : '';
-  const pathToSign = `${versionPart}${publicId}`;
+  // Cloudinary expects URL-encoded public_id path segments.
+  const encodedPublicId = String(publicId)
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  const pathToSign = `${versionPart}${encodedPublicId}`;
   const sigComponent = buildCloudinaryDeliverySignatureComponent({
     pathToSign,
     apiSecret: cfg.apiSecret,
