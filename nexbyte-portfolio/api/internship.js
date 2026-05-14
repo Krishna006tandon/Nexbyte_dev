@@ -60,19 +60,20 @@ const getCloudinaryConfig = () => {
   return { cloudName, apiKey, apiSecret };
 };
 
-const getCloudinarySignedDownloadUrl = ({ publicId, format }) => {
+const getCloudinarySignedDownloadUrl = ({ publicId }) => {
   const cfg = getCloudinaryConfig();
   if (!cfg) return null;
   if (!publicId) return null;
 
-  // Signed download URL pattern (works for private/authenticated assets when signed).
-  // Example (image): https://api.cloudinary.com/v1_1/<cloud>/image/download?...signature...
-  // We'll use the same pattern for raw: /raw/download
+  // Signed "raw/download" URL. Cloudinary expects signature over the provided params.
+  // Example URL parameters include: public_id, attachment, expires_at, timestamp, signature, api_key.
+  // (public_id for raw assets should include extension, e.g. "file.pdf")
   const timestamp = Math.floor(Date.now() / 1000);
-  const finalFormat = format || 'pdf';
+  const expiresAt = timestamp + 5 * 60; // 5 minutes
 
   const paramsToSign = {
-    format: finalFormat,
+    attachment: true,
+    expires_at: expiresAt,
     public_id: publicId,
     timestamp,
   };
@@ -82,7 +83,8 @@ const getCloudinarySignedDownloadUrl = ({ publicId, format }) => {
   const qs = new URLSearchParams({
     api_key: cfg.apiKey,
     public_id: publicId,
-    format: finalFormat,
+    attachment: 'true',
+    expires_at: String(expiresAt),
     timestamp: String(timestamp),
     signature,
   });
@@ -758,7 +760,7 @@ router.get('/applications/:id/resume', async (req, res) => {
     // If resume is stored on Cloudinary (including private/authenticated), generate a signed download URL.
     if (application.resumePublicId || (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_'))) {
       const publicId = application.resumePublicId || application.resume;
-      const signedUrl = getCloudinarySignedDownloadUrl({ publicId, format: 'pdf' });
+      const signedUrl = getCloudinarySignedDownloadUrl({ publicId });
       if (!signedUrl) {
         return res.status(500).json({
           message:
