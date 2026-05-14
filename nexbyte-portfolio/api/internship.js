@@ -31,14 +31,7 @@ const admin = (req, res, next) => {
   next();
 };
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadsDir = path.join(__dirname, '../uploads/resumes');
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+// Note: Multer is configured below with memory storage (upload handled in route).
 const getUploadsDir = () =>
   process.env.VERCEL ? '/tmp/uploads/resumes' : path.join(__dirname, '../uploads/resumes');
 
@@ -716,30 +709,21 @@ router.delete('/roles/:id', auth, admin, (req, res) => {
 
 // Note: Email sending is implemented via SMTP using utils/emailTransport.
 
-// Create the full uploads directory path recursively
-const uploadsDir = path.join(__dirname, '../uploads/resumes');
-const uploadsParentDir = path.join(__dirname, '../uploads');
-
-try {
-  // Create parent uploads directory first
-  if (!fs.existsSync(uploadsParentDir)) {
-    fs.mkdirSync(uploadsParentDir, { recursive: true });
 // Create uploads directory if it doesn't exist (local dev only)
+// On Vercel, the filesystem is ephemeral and not suitable for persistent uploads.
 if (!process.env.VERCEL) {
-  const uploadsDirLocal = path.join(__dirname, '../uploads/resumes');
-  const uploadsParentDirLocal = path.join(__dirname, '../uploads');
+  const uploadsDir = path.join(__dirname, '../uploads/resumes');
+  const uploadsParentDir = path.join(__dirname, '../uploads');
 
   try {
-    // Create parent uploads directory first
-    if (!fs.existsSync(uploadsParentDirLocal)) {
-      fs.mkdirSync(uploadsParentDirLocal, { recursive: true });
+    if (!fs.existsSync(uploadsParentDir)) {
+      fs.mkdirSync(uploadsParentDir, { recursive: true });
     }
-    // Create resumes directory
-    if (!fs.existsSync(uploadsDirLocal)) {
-      fs.mkdirSync(uploadsDirLocal, { recursive: true });
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
     }
   } catch (error) {
-    console.error('Error creating local upload directories:', error);
+    console.error('Error creating upload directories:', error);
   }
 }
 
