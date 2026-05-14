@@ -648,7 +648,16 @@ router.get('/applications/:id/resume', async (req, res) => {
   try {
     const application = await InternshipApplication.findById(req.params.id);
     if (!application) return res.status(404).json({ message: 'Application not found' });
-    if (!application.resume) return res.status(404).json({ message: 'Resume not found' });
+    if (!application.resume && !application.resumeUrl && !application.resumePublicId) {
+      return res.status(404).json({ message: 'Resume not found' });
+    }
+
+    // If resume lives on Cloudinary (or any external URL), redirect the browser to it.
+    // This avoids buffering large files in the serverless function.
+    const redirectUrl = getApplicationResumeRedirectUrl(application) || application.resumeUrl;
+    if (redirectUrl) {
+      return res.redirect(302, redirectUrl);
+    }
 
     const safeFileName = path.basename(application.resume);
     const resumePath = path.join(__dirname, '../uploads/resumes', safeFileName);

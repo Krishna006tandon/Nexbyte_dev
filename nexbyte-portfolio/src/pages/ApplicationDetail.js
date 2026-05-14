@@ -204,28 +204,13 @@ const ApplicationDetail = () => {
       return;
     }
 
-    try {
-      if (!application?.resume) {
-        alert('No resume available for this application.');
-        return;
-      }
-
-      const response = await axios.get(`/api/internship/applications/${finalId}/resume`, {
-        responseType: 'blob'
-      });
-
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', application.resume);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Error downloading resume:', error);
-      alert('Error downloading resume. Please try again.');
+    if (!application?.resume && !application?.resumeUrl && !application?.resumePublicId) {
+      alert('No resume available for this application.');
+      return;
     }
+
+    // Let the browser handle the download/redirect (works for both local and Cloudinary storage).
+    window.open(`/api/internship/applications/${finalId}/resume`, '_blank');
   };
 
   const handleSendEmail = () => {
