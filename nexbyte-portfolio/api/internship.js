@@ -103,6 +103,44 @@ const buildCloudinarySignature = (params, apiSecret) => {
   return sha1(`${toSign}${apiSecret}`);
 };
 
+const sha1Base64Url = (input) =>
+  crypto
+    .createHash('sha1')
+    .update(String(input))
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+const buildCloudinaryDeliverySignatureComponent = ({ pathToSign, apiSecret }) => {
+  // Signature format: s--SIGNATURE-- where SIGNATURE is first 8 chars of url-safe sha1 base64 digest.
+  // See: https://cloudinary.com/documentation/delivery_url_signatures
+  const digest = sha1Base64Url(`${pathToSign}${apiSecret}`);
+  return `s--${digest.slice(0, 8)}--`;
+};
+
+const extractCloudinaryVersionFromUrl = (url) => {
+  if (typeof url !== 'string') return null;
+  const match = url.match(/\/v(\d+)\//);
+  return match ? match[1] : null;
+};
+
+const getCloudinaryAuthenticatedRawDeliveryUrl = ({ publicId, version }) => {
+  const cfg = getCloudinaryConfig();
+  if (!cfg) return null;
+  if (!publicId) return null;
+
+  // Build path that comes AFTER the signature component.
+  const versionPart = version ? `v${version}/` : '';
+  const pathToSign = `${versionPart}${publicId}`;
+  const sigComponent = buildCloudinaryDeliverySignatureComponent({
+    pathToSign,
+    apiSecret: cfg.apiSecret,
+  });
+
+  return `https://res.cloudinary.com/${cfg.cloudName}/raw/authenticated/${sigComponent}/${pathToSign}`;
+};
+
 const uploadResumeToCloudinary = async (file) => {
   const cfg = getCloudinaryConfig();
   if (!cfg) return null;
@@ -757,17 +795,18 @@ router.get('/applications/:id/resume', async (req, res) => {
       return res.status(404).json({ message: 'Resume not found' });
     }
 
-    // If resume is stored on Cloudinary (including private/authenticated), generate a signed download URL.
+    // If resume is stored on Cloudinary and is protected, generate a signed authenticated delivery URL.
     if (application.resumePublicId || (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_'))) {
       const publicId = application.resumePublicId || application.resume;
-      const signedUrl = getCloudinarySignedDownloadUrl({ publicId });
-      if (!signedUrl) {
+      const version = extractCloudinaryVersionFromUrl(application.resumeUrl);
+      const signedDeliveryUrl = getCloudinaryAuthenticatedRawDeliveryUrl({ publicId, version });
+      if (!signedDeliveryUrl) {
         return res.status(500).json({
           message:
             'Cloudinary is not configured for signed downloads. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.',
         });
       }
-      return res.redirect(302, signedUrl);
+      return res.redirect(302, signedDeliveryUrl);
     }
 
     // If resume lives on an external URL, redirect the browser to it (may still be public).
