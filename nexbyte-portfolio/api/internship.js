@@ -60,6 +60,49 @@ const getCloudinaryConfig = () => {
   return { cloudName, apiKey, apiSecret };
 };
 
+const cloudinaryAdminAuthHeader = (cfg) => {
+  const token = Buffer.from(`${cfg.apiKey}:${cfg.apiSecret}`).toString('base64');
+  return `Basic ${token}`;
+};
+
+const getCloudinarySignedDownloadUrl = async ({ publicId, filename }) => {
+  const cfg = getCloudinaryConfig();
+  if (!cfg) return null;
+  if (!publicId) return null;
+
+  // Cloudinary "download" endpoint returns a short-lived URL even for private/authenticated assets.
+  // Docs: https://cloudinary.com/documentation/admin_api#get_a_short_lived_download_link
+  const endpoint = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/raw/download`;
+
+  const expiresAt = Math.floor(Date.now() / 1000) + 5 * 60; // 5 minutes
+  const body = {
+    public_id: publicId,
+    attachment: true,
+    expires_at: expiresAt,
+  };
+  if (filename) body.filename = filename;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: cloudinaryAdminAuthHeader(cfg),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg =
+      data && data.error && data.error.message
+        ? data.error.message
+        : `Cloudinary download link failed (${response.status})`;
+    throw new Error(msg);
+  }
+
+  return data && data.url ? data.url : null;
+};
+
 const sha1 = (input) => crypto.createHash('sha1').update(String(input)).digest('hex');
 
 const buildCloudinarySignature = (params, apiSecret) => {
@@ -725,12 +768,24 @@ router.get('/applications/:id/resume', async (req, res) => {
       return res.status(404).json({ message: 'Resume not found' });
     }
 
-    // If resume lives on Cloudinary (or any external URL), redirect the browser to it.
-    // This avoids buffering large files in the serverless function.
-    const redirectUrl = getApplicationResumeRedirectUrl(application) || application.resumeUrl;
-    if (redirectUrl) {
-      return res.redirect(302, redirectUrl);
+    // If resume is stored on Cloudinary (including private/authenticated), generate a short-lived signed URL.
+    if (application.resumePublicId || (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_'))) {
+      const publicId = application.resumePublicId || application.resume;
+      try {
+        const signedUrl = await getCloudinarySignedDownloadUrl({
+          publicId,
+          filename: application.resumeOriginalName || 'resume.pdf',
+        });
+        if (signedUrl) return res.redirect(302, signedUrl);
+      } catch (e) {
+        console.warn('Cloudinary signed download failed:', e.message);
+        // fall through to the next strategy
+      }
     }
+
+    // If resume lives on an external URL, redirect the browser to it (may still be public).
+    const redirectUrl = getApplicationResumeRedirectUrl(application) || application.resumeUrl;
+    if (redirectUrl) return res.redirect(302, redirectUrl);
 
     const safeFileName = path.basename(application.resume);
     const resumePath = path.join(__dirname, '../uploads/resumes', safeFileName);
