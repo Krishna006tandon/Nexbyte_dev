@@ -317,7 +317,9 @@ const Internship = () => {
               >
                 <option value="">Select a role</option>
                 {roles.map((role, index) => (
-                  <option key={index} value={role}>{role}</option>
+                  <option key={role?._id || role?.id || index} value={role?.name || ''}>
+                    {role?.name || ''}
+                  </option>
                 ))}
               </select>
             </div>
