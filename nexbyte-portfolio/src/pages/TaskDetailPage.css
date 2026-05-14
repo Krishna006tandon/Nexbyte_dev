@@ -16,7 +16,7 @@
 }
 
 .task-detail-page-container {
-  max-width: 1200px;
+  max-width: var(--container-max-width);
   margin: 2rem auto;
   padding: 2rem;
   background: transparent;

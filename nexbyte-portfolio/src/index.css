@@ -24,6 +24,7 @@
   --success-color-rgb: 40, 167, 69;
   --error-color-rgb: 220, 53, 69;
   --default-border-radius: 14px;
+  --container-max-width: 2400px;
 }
 
 *,
@@ -41,6 +42,22 @@ body {
     radial-gradient(900px 600px at 85% 20%, rgba(88, 166, 255, 0.06), transparent),
     var(--background-dark);
   color: var(--primary-text);
+  line-height: 1.6;
+  position: relative;
+  z-index: 0;
+}
+
+/* Subtle global watermark using Nexbyte logo */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("./assets/nexbyte-logo.png");
+  background-repeat: repeat;
+  background-size: 180px;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: -1;
   line-height: 1.65;
   min-height: 100vh;
 }
@@ -55,7 +72,12 @@ a:hover {
   color: var(--accent-hover);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--primary-text);
   font-family: var(--font-display);
   font-weight: 600;

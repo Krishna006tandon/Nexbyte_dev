@@ -33,6 +33,18 @@ const InternshipApplicationSchema = new mongoose.Schema({
     type: String, // filename of uploaded resume
     required: false
   },
+  resumeUrl: {
+    type: String,
+    required: false
+  },
+  resumePublicId: {
+    type: String,
+    required: false
+  },
+  resumeOriginalName: {
+    type: String,
+    required: false
+  },
   coverLetter: {
     type: String,
     required: false
@@ -54,8 +66,25 @@ const InternshipApplicationSchema = new mongoose.Schema({
     type: Date,
     required: false
   },
+  interviewAvailability: [{
+    type: Date,
+    required: false
+  }],
+  interviewMeetLink: {
+    type: String,
+    required: false
+  },
   rejectionReason: {
     type: String,
+    required: false
+  },
+  internUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
+  internAccountCreatedAt: {
+    type: Date,
     required: false
   }
 }, {

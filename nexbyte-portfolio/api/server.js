@@ -1,6 +1,13 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+const crypto = require('crypto');
+const multer = require('multer');
+
+// Prefer project-level env, then API-level env (without overriding already-set vars)
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -17,8 +24,15 @@ const Task = require('./models/Task');
 const Diary = require('./models/Diary');
 const Report = require('./models/Report');
 const Notification = require('./models/Notification');
+const GroupMeeting = require('./models/GroupMeeting');
 const Resource = require('./models/Resource');
 const Project = require('./models/Project');
+const Internship = require('./models/Internship');
+const InternshipApplication = require('./models/InternshipApplication');
+const Certificate = require('./models/Certificate');
+const AutomationState = require('./models/AutomationState');
+const PresentationTopic = require('./models/PresentationTopic');
+const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
 const mailSender = require('./mailSender');
 
@@ -29,7 +43,18 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com"],
+      "connect-src": ["'self'", "https://api.razorpay.com"],
+      "frame-src": ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://*.razorpay.com"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+    },
+  },
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -208,10 +233,10 @@ app.post('/api/forgot-password', async (req, res) => {
       );
       
       if (emailResult.success) {
-        return res.json({ message: 'A new temporary password has been sent to your email.' });
+        return res.json({ message: 'A new temporary password has been sent to your email.', previewUrl: emailResult.previewUrl || null });
       } else {
         console.error('Failed to send reset email:', emailResult.error);
-        return res.status(500).json({ message: 'Account found, but could not send email. Please contact support.' });
+        return res.status(500).json({ message: 'Account found, but could not send email. Please contact support.', previewUrl: emailResult.previewUrl || null });
       }
     } catch (emailError) {
       console.error('Error in sendPasswordReset notification:', emailError);
@@ -307,7 +332,7 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
   }
 });
 
-const nodemailer = require('nodemailer');
+const { createTransporter, getFromAddress, getPreviewUrl, getSmtpConfig } = require('./utils/emailTransport');
 
 // Helper function to generate offer letter content
 const generateOfferLetter = (email, startDate, endDate, acceptanceDate) => {
@@ -332,23 +357,448 @@ const generateOfferLetter = (email, startDate, endDate, acceptanceDate) => {
   `;
 };
 
-// Check for EMAIL_PASSWORD environment variable
-if (!process.env.EMAIL_PASSWORD) {
-  console.warn('WARNING: process.env.EMAIL_PASSWORD is not set. Email sending may fail. Please ensure it is configured in your .env file.');
+let transporter = null;
+try {
+  transporter = createTransporter();
+} catch (e) {
+  const cfg = getSmtpConfig();
+  if (!cfg.allowNoAuth) {
+    console.warn('WARNING: Email transport is not configured. Emails will not be sent.');
+    console.warn('Set SMTP_USER and SMTP_PASS (recommended) or EMAIL_USER and EMAIL_PASSWORD/EMAIL_PASS.');
+    console.warn('Details:', e.message);
+  }
 }
 
-// Nodemailer transporter setup
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: "nexbyte.dev@gmail.com",
-    pass: process.env.EMAIL_PASSWORD,
+const sendMailSafe = async (mailOptions, label) => {
+  if (!transporter) {
+    console.warn(`Skipping email (${label}): SMTP not configured`);
+    return { success: false, error: 'SMTP not configured' };
+  }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    const previewUrl = getPreviewUrl(info);
+    if (previewUrl) console.log('Email preview URL:', previewUrl);
+    return { success: true, messageId: info.messageId, previewUrl };
+  } catch (error) {
+    console.error(`Error sending email (${label}):`, error);
+    return { success: false, error: error.message };
+  }
+};
+
+const getRazorpayConfig = () => {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    return null;
+  }
+  return { keyId, keySecret };
+};
+
+const getBillRemainingAmount = (bill) => Math.max(0, Number(bill.amount || 0) - Number(bill.paidAmount || 0));
+
+const callRazorpayApi = async (endpoint, payload) => {
+  const config = getRazorpayConfig();
+  if (!config) {
+    throw new Error('Razorpay is not configured');
+  }
+
+  const response = await fetch(`https://api.razorpay.com/v1/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${config.keyId}:${config.keySecret}`).toString('base64')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorMessage =
+      data?.error?.description ||
+      data?.error?.message ||
+      `Razorpay request failed with status ${response.status}`;
+    throw new Error(errorMessage);
+  }
+
+  return data;
+};
+
+const verifyRazorpaySignature = ({ orderId, paymentId, signature }) => {
+  const config = getRazorpayConfig();
+  if (!config) {
+    return false;
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', config.keySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
+
+  return expectedSignature === signature;
+};
+
+const uploadPdf = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: function (req, file, cb) {
+    const isPdf =
+      file.mimetype === 'application/pdf' ||
+      (typeof file.originalname === 'string' && file.originalname.toLowerCase().endsWith('.pdf'));
+    if (isPdf) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
   },
-  debug: true, // Enable debug output
-  logger: true // Enable console logging
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
 });
+
+const getCloudinaryConfig = () => {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+};
+
+const sha1 = (input) => crypto.createHash('sha1').update(String(input)).digest('hex');
+
+const buildCloudinarySignature = (params, apiSecret) => {
+  const toSign = Object.keys(params)
+    .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join('&');
+  return sha1(`${toSign}${apiSecret}`);
+};
+
+const uploadPdfToCloudinary = async (file, folderPrefix) => {
+  const config = getCloudinaryConfig();
+  if (!config) {
+    throw new Error('Cloudinary is not configured');
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const publicId = `${folderPrefix}_${crypto.randomUUID()}`;
+  const signature = buildCloudinarySignature({ public_id: publicId, timestamp }, config.apiSecret);
+
+  const form = new FormData();
+  const blob = new Blob([file.buffer], { type: file.mimetype || 'application/pdf' });
+  form.append('file', blob, file.originalname || 'document.pdf');
+  form.append('api_key', config.apiKey);
+  form.append('timestamp', String(timestamp));
+  form.append('public_id', publicId);
+  form.append('signature', signature);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/raw/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorMessage =
+      data?.error?.message || `Cloudinary upload failed with status ${response.status}`;
+    throw new Error(errorMessage);
+  }
+
+  return {
+    publicId: data.public_id,
+    secureUrl: data.secure_url,
+  };
+};
+
+const formatTaskDueDate = (value) => {
+  if (!value) return 'Not specified';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not specified';
+  return date.toLocaleString('en-IN', {
+    timeZone: process.env.AUTOMATION_TIMEZONE || 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+const sendTaskAssignmentEmail = async (taskInput, options = {}) => {
+  const assignedUserId =
+    taskInput?.assignedTo?._id ||
+    taskInput?.assignedTo?.id ||
+    taskInput?.assignedTo;
+
+  if (!assignedUserId) {
+    return { skipped: true, reason: 'No assigned user' };
+  }
+
+  const previousAssignedUserId =
+    options.previousAssignedTo?._id ||
+    options.previousAssignedTo?.id ||
+    options.previousAssignedTo;
+
+  if (
+    previousAssignedUserId &&
+    String(previousAssignedUserId) === String(assignedUserId) &&
+    !options.force
+  ) {
+    return { skipped: true, reason: 'Assignment unchanged' };
+  }
+
+  const [assignedUser, project] = await Promise.all([
+    User.findById(assignedUserId).select('email role'),
+    taskInput.project ? Project.findById(taskInput.project).select('projectName') : Promise.resolve(null)
+  ]);
+
+  if (!assignedUser || !assignedUser.email) {
+    return { skipped: true, reason: 'Assigned user email not found' };
+  }
+
+  const actionText = options.isNewTask ? 'A new task has been assigned to you.' : 'A task has been assigned or updated for you.';
+  const mailOptions = {
+    from: getFromAddress('NexByte'),
+    to: assignedUser.email,
+    subject: `Task Assigned - ${taskInput.title || 'NexByte Task'}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <p>Dear ${assignedUser.email.split('@')[0]},</p>
+        <p>${actionText}</p>
+        <ul>
+          <li><strong>Task:</strong> ${taskInput.title || 'Untitled Task'}</li>
+          <li><strong>Description:</strong> ${taskInput.description || 'No description provided'}</li>
+          <li><strong>Priority:</strong> ${taskInput.priority || 'Not specified'}</li>
+          <li><strong>Status:</strong> ${taskInput.status || 'pending'}</li>
+          <li><strong>Due Date:</strong> ${formatTaskDueDate(taskInput.dueDate)}</li>
+          <li><strong>Project:</strong> ${project?.projectName || 'General Task'}</li>
+        </ul>
+        <p>Please check your intern dashboard for full details.</p>
+        <p>Regards,<br/>NexByte Team</p>
+      </div>
+    `
+  };
+
+  return sendMailSafe(mailOptions, options.isNewTask ? 'task-assigned-create' : 'task-assigned-update');
+};
+
+// =========================
+// Portal automations
+// =========================
+let portalAutomationsStarted = false;
+
+function getZonedParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const out = {};
+  for (const p of parts) {
+    if (p.type !== 'literal') out[p.type] = p.value;
+  }
+  return out;
+}
+
+async function expirePendingOffersAndNotify({ now = new Date(), dryRun = false } = {}) {
+  const expiredInterns = await User.find({
+    role: 'intern',
+    offerStatus: 'pending',
+    acceptanceDate: { $exists: true, $ne: null, $lt: now },
+  }).select('email acceptanceDate');
+
+  if (expiredInterns.length === 0) return { expiredCount: 0 };
+
+  if (!dryRun) {
+    await User.updateMany(
+      { _id: { $in: expiredInterns.map(i => i._id) } },
+      { $set: { offerStatus: 'expired', offerExpiredDate: now, internshipStatus: 'not_started' } }
+    );
+  }
+
+  const admins = await User.find({ role: 'admin' }).select('email');
+  const adminEmails = admins.map(a => a.email).filter(Boolean);
+
+  const rows = expiredInterns
+    .map(i => `<li>${i.email} (deadline: ${new Date(i.acceptanceDate).toLocaleDateString()})</li>`)
+    .join('');
+
+  if (adminEmails.length > 0) {
+    const adminMailOptions = {
+      from: getFromAddress('NexByte'),
+      to: adminEmails.join(','),
+      subject: `Offer Expiry Alert (${expiredInterns.length}) - NexByte`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2>Expired Internship Offers</h2>
+          <p>The following intern offers have been marked as <strong>expired</strong> because the acceptance deadline passed:</p>
+          <ul>${rows}</ul>
+          <p>Time: ${now.toISOString()}</p>
+        </div>
+      `,
+    };
+    await sendMailSafe(adminMailOptions, 'offer-expiry-admin');
+  }
+
+  // Notify interns (best-effort)
+  for (const intern of expiredInterns) {
+    const internMailOptions = {
+      from: getFromAddress('NexByte'),
+      to: intern.email,
+      subject: 'Internship Offer Expired - NexByte',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <p>Dear ${intern.email},</p>
+          <p>Your internship offer has expired because we did not receive an acceptance by the deadline (${new Date(intern.acceptanceDate).toLocaleDateString()}).</p>
+          <p>If you are still interested, please contact the NexByte team.</p>
+          <p>Regards,<br/>NexByte Team</p>
+        </div>
+      `,
+    };
+    await sendMailSafe(internMailOptions, 'offer-expiry-intern');
+  }
+
+  return { expiredCount: expiredInterns.length, expiredEmails: expiredInterns.map(i => i.email) };
+}
+
+async function sendWeeklyProgressSummaries({ now = new Date(), force = false, dryRun = false } = {}) {
+  const oneDay = 24 * 60 * 60 * 1000;
+  const threshold = new Date(now.getTime() - 6 * oneDay);
+
+  await AutomationState.updateOne({ key: 'weekly_progress' }, { $setOnInsert: { key: 'weekly_progress' } }, { upsert: true });
+  if (!force) {
+    const state = await AutomationState.findOne({ key: 'weekly_progress' }).select('lastRunAt');
+    if (state?.lastRunAt && state.lastRunAt > threshold) {
+      return { skipped: true, reason: 'recently_run', lastRunAt: state.lastRunAt };
+    }
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return { skipped: true, reason: 'GEMINI_API_KEY_not_configured' };
+  }
+
+  const since = new Date(now.getTime() - 7 * oneDay);
+  const interns = await User.find({ role: 'intern', internshipStatus: 'in_progress' }).select('email');
+  if (interns.length === 0) return { sent: 0 };
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+  let sent = 0;
+  for (const intern of interns) {
+    const [completedTasks, recentTasks] = await Promise.all([
+      Task.find({ assignedTo: intern._id, completedAt: { $gte: since, $lt: now } })
+        .sort({ completedAt: -1 })
+        .limit(20)
+        .select('title completedAt status'),
+      Task.find({ assignedTo: intern._id, createdAt: { $gte: since, $lt: now } })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .select('title status'),
+    ]);
+
+    const payload = {
+      internEmail: intern.email,
+      range: { since: since.toISOString(), until: now.toISOString() },
+      completedTasks: completedTasks.map(t => ({ title: t.title, status: t.status, completedAt: t.completedAt })),
+      recentTasks: recentTasks.map(t => ({ title: t.title, status: t.status })),
+      metrics: { completedCount: completedTasks.length, createdCount: recentTasks.length },
+    };
+
+    const promptText = `
+You are an internship mentor. Write a concise weekly progress summary email for the intern.
+Keep it friendly, actionable, and short (max 120 words).
+Include:
+1) 2-4 bullet highlights (completed work)
+2) 1-2 next steps for next week
+Do not include any JSON or markdown fences.
+Data:
+${JSON.stringify(payload)}
+    `.trim();
+
+    let summaryText = '';
+    try {
+      const result = await model.generateContent(promptText);
+      const response = await result.response;
+      summaryText = String(response.text() || '').trim();
+    } catch (e) {
+      summaryText = `This week you completed ${completedTasks.length} task(s). Next week: pick 1 high-impact task and share a short update daily.`;
+      console.error('Weekly summary AI error for', intern.email, e?.message || e);
+    }
+
+    const mailOptions = {
+      from: getFromAddress('NexByte'),
+      to: intern.email,
+      subject: 'Weekly Progress Summary - NexByte Internship',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2>Weekly Progress Summary</h2>
+          <p>${summaryText.replace(/\n/g, '<br/>')}</p>
+          <p style="color:#6b7280;font-size:12px;">Range: ${since.toLocaleDateString()} - ${now.toLocaleDateString()}</p>
+        </div>
+      `,
+    };
+
+    if (!dryRun) {
+      const result = await sendMailSafe(mailOptions, 'weekly-progress');
+      if (result.success) sent += 1;
+    }
+  }
+
+  if (!dryRun) {
+    await AutomationState.updateOne({ key: 'weekly_progress' }, { $set: { lastRunAt: now } });
+  }
+
+  return { sent };
+}
+
+function startPortalAutomationJobs() {
+  if (portalAutomationsStarted) return;
+  portalAutomationsStarted = true;
+
+  if (process.env.AUTOMATION_ENABLED && String(process.env.AUTOMATION_ENABLED).trim().toLowerCase() === 'false') {
+    console.log('Portal automations disabled via AUTOMATION_ENABLED=false');
+    return;
+  }
+
+  // Vercel serverless functions should not rely on long-running timers.
+  // Use the protected /api/automation/cron/* endpoints via an external scheduler / Vercel Cron instead.
+  if (process.env.VERCEL) {
+    console.log('Portal automations disabled in Vercel serverless runtime. Use /api/automation/cron/* endpoints.');
+    return;
+  }
+
+  // Offer expiry check (hourly) + run once at startup
+  expirePendingOffersAndNotify().catch(e => console.error('Offer expiry job error:', e));
+  setInterval(() => {
+    expirePendingOffersAndNotify().catch(e => console.error('Offer expiry job error:', e));
+  }, 60 * 60 * 1000);
+
+  // Weekly progress summaries: every 15 minutes, run only on Monday 09:00-09:14 (configured TZ)
+  const tz = process.env.AUTOMATION_TIMEZONE || 'Asia/Kolkata';
+  setInterval(() => {
+    try {
+      const parts = getZonedParts(new Date(), tz);
+      const weekday = parts.weekday;
+      const hour = Number(parts.hour);
+      const minute = Number(parts.minute);
+      if (weekday === 'Mon' && hour === 9 && minute >= 0 && minute < 15) {
+        sendWeeklyProgressSummaries().catch(e => console.error('Weekly progress job error:', e));
+      }
+    } catch (e) {
+      console.error('Automation scheduler error:', e);
+    }
+  }, 15 * 60 * 1000);
+}
+
+function startPortalAutomationJobsWhenReady() {
+  if (portalAutomationsStarted) return;
+  if (connection.readyState === 1) return startPortalAutomationJobs();
+  connection.once('open', () => startPortalAutomationJobs());
+}
+
+startPortalAutomationJobsWhenReady();
 
 // @route   POST api/register
 // @desc    Register a new user (public)
@@ -458,12 +908,13 @@ app.post('/api/users', auth, admin, async (req, res) => {
 
       if (emailResult.success) {
         console.log(`${role} credentials email sent successfully to ${email}`);
-        return res.json({ message: 'User created successfully and welcome email sent.' });
+        return res.json({ message: 'User created successfully and welcome email sent.', previewUrl: emailResult.previewUrl || null });
       } else {
         console.error(`Failed to send ${role} welcome email:`, emailResult.error);
         return res.status(201).json({ 
           message: 'User created successfully, but welcome email could not be sent. Please provide credentials manually.',
-          warning: emailResult.error 
+          warning: emailResult.error,
+          previewUrl: emailResult.previewUrl || null
         });
       }
     } catch (emailError) {
@@ -972,6 +1423,11 @@ app.post('/api/bills', auth, admin, async (req, res) => {
   const { client, amount, dueDate, status, description } = req.body;
 
   try {
+    const clientData = await Client.findById(client).select('clientName email projectName');
+    if (!clientData) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
     const newBill = new Bill({
       client,
       amount,
@@ -981,7 +1437,37 @@ app.post('/api/bills', auth, admin, async (req, res) => {
     });
 
     await newBill.save();
-    res.json(newBill);
+
+    const billLinkBase = process.env.PUBLIC_APP_URL || process.env.CLIENT_URL || '';
+    const billLink = billLinkBase ? `${billLinkBase.replace(/\/$/, '')}/client` : '';
+
+    await sendMailSafe(
+      {
+        from: getFromAddress('NexByte'),
+        to: clientData.email,
+        subject: `New Bill Generated - ${clientData.projectName || 'NexByte Project'}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <p>Dear ${clientData.clientName},</p>
+            <p>A new bill has been generated for your project.</p>
+            <ul>
+              <li><strong>Bill ID:</strong> ${newBill._id}</li>
+              <li><strong>Project:</strong> ${clientData.projectName || 'N/A'}</li>
+              <li><strong>Amount:</strong> INR ${Number(amount || 0).toFixed(2)}</li>
+              <li><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString('en-IN')}</li>
+              <li><strong>Status:</strong> ${status || 'Unpaid'}</li>
+              <li><strong>Description:</strong> ${description || 'N/A'}</li>
+            </ul>
+            ${billLink ? `<p>You can review and pay the bill from your client dashboard: <a href="${billLink}">${billLink}</a></p>` : ''}
+            <p>Regards,<br/>NexByte Team</p>
+          </div>
+        `,
+      },
+      'bill-created-client'
+    );
+
+    const populatedBill = await Bill.findById(newBill._id).populate('client', 'clientName projectName totalBudget');
+    res.json(populatedBill);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
@@ -1085,6 +1571,147 @@ app.put('/api/bills/:billId', auth, admin, async (req, res) => {
   }
 });
 
+// @route   POST api/bills/:billId/razorpay-order
+// @desc    Create a Razorpay order for bill payment
+// @access  Private (client)
+app.post('/api/bills/:billId/razorpay-order', auth, client, async (req, res) => {
+  try {
+    const config = getRazorpayConfig();
+    if (!config) {
+      return res.status(500).json({ message: 'Razorpay is not configured' });
+    }
+
+    const bill = await Bill.findById(req.params.billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    if (bill.client.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const remainingAmount = getBillRemainingAmount(bill);
+    if (remainingAmount <= 0) {
+      return res.status(400).json({ message: 'This bill is already fully paid' });
+    }
+
+    const amountInPaise = Math.round(remainingAmount * 100);
+    const order = await callRazorpayApi('orders', {
+      amount: amountInPaise,
+      currency: 'INR',
+      receipt: `bill_${bill._id}_${Date.now()}`.slice(0, 40),
+      notes: {
+        billId: String(bill._id),
+        clientId: String(bill.client),
+      },
+    });
+
+    bill.razorpayOrders.push({
+      orderId: order.id,
+      amount: remainingAmount,
+      status: 'created',
+    });
+    await bill.save();
+
+    return res.json({
+      key: config.keyId,
+      orderId: order.id,
+      amount: amountInPaise,
+      currency: order.currency || 'INR',
+      billId: String(bill._id),
+      clientName: req.user.email ? req.user.email.split('@')[0] : 'Client',
+    });
+  } catch (err) {
+    console.error('Error creating Razorpay order:', err.message);
+    return res.status(500).json({ message: err.message || 'Failed to create Razorpay order' });
+  }
+});
+
+// @route   POST api/bills/:billId/verify-razorpay-payment
+// @desc    Verify Razorpay payment and mark bill as paid
+// @access  Private (client)
+app.post('/api/bills/:billId/verify-razorpay-payment', auth, client, async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ message: 'Payment verification details are required' });
+  }
+
+  try {
+    const bill = await Bill.findById(req.params.billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    if (bill.client.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const orderEntry = bill.razorpayOrders.find(
+      (entry) => entry.orderId === razorpay_order_id
+    );
+
+    if (!orderEntry) {
+      return res.status(404).json({ message: 'Razorpay order not found for this bill' });
+    }
+
+    if (orderEntry.status === 'paid') {
+      const populatedBill = await Bill.findById(bill._id).populate('client', 'clientName projectName totalBudget');
+      return res.json(populatedBill);
+    }
+
+    const isValid = verifyRazorpaySignature({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+    });
+
+    if (!isValid) {
+      orderEntry.status = 'failed';
+      await bill.save();
+      return res.status(400).json({ message: 'Invalid Razorpay payment signature' });
+    }
+
+    orderEntry.paymentId = razorpay_payment_id;
+    orderEntry.signature = razorpay_signature;
+    orderEntry.status = 'paid';
+    orderEntry.verifiedAt = new Date();
+
+    bill.paidAmount = Number(bill.paidAmount || 0) + Number(orderEntry.amount || 0);
+    bill.status = bill.paidAmount >= bill.amount ? 'Paid' : 'Partially Paid';
+    await bill.save();
+
+    const [populatedBill, clientData] = await Promise.all([
+      Bill.findById(bill._id).populate('client', 'clientName projectName totalBudget'),
+      Client.findById(bill.client),
+    ]);
+
+    if (clientData?.email) {
+      await sendMailSafe(
+        {
+          from: getFromAddress('NexByte'),
+          to: clientData.email,
+          subject: 'Payment Successful',
+          html: `
+            <p>Dear ${clientData.clientName},</p>
+            <p>Your payment for bill ID ${bill._id} has been received successfully.</p>
+            <p><strong>Amount:</strong> INR ${Number(orderEntry.amount || 0).toFixed(2)}</p>
+            <p><strong>Payment ID:</strong> ${razorpay_payment_id}</p>
+            <p>Thank you,</p>
+            <p>The NexByte Team</p>
+          `,
+        },
+        'razorpay-payment-success'
+      );
+    }
+
+    return res.json(populatedBill);
+  } catch (err) {
+    console.error('Error verifying Razorpay payment:', err.message);
+    return res.status(500).json({ message: err.message || 'Failed to verify Razorpay payment' });
+  }
+});
+
 app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
   const { transactionId, amount } = req.body;
 
@@ -1113,7 +1740,7 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
     if (clientData && clientData.email) {
       // Send confirmation email
       const mailOptions = {
-        from: '"NexByte" <nexbyte.dev@gmail.com>',
+        from: getFromAddress('NexByte'),
         to: clientData.email,
         subject: 'Payment Confirmation Received',
         html: `
@@ -1127,8 +1754,8 @@ app.put('/api/bills/:billId/confirm', auth, client, async (req, res) => {
 
       try {
         console.log('Attempting to send payment confirmation email...');
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Payment confirmation email sent:', info.response);
+        const result = await sendMailSafe(mailOptions, 'payment-confirmation');
+        if (result.success) console.log('Payment confirmation email sent:', result.messageId);
       } catch (error) {
         console.error('Error sending payment confirmation email:', error);
         // We don't want to fail the whole request if the email fails
@@ -1340,7 +1967,7 @@ app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
 
     // Send email to client
     const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      from: getFromAddress('NexByte'),
       to: client.email,
       subject: `SRS for ${client.projectName} is Ready`,
       html: `
@@ -1354,8 +1981,8 @@ app.post('/api/send-srs-to-client', auth, admin, async (req, res) => {
 
     try {
       console.log('Attempting to send SRS email to client...');
-      const info = await transporter.sendMail(mailOptions);
-      console.log('SRS Email sent:', info.response);
+      const result = await sendMailSafe(mailOptions, 'srs-to-client');
+      if (result.success) console.log('SRS email sent:', result.messageId);
     } catch (error) {
       console.error('Error sending SRS email:', error);
       // We don't want to fail the whole request if the email fails
@@ -1946,8 +2573,10 @@ app.put('/api/tasks/:id/assign', auth, admin, async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        const previousAssignedTo = task.assignedTo;
         task.assignedTo = userId;
         await task.save();
+        await sendTaskAssignmentEmail(task, { previousAssignedTo });
 
         res.json(task);
     } catch (err) {
@@ -2005,22 +2634,49 @@ app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
       return res.status(404).json({ message: 'Client not found' });
     }
 
-    const tasks = await Task.find({ client: clientId });
+    const relatedProjects = await Project.find({ associatedClient: clientId }).select('_id');
+    const relatedProjectIds = relatedProjects.map((project) => project._id);
+    const taskQuery = relatedProjectIds.length > 0
+      ? {
+          $or: [
+            { client: clientId },
+            { project: { $in: relatedProjectIds } }
+          ]
+        }
+      : { client: clientId };
 
-    let newMilestone = 'Planning'; // Default milestone
+    const tasks = await Task.find(taskQuery);
 
-    if (tasks.length > 0) {
-      const taskStatuses = tasks.map(task => task.status);
+    const normalizedStatuses = tasks.map((task) => String(task.status || '').trim().toLowerCase());
+    const hasSrs = Boolean(client.srsDocument && client.srsDocument.trim());
+    const currentMilestone = client.milestone || 'Planning';
+    const planningStatuses = ['pending', 'to do', 'on hold', 'on-hold'];
+    const developmentStatuses = ['in progress', 'in-progress', 'defect', 'done', 'approved', 'completed'];
+    const testingStatuses = ['needs review', 'review', 'under review', 'testing'];
+    const completionStatuses = ['done', 'approved', 'completed', 'cancelled'];
+    const allTasksCompleted =
+      normalizedStatuses.length > 0 &&
+      normalizedStatuses.every((status) => completionStatuses.includes(status));
+    const hasTestingTasks = normalizedStatuses.some((status) =>
+      testingStatuses.includes(status)
+    );
+    const hasDevelopmentTasks = normalizedStatuses.some((status) =>
+      developmentStatuses.includes(status)
+    );
+    const allTasksPending =
+      normalizedStatuses.length > 0 &&
+      normalizedStatuses.every((status) => planningStatuses.includes(status));
 
-      if (taskStatuses.every(status => status === 'Done')) {
-        newMilestone = 'Completed';
-      } else if (taskStatuses.some(status => status === 'Needs Review' || status === 'Defect')) {
-        newMilestone = 'Testing';
-      } else if (taskStatuses.some(status => status === 'In Progress' || status === 'Done')) {
-        newMilestone = 'Development';
-      } else if (taskStatuses.every(status => status === 'To Do')) {
-        newMilestone = 'Planning';
-      }
+    let newMilestone = 'Planning';
+
+    if (allTasksCompleted) {
+      newMilestone = ['Deployment', 'Completed'].includes(currentMilestone) ? 'Completed' : 'Deployment';
+    } else if (hasDevelopmentTasks) {
+      newMilestone = 'Development';
+    } else if (hasTestingTasks) {
+      newMilestone = 'Testing';
+    } else if (allTasksPending || hasSrs) {
+      newMilestone = hasSrs ? 'Design' : 'Planning';
     }
 
     if (client.milestone !== newMilestone) {
@@ -2061,11 +2717,81 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     // Update the user's offer status
     user.offerStatus = 'accepted';
     user.offerAcceptedDate = new Date();
+    user.internshipStatus = 'in_progress';
+
+    // Create/link Internship record (so intern dashboard becomes "working")
+    let internship = null;
+    if (user.currentInternship) {
+      internship = await Internship.findById(user.currentInternship);
+    }
+
+    if (!internship) {
+      internship = await Internship.findOne({ intern: user._id, status: { $in: ['in_progress', 'completed'] } }).sort({ createdAt: -1 });
+    }
+
+    if (!internship) {
+      const application = await InternshipApplication.findOne({ internUser: user._id }).sort({ updatedAt: -1 });
+      const titleFromApp = application?.role ? `${application.role} Internship` : null;
+
+      internship = await Internship.create({
+        intern: user._id,
+        application: application?._id,
+        internshipTitle: titleFromApp || 'Nexbyte_Core Internship Program',
+        status: 'in_progress',
+        startDate: user.internshipStartDate || new Date(),
+        endDate: user.internshipEndDate || undefined,
+      });
+    }
+
+    user.currentInternship = internship._id;
     await user.save();
+
+    // AUTO-ASSIGN ONBOARDING TASKS
+    try {
+      const onboardingTasks = [
+        {
+          title: 'Complete Intern Profile',
+          description: 'Update your first name, last name, phone, bio and skills in the Profile Settings section of your dashboard.',
+          priority: 'High',
+          status: 'To Do',
+          reward_amount_in_INR: 100,
+          assignedTo: user._id,
+        },
+        {
+          title: 'Setup Dev Environment',
+          description: 'Follow the repository readme to set up your local development environment and ensure the project runs successfully.',
+          priority: 'High',
+          status: 'To Do',
+          reward_amount_in_INR: 200,
+          assignedTo: user._id,
+        },
+        {
+          title: 'Review Company Processes',
+          description: 'Read the company onboarding documents and understand the sprint cycles and reporting requirements.',
+          priority: 'Medium',
+          status: 'To Do',
+          reward_amount_in_INR: 50,
+          assignedTo: user._id,
+        }
+      ];
+
+      // Check if tasks already exist to avoid duplicates
+      const existingOnboardingTasks = await Task.find({ 
+        assignedTo: user._id, 
+        title: { $in: onboardingTasks.map(t => t.title) } 
+      });
+
+      if (existingOnboardingTasks.length === 0) {
+        await Task.insertMany(onboardingTasks);
+        console.log(`Successfully assigned ${onboardingTasks.length} onboarding tasks to ${user.email}`);
+      }
+    } catch (taskError) {
+      console.error('Error creating onboarding tasks:', taskError);
+    }
     
     // Send confirmation email
     const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      from: getFromAddress('NexByte'),
       to: user.email,
       subject: 'Internship Offer Accepted - Confirmation',
       html: `
@@ -2080,8 +2806,8 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     };
     
     try {
-      await transporter.sendMail(mailOptions);
-      console.log('Offer acceptance email sent to:', user.email);
+      const result = await sendMailSafe(mailOptions, 'intern-offer-accepted');
+      if (result.success) console.log('Offer acceptance email sent to:', user.email);
     } catch (emailError) {
       console.error('Error sending acceptance email:', emailError);
       // Don't fail the request if email fails
@@ -2089,7 +2815,9 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     
     res.json({ 
       message: 'Offer accepted successfully',
-      offerStatus: 'accepted'
+      offerStatus: 'accepted',
+      internshipStatus: user.internshipStatus,
+      currentInternship: user.currentInternship,
     });
     
   } catch (err) {
@@ -2161,11 +2889,13 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
     user.offerStatus = 'rejected';
     user.rejectionReason = reason.trim();
     user.offerRejectedDate = new Date();
+    user.internshipStatus = 'not_started';
+    user.currentInternship = undefined;
     await user.save();
     
     // Send rejection notification email
     const mailOptions = {
-      from: '"NexByte" <nexbyte.dev@gmail.com>',
+      from: getFromAddress('NexByte'),
       to: user.email,
       subject: 'Internship Offer Rejection Received',
       html: `
@@ -2182,8 +2912,8 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
     
     // Also notify admin about the rejection
     const adminMailOptions = {
-      from: '"NexByte System" <nexbyte.dev@gmail.com>',
-      to: 'nexbyte.dev@gmail.com',
+      from: getFromAddress('NexByte System'),
+      to: process.env.ADMIN_EMAIL || 'nexbyte.dev@gmail.com',
       subject: 'Internship Offer Rejected - Notification',
       html: `
         <p>Admin Notification:</p>
@@ -2197,8 +2927,8 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
     };
     
     try {
-      await transporter.sendMail(mailOptions);
-      await transporter.sendMail(adminMailOptions);
+      await sendMailSafe(mailOptions, 'intern-offer-rejected');
+      await sendMailSafe(adminMailOptions, 'intern-offer-rejected-admin');
       console.log('Rejection emails sent for:', user.email);
     } catch (emailError) {
       console.error('Error sending rejection emails:', emailError);
@@ -2213,6 +2943,88 @@ app.post('/api/intern/reject-offer', auth, async (req, res) => {
   } catch (err) {
     console.error('Error rejecting offer:', err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// =========================
+// Automation (admin-only)
+// =========================
+app.post('/api/automation/offers/expire', auth, admin, async (req, res) => {
+  try {
+    const dryRun = Boolean(req.body && req.body.dryRun);
+    const result = await expirePendingOffersAndNotify({ dryRun });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Error running offer expiry automation:', err);
+    return res.status(500).json({ ok: false, message: 'Failed to run offer expiry automation', error: err.message });
+  }
+});
+
+app.post('/api/automation/weekly-progress', auth, admin, async (req, res) => {
+  try {
+    const dryRun = Boolean(req.body && req.body.dryRun);
+    const force = Boolean(req.body && req.body.force);
+    const result = await sendWeeklyProgressSummaries({ dryRun, force });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Error running weekly progress automation:', err);
+    return res.status(500).json({ ok: false, message: 'Failed to run weekly progress automation', error: err.message });
+  }
+});
+
+// Cron-friendly automation endpoints (no JWT; protected by AUTOMATION_SECRET)
+const isValidAutomationSecret = (req) => {
+  const expected = String(process.env.AUTOMATION_SECRET || '').trim();
+  if (!expected) return false;
+  const provided = String(req.query?.secret || req.params?.secret || req.header('x-automation-secret') || '').trim();
+  return provided && provided === expected;
+};
+
+app.get('/api/automation/cron/offers-expire', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await expirePendingOffersAndNotify({ dryRun });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron offers-expire error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
+  }
+});
+
+app.get('/api/automation/cron/offers-expire/:secret', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await expirePendingOffersAndNotify({ dryRun });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron offers-expire error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
+  }
+});
+
+app.get('/api/automation/cron/weekly-progress', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await sendWeeklyProgressSummaries({ dryRun, force: true });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron weekly-progress error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
+  }
+});
+
+app.get('/api/automation/cron/weekly-progress/:secret', async (req, res) => {
+  try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const result = await sendWeeklyProgressSummaries({ dryRun, force: true });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Cron weekly-progress error:', err);
+    return res.status(500).json({ ok: false, message: 'Cron run failed', error: err.message });
   }
 });
 
@@ -2305,6 +3117,151 @@ app.get('/api/reports', verifyIntern, async (req, res) => {
   }
 });
 
+const tryParseJsonObject = (text) => {
+  if (!text) return null;
+  const trimmed = String(text).trim();
+
+  // Fast path: exact JSON
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    // continue
+  }
+
+  // Fallback: extract first {...} block
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null;
+
+  const slice = trimmed.slice(firstBrace, lastBrace + 1);
+  try {
+    const parsed = JSON.parse(slice);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+// AI Growth analysis for intern dashboard
+app.post('/api/intern/growth-analysis', verifyIntern, async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ message: 'GEMINI_API_KEY is not configured' });
+    }
+
+    const windowDaysRaw = Number(req.body?.windowDays);
+    const windowDays = Number.isFinite(windowDaysRaw) ? windowDaysRaw : 30;
+    const safeWindowDays = Math.max(7, Math.min(180, Math.floor(windowDays)));
+
+    const since = new Date(Date.now() - safeWindowDays * 24 * 60 * 60 * 1000);
+
+    const [tasks, reports, diary] = await Promise.all([
+      Task.find({ assignedTo: req.user.id, createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(50),
+      Report.find({ intern: req.user.id, date: { $gte: since } }).sort({ date: -1 }).limit(20),
+      Diary.find({ intern: req.user.id, date: { $gte: since } }).sort({ date: -1 }).limit(20),
+    ]);
+
+    const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+    const isCompleted = (status) => {
+      const st = normalizeStatus(status);
+      return st === 'completed' || st === 'done' || st === 'approved';
+    };
+
+    const completedTasks = tasks.filter(t => isCompleted(t.status));
+    const inProgressTasks = tasks.filter(t => {
+      const st = normalizeStatus(t.status);
+      return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing';
+    });
+
+    const sum = (arr, pick) => arr.reduce((acc, x) => acc + (Number(pick(x)) || 0), 0);
+
+    const metrics = {
+      windowDays: safeWindowDays,
+      tasks: {
+        total: tasks.length,
+        completed: completedTasks.length,
+        inProgress: inProgressTasks.length,
+        estimatedHoursTotal: sum(tasks, t => t.estimated_effort_hours),
+        rewardInrCompleted: sum(completedTasks, t => t.reward_amount_in_INR),
+      },
+      reports: {
+        count: reports.length,
+        avgPerformanceScore:
+          reports.length ? Math.round(sum(reports, r => r.performanceScore) / reports.length) : null,
+        totalHoursWorked: sum(reports, r => r.hoursWorked),
+      },
+      diary: {
+        count: diary.length,
+        moods: diary.reduce((acc, d) => {
+          const mood = String(d.mood || 'neutral');
+          acc[mood] = (acc[mood] || 0) + 1;
+          return acc;
+        }, {}),
+      },
+    };
+
+    const payload = {
+      metrics,
+      tasks: tasks.slice(0, 25).map(t => ({
+        title: t.title,
+        status: t.status,
+        estimated_effort_hours: t.estimated_effort_hours,
+        reward_amount_in_INR: t.reward_amount_in_INR,
+        createdAt: t.createdAt,
+        completedAt: t.completedAt,
+      })),
+      reports: reports.slice(0, 12).map(r => ({
+        date: r.date,
+        performanceScore: r.performanceScore,
+        tasksCompleted: r.tasksCompleted,
+        hoursWorked: r.hoursWorked,
+        skillsLearned: r.skillsLearned,
+        feedback: r.feedback,
+      })),
+      diary: diary.slice(0, 10).map(d => ({
+        date: d.date,
+        mood: d.mood,
+        content: String(d.content || '').slice(0, 500),
+      })),
+    };
+
+    const promptText = `
+You are an internship performance coach. Analyze the intern's activity for the last ${safeWindowDays} days.
+Return ONLY valid JSON (no markdown, no extra text).
+Schema:
+{
+  "overall_score": number (0-100 integer),
+  "summary": string,
+  "strengths": string[],
+  "improvement_areas": string[],
+  "next_7_days_plan": string[],
+  "suggested_skills": string[],
+  "risk_flags": string[]
+}
+If data is insufficient, be honest and keep arrays short.
+Data:
+${JSON.stringify(payload)}
+    `.trim();
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const result = await model.generateContent(promptText);
+    const response = await result.response;
+    const text = response.text();
+    const parsed = tryParseJsonObject(text);
+
+    return res.json({
+      metrics,
+      analysis: parsed || { summary: text },
+    });
+  } catch (err) {
+    console.error('Error generating intern growth analysis:', err);
+    return res.status(500).json({ message: 'Failed to generate growth analysis', error: err.message });
+  }
+});
+
 // Get intern notifications
 app.get('/api/notifications', verifyIntern, async (req, res) => {
   try {
@@ -2316,6 +3273,166 @@ app.get('/api/notifications', verifyIntern, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
+  }
+});
+
+// Get group meetings for admin
+app.get('/api/group-meetings', auth, admin, async (req, res) => {
+  try {
+    const meetings = await GroupMeeting.find()
+      .populate('invitedInterns', 'email')
+      .populate('createdBy', 'email')
+      .sort({ scheduledAt: 1, createdAt: -1 });
+
+    res.json(meetings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Create a group meeting for interns
+app.post('/api/group-meetings', auth, admin, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      meetLink,
+      scheduledAt,
+      durationMinutes,
+      audience = 'all',
+      invitedInterns = [],
+    } = req.body;
+
+    if (!title || !description || !meetLink || !scheduledAt) {
+      return res.status(400).json({ message: 'Title, description, meet link and scheduled date/time are required' });
+    }
+
+    const scheduledAtValue = String(scheduledAt).trim();
+    const parsedScheduledAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(scheduledAtValue)
+      ? new Date(`${scheduledAtValue}:00+05:30`)
+      : new Date(scheduledAtValue);
+
+    if (Number.isNaN(parsedScheduledAt.getTime())) {
+      return res.status(400).json({ message: 'Invalid scheduled date/time' });
+    }
+
+    const normalizedAudience = audience === 'selected' ? 'selected' : 'all';
+    const normalizedInvitedInterns = Array.isArray(invitedInterns)
+      ? invitedInterns.filter(Boolean)
+      : [];
+
+    let targetInterns = [];
+    if (normalizedAudience === 'selected') {
+      if (normalizedInvitedInterns.length === 0) {
+        return res.status(400).json({ message: 'Select at least one intern for a selected group meet' });
+      }
+
+      targetInterns = await User.find({
+        _id: { $in: normalizedInvitedInterns },
+        role: 'intern',
+      }).select('email');
+
+      if (targetInterns.length !== normalizedInvitedInterns.length) {
+        return res.status(400).json({ message: 'One or more selected interns are invalid' });
+      }
+    } else {
+      targetInterns = await User.find({ role: 'intern' }).select('email');
+    }
+
+    const meeting = new GroupMeeting({
+      title: String(title).trim(),
+      description: String(description).trim(),
+      meetLink: String(meetLink).trim(),
+      scheduledAt: parsedScheduledAt,
+      durationMinutes: Number(durationMinutes) || 60,
+      audience: normalizedAudience,
+      invitedInterns: normalizedAudience === 'selected' ? normalizedInvitedInterns : [],
+      createdBy: req.user.id,
+    });
+
+    await meeting.save();
+
+    const meetingDate = parsedScheduledAt;
+    const formattedDate = meetingDate.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const formattedTime = meetingDate.toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    if (targetInterns.length > 0) {
+      await Notification.insertMany(
+        targetInterns.map((intern) => ({
+          user: intern._id,
+          title: `Group Meet: ${meeting.title}`,
+          message: `A group meet is scheduled on ${formattedDate} at ${formattedTime}. Join via the shared meeting link.`,
+          type: 'general',
+          date: meetingDate,
+        }))
+      );
+
+      await Promise.all(
+        targetInterns.map((intern) =>
+          sendMailSafe(
+            {
+              from: getFromAddress('NexByte'),
+              to: intern.email,
+              subject: `Group Meet Scheduled: ${meeting.title}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                  <p>Dear ${intern.email.split('@')[0]},</p>
+                  <p>A group meet has been scheduled for interns.</p>
+                  <ul>
+                    <li><strong>Title:</strong> ${meeting.title}</li>
+                    <li><strong>Date:</strong> ${formattedDate}</li>
+                    <li><strong>Time:</strong> ${formattedTime}</li>
+                    <li><strong>Duration:</strong> ${meeting.durationMinutes} minutes</li>
+                  </ul>
+                  <p><strong>Agenda:</strong> ${meeting.description}</p>
+                  <p><a href="${meeting.meetLink}" target="_blank" rel="noreferrer">Join Group Meet</a></p>
+                  <p>Regards,<br/>NexByte Team</p>
+                </div>
+              `,
+            },
+            'group-meeting-scheduled'
+          )
+        )
+      );
+    }
+
+    const populatedMeeting = await GroupMeeting.findById(meeting._id)
+      .populate('invitedInterns', 'email')
+      .populate('createdBy', 'email');
+
+    res.status(201).json(populatedMeeting);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get group meetings for current intern
+app.get('/api/intern/group-meetings', verifyIntern, async (req, res) => {
+  try {
+    const meetings = await GroupMeeting.find({
+      $or: [
+        { audience: 'all' },
+        { audience: 'selected', invitedInterns: req.user.id },
+      ],
+    })
+      .populate('createdBy', 'email')
+      .sort({ scheduledAt: 1, createdAt: -1 });
+
+    res.json(meetings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 
@@ -2432,16 +3549,238 @@ app.put('/api/member/tasks/:id', auth, async (req, res) => {
 });
 
 // Get resources
-app.get('/api/resources', async (req, res) => {
+app.get('/api/resources', auth, async (req, res) => {
   try {
-    const resources = await Resource.find()
+    let query = {};
+
+    if (req.user.role === 'intern') {
+      query = {
+        $or: [
+          { assignmentMode: 'all' },
+          { assignmentMode: 'selected', assignedInterns: req.user.id }
+        ]
+      };
+    }
+
+    const resources = await Resource.find(query)
+      .populate('assignedInterns', 'email')
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(100);
     
     res.json(resources);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Create resource
+app.post('/api/resources', auth, admin, async (req, res) => {
+  try {
+    const { title, description, type, url, category, difficulty, tags, assignmentMode, assignedInterns } = req.body;
+
+    if (!title || !description || !url) {
+      return res.status(400).json({ message: 'Title, description and URL are required' });
+    }
+
+    const normalizedTags = Array.isArray(tags)
+      ? tags
+      : String(tags || '')
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean);
+
+    const normalizedAssignedInterns = Array.isArray(assignedInterns)
+      ? assignedInterns
+      : String(assignedInterns || '')
+          .split(',')
+          .map((internId) => internId.trim())
+          .filter(Boolean);
+
+    if (assignmentMode === 'selected') {
+      if (normalizedAssignedInterns.length === 0) {
+        return res.status(400).json({ message: 'Select at least one intern for targeted resources' });
+      }
+
+      const validInternCount = await User.countDocuments({
+        _id: { $in: normalizedAssignedInterns },
+        role: 'intern'
+      });
+
+      if (validInternCount !== normalizedAssignedInterns.length) {
+        return res.status(400).json({ message: 'One or more selected interns are invalid' });
+      }
+    }
+
+    const resource = new Resource({
+      title: String(title).trim(),
+      description: String(description).trim(),
+      type,
+      url: String(url).trim(),
+      category,
+      difficulty,
+      tags: normalizedTags,
+      assignmentMode: assignmentMode === 'selected' ? 'selected' : 'all',
+      assignedInterns: assignmentMode === 'selected' ? normalizedAssignedInterns : [],
+    });
+
+    await resource.save();
+    const populatedResource = await Resource.findById(resource._id).populate('assignedInterns', 'email');
+    res.status(201).json(populatedResource);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Delete resource
+app.delete('/api/resources/:id', auth, admin, async (req, res) => {
+  try {
+    const deletedResource = await Resource.findByIdAndDelete(req.params.id);
+    if (!deletedResource) {
+      return res.status(404).json({ message: 'Resource not found' });
+    }
+
+    res.json({ message: 'Resource deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get presentation topics (admin)
+app.get('/api/presentation-topics', auth, admin, async (req, res) => {
+  try {
+    const topics = await PresentationTopic.find()
+      .populate('intern', 'email')
+      .populate('assignedBy', 'email')
+      .sort({ createdAt: -1 });
+
+    res.json(topics);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Assign presentation topic to intern
+app.post('/api/presentation-topics', auth, admin, async (req, res) => {
+  try {
+    const { internId, title, description, dueDate } = req.body;
+
+    if (!internId || !title || !description) {
+      return res.status(400).json({ message: 'Intern, title and description are required' });
+    }
+
+    const intern = await User.findOne({ _id: internId, role: 'intern' }).select('email');
+    if (!intern) {
+      return res.status(404).json({ message: 'Intern not found' });
+    }
+
+    const topic = new PresentationTopic({
+      intern: internId,
+      assignedBy: req.user.id,
+      title: String(title).trim(),
+      description: String(description).trim(),
+      dueDate: dueDate || undefined,
+    });
+
+    await topic.save();
+
+    await sendMailSafe(
+      {
+        from: getFromAddress('NexByte'),
+        to: intern.email,
+        subject: `Presentation Topic Assigned - ${topic.title}`,
+        html: `
+          <p>Dear ${intern.email.split('@')[0]},</p>
+          <p>A new presentation topic has been assigned to you.</p>
+          <ul>
+            <li><strong>Topic:</strong> ${topic.title}</li>
+            <li><strong>Description:</strong> ${topic.description}</li>
+            <li><strong>Due Date:</strong> ${topic.dueDate ? new Date(topic.dueDate).toLocaleDateString('en-IN') : 'Not specified'}</li>
+          </ul>
+          <p>Please open your intern panel to review the topic and submit your research paper in PDF format.</p>
+          <p>Regards,<br/>NexByte Team</p>
+        `,
+      },
+      'presentation-topic-assigned'
+    );
+
+    const populatedTopic = await PresentationTopic.findById(topic._id)
+      .populate('intern', 'email')
+      .populate('assignedBy', 'email');
+
+    res.status(201).json(populatedTopic);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get presentation topics for current intern
+app.get('/api/intern/presentation-topics', verifyIntern, async (req, res) => {
+  try {
+    const topics = await PresentationTopic.find({ intern: req.user.id })
+      .populate('assignedBy', 'email')
+      .sort({ createdAt: -1 });
+
+    res.json(topics);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Submit research paper for a presentation topic
+app.post('/api/intern/presentation-topics/:id/submit', verifyIntern, uploadPdf.single('researchPaper'), async (req, res) => {
+  try {
+    const topic = await PresentationTopic.findOne({ _id: req.params.id, intern: req.user.id })
+      .populate('assignedBy', 'email')
+      .populate('intern', 'email');
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Presentation topic not found' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Research paper PDF is required' });
+    }
+
+    const uploadedPaper = await uploadPdfToCloudinary(req.file, 'nexbyte_presentation_paper');
+    topic.researchPaperUrl = uploadedPaper.secureUrl;
+    topic.researchPaperPublicId = uploadedPaper.publicId;
+    topic.researchPaperOriginalName = req.file.originalname || 'research-paper.pdf';
+    topic.submissionNotes = req.body.submissionNotes ? String(req.body.submissionNotes).trim() : '';
+    topic.status = 'submitted';
+    topic.submittedAt = new Date();
+    await topic.save();
+
+    if (topic.assignedBy?.email) {
+      await sendMailSafe(
+        {
+          from: getFromAddress('NexByte'),
+          to: topic.assignedBy.email,
+          subject: `Research Paper Submitted - ${topic.title}`,
+          html: `
+            <p>The assigned intern has submitted a research paper.</p>
+            <ul>
+              <li><strong>Intern:</strong> ${topic.intern?.email || 'Intern'}</li>
+              <li><strong>Topic:</strong> ${topic.title}</li>
+              <li><strong>Submitted At:</strong> ${topic.submittedAt ? new Date(topic.submittedAt).toLocaleString('en-IN') : 'Now'}</li>
+              <li><strong>Paper:</strong> <a href="${topic.researchPaperUrl}">Open Research Paper</a></li>
+            </ul>
+            ${topic.submissionNotes ? `<p><strong>Notes:</strong> ${topic.submissionNotes}</p>` : ''}
+          `,
+        },
+        'presentation-topic-submitted'
+      );
+    }
+
+    res.json(topic);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 
@@ -2559,6 +3898,7 @@ app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
     });
 
     await newTask.save();
+    await sendTaskAssignmentEmail(newTask, { isNewTask: true });
     
     const populatedTask = await Task.findById(newTask._id)
       .populate('assignedTo', 'email');
@@ -2610,8 +3950,9 @@ app.put('/api/tasks/:id/status', auth, admin, async (req, res) => {
 app.put('/api/tasks/bulk-assign', auth, admin, async (req, res) => {
   try {
     const { taskIds, assignedTo } = req.body;
+    const existingTasks = await Task.find({ _id: { $in: taskIds } }).select('assignedTo');
     
-    const updatedTasks = await Task.updateMany(
+    await Task.updateMany(
       { _id: { $in: taskIds } },
       { assignedTo },
       { new: true }
@@ -2627,6 +3968,18 @@ app.put('/api/tasks/bulk-assign', auth, admin, async (req, res) => {
       }
       return task;
     });
+
+    const previousAssignmentsById = new Map(
+      existingTasks.map((task) => [String(task._id), task.assignedTo])
+    );
+
+    await Promise.allSettled(
+      populatedTasks.map((task) =>
+        sendTaskAssignmentEmail(task, {
+          previousAssignedTo: previousAssignmentsById.get(String(task._id)),
+        })
+      )
+    );
     
     res.json(tasksWithNames);
   } catch (err) {
@@ -2739,6 +4092,7 @@ app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
     });
     
     await newTask.save();
+    await sendTaskAssignmentEmail(newTask, { isNewTask: true });
     console.log('Task saved successfully:', newTask._id); // Debug log
     
     const populatedTask = await Task.findById(newTask._id)
@@ -2774,6 +4128,252 @@ app.delete('/api/tasks/:id', auth, admin, async (req, res) => {
 
 // Use internship routes
 app.use('/api/internship', internshipRoutes);
+
+// =========================
+// Internship & Certificate APIs (secured)
+// =========================
+
+// Helper to generate human-friendly certificate IDs
+const generateCertificateId = () => {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `NBINT-${ts}-${rand}`;
+};
+
+// @route   POST api/internships
+// @desc    Create a new internship for an intern (admin only)
+// @access  Private (admin)
+app.post('/api/internships', auth, admin, async (req, res) => {
+  try {
+    const { internId, internshipTitle, startDate, endDate, applicationId } = req.body;
+
+    if (!internId || !internshipTitle || !startDate) {
+      return res.status(400).json({ message: 'internId, internshipTitle and startDate are required' });
+    }
+
+    const intern = await User.findById(internId);
+    if (!intern || intern.role !== 'intern') {
+      return res.status(404).json({ message: 'Intern not found' });
+    }
+
+    const internship = await Internship.create({
+      intern: internId,
+      internshipTitle,
+      startDate,
+      endDate,
+      application: applicationId || null,
+      status: 'in_progress',
+    });
+
+    intern.internshipStatus = 'in_progress';
+    intern.currentInternship = internship._id;
+    if (!intern.internshipStartDate) {
+      intern.internshipStartDate = startDate;
+    }
+    if (endDate && !intern.internshipEndDate) {
+      intern.internshipEndDate = endDate;
+    }
+    await intern.save();
+
+    res.status(201).json(internship);
+  } catch (err) {
+    console.error('Error creating internship:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/internships/:id/complete
+// @desc    Mark internship as completed and generate certificate
+// @access  Private (admin)
+app.post('/api/internships/:id/complete', auth, admin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { endDate } = req.body;
+
+    const internship = await Internship.findById(id).populate('intern');
+    if (!internship) {
+      return res.status(404).json({ message: 'Internship not found' });
+    }
+
+    if (internship.status === 'completed' && internship.certificate) {
+      const existingCert = await Certificate.findById(internship.certificate);
+      return res.json(existingCert);
+    }
+
+    internship.status = 'completed';
+    if (endDate) {
+      internship.endDate = endDate;
+    } else if (!internship.endDate) {
+      internship.endDate = new Date();
+    }
+
+    const intern = internship.intern;
+    const internName = `${intern.firstName || ''} ${intern.lastName || ''}`.trim() || intern.email;
+
+    const certificateId = generateCertificateId();
+    const certificateUrl = `/certificate/${certificateId}`;
+    const payload = {
+      internName,
+      internshipTitle: internship.internshipTitle,
+      startDate: internship.startDate,
+      endDate: internship.endDate,
+      certificateId,
+    };
+
+    const encryptedData = encryptCertificateData(payload);
+
+    const certificate = await Certificate.create({
+      intern: intern._id,
+      internship: internship._id,
+      certificateId,
+      certificateUrl,
+      encryptedData,
+    });
+
+    internship.certificate = certificate._id;
+    await internship.save();
+
+    intern.internshipStatus = 'completed';
+    intern.currentInternship = internship._id;
+    intern.internshipEndDate = internship.endDate;
+    await intern.save();
+
+    // AUTO-NOTIFY INTERN ABOUT COMPLETION
+    try {
+      const publicBaseUrl = String(process.env.PUBLIC_APP_URL || '').replace(/\/$/, '');
+      const certificateLink = publicBaseUrl ? `${publicBaseUrl}${certificateUrl}` : certificateUrl;
+
+      const mailOptions = {
+        from: getFromAddress('NexByte'),
+        to: intern.email,
+        subject: '🎉 Congratulations on Completing Your Internship! - NexByte',
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2>Congratulations, ${internName}!</h2>
+            <p>We are thrilled to inform you that you have successfully completed your internship as <strong>${internship.internshipTitle}</strong> at NexByte Core.</p>
+            <p>Your hard work and contributions have been greatly appreciated.</p>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
+              <p style="margin: 0;"><strong>Certificate ID:</strong> ${certificateId}</p>
+              <p style="margin: 5px 0 0 0;">Certificate Link: <a href="${certificateLink}">${certificateLink}</a></p>
+              <p style="margin: 5px 0 0 0;">You can also view and download your digital certificate from your intern dashboard.</p>
+            </div>
+            <p>We wish you all the best for your future career. Feel free to stay in touch!</p>
+            <p>Regards,<br/>The NexByte Core Team</p>
+          </div>
+        `,
+      };
+      
+      const result = await sendMailSafe(mailOptions, 'internship-completion');
+      if (result.success) console.log('Completion email sent to:', intern.email);
+    } catch (emailError) {
+      console.error('Error sending completion email:', emailError);
+    }
+
+    res.status(201).json(certificate);
+  } catch (err) {
+    console.error('Error completing internship / generating certificate:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+// @route   GET api/internships/me
+// @desc    Get current intern's internship & certificate
+// @access  Private (intern)
+app.get('/api/internships/me', verifyIntern, async (req, res) => {
+  try {
+    const internUser = await User.findById(req.user.id).select('currentInternship');
+
+    let internship = null;
+    if (internUser?.currentInternship) {
+      internship = await Internship.findById(internUser.currentInternship).populate('certificate');
+      if (internship && internship.intern.toString() !== req.user.id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
+    if (!internship) {
+      internship = await Internship.findOne({ intern: req.user.id })
+        .sort({ createdAt: -1 })
+        .populate('certificate');
+    }
+
+    if (!internship) {
+      return res.status(404).json({ message: 'Internship not found' });
+    }
+
+    let certificate = null;
+    let certificateData = null;
+    if (internship.certificate && internship.certificate.encryptedData) {
+      certificate = internship.certificate;
+      try {
+        certificateData = decryptCertificateData(certificate.encryptedData);
+      } catch (e) {
+        console.error('Failed to decrypt certificate data:', e);
+      }
+    }
+
+    res.json({
+      internship,
+      certificate,
+      certificateData,
+    });
+  } catch (err) {
+    console.error('Error fetching intern internship:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/certificates/me
+// @desc    Get all certificates for logged-in intern
+// @access  Private (intern)
+app.get('/api/certificates/me', verifyIntern, async (req, res) => {
+  try {
+    const certificates = await Certificate.find({ intern: req.user.id }).sort({ issuedAt: -1 });
+    const result = certificates.map(c => {
+      let data = null;
+      try {
+        data = decryptCertificateData(c.encryptedData);
+      } catch (e) {
+        console.error('Failed to decrypt certificate data for', c._id, e);
+      }
+      return { certificate: c, data };
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching certificates:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET api/certificates/:certificateId
+// @desc    Get a single certificate by public certificateId
+// @access  Private (admin or owning intern)
+app.get('/api/certificates/:certificateId', auth, async (req, res) => {
+  try {
+    const cert = await Certificate.findOne({ certificateId: req.params.certificateId }).populate('intern');
+    if (!cert) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+
+    if (req.user.role !== 'admin' && cert.intern._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    let data = null;
+    try {
+      data = decryptCertificateData(cert.encryptedData);
+    } catch (e) {
+      console.error('Failed to decrypt certificate data:', e);
+    }
+
+    res.json({ certificate: cert, data });
+  } catch (err) {
+    console.error('Error fetching certificate:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = app;
 

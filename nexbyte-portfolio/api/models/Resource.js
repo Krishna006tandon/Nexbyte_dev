@@ -32,6 +32,15 @@ const ResourceSchema = new Schema({
   tags: [{
     type: String
   }],
+  assignmentMode: {
+    type: String,
+    enum: ['all', 'selected'],
+    default: 'all'
+  },
+  assignedInterns: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   createdAt: {
     type: Date,
     default: Date.now

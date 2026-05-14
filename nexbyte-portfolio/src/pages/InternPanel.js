@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './InternPanel.css';
 import { useAuth } from '../context/AuthContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import CertificatePreview from '../components/CertificatePreview';
 
 const InternPanel = () => {
   const { user, isIntern, loading: authLoading } = useAuth();
@@ -19,7 +20,16 @@ const InternPanel = () => {
   const [reports, setReports] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [resources, setResources] = useState([]);
+  const [presentationTopics, setPresentationTopics] = useState([]);
+  const [groupMeetings, setGroupMeetings] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [internshipInfo, setInternshipInfo] = useState(null);
+  const [certificateData, setCertificateData] = useState(null);
+
+  // AI Growth analysis (generated on demand)
+  const [growthAnalysis, setGrowthAnalysis] = useState(null);
+  const [growthAnalysisLoading, setGrowthAnalysisLoading] = useState(false);
+  const [growthAnalysisError, setGrowthAnalysisError] = useState(null);
   
   // Form states
   const [offerLetter, setOfferLetter] = useState(null);
@@ -34,28 +44,37 @@ const InternPanel = () => {
   const [updateStatus, setUpdateStatus] = useState('');
   const [diaryEntry, setDiaryEntry] = useState('');
   const [profileForm, setProfileForm] = useState({});
+  const [paperFiles, setPaperFiles] = useState({});
+  const [submissionNotes, setSubmissionNotes] = useState({});
+  const [submittingTopicId, setSubmittingTopicId] = useState(null);
   const [settings, setSettings] = useState({
     emailNotifications: true,
     pushNotifications: false,
     theme: 'dark',
     language: 'en'
   });
+  const formatMeetingDate = (value) =>
+    new Date(value).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  const formatMeetingTime = (value) =>
+    new Date(value).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  const certificateRef = useRef(null);
 
   useEffect(() => {
-    console.log('InternPanel - User:', user);
-    console.log('InternPanel - isIntern:', isIntern);
-    console.log('InternPanel - authLoading:', authLoading);
-    
     if (authLoading) return;
     
     if (!user) {
-      console.log('No user found, redirecting to login');
       navigate('/login');
       return;
     }
     
     if (user.role !== 'intern') {
-      console.log(`User role is ${user.role}, not intern. Access denied.`);
       navigate('/dashboard');
       return;
     }
@@ -85,14 +104,17 @@ const InternPanel = () => {
       };
 
       // Fetch data with fallbacks
-      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, teamData] = await Promise.all([
+      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes] = await Promise.all([
         fetchWithErrorHandling('/api/profile', null),
         fetchWithErrorHandling('/api/tasks', []), // Use regular tasks endpoint with auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
         fetchWithErrorHandling('/api/notifications', []),
         fetchWithErrorHandling('/api/resources', []),
-        fetchWithErrorHandling('/api/team', [])
+        fetchWithErrorHandling('/api/intern/presentation-topics', []),
+        fetchWithErrorHandling('/api/intern/group-meetings', []),
+        fetchWithErrorHandling('/api/team', []),
+        fetchWithErrorHandling('/api/internships/me', null)
       ]);
 
       // Set data with fallbacks
@@ -107,11 +129,17 @@ const InternPanel = () => {
           skills: profileData.skills || []
         });
       }
+      if (internshipRes) {
+        setInternshipInfo(internshipRes.internship || null);
+        setCertificateData(internshipRes.certificateData || null);
+      }
       setTasks(tasksData);
       setDiaryEntries(diaryData);
       setReports(reportsData);
       setNotifications(notificationsData);
       setResources(resourcesData);
+      setPresentationTopics(presentationTopicsData);
+      setGroupMeetings(groupMeetingsData);
       setTeamMembers(teamData);
 
     } catch (err) {
@@ -182,9 +210,6 @@ const InternPanel = () => {
 
   const handleAcceptOffer = async () => {
     if (!window.confirm('Are you sure you want to accept this internship offer?')) return;
-    
-    console.log('Before accept - current offerStatus:', profile?.offerStatus);
-    
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
@@ -199,9 +224,8 @@ const InternPanel = () => {
 
       if (response.ok) {
         toast.success('Offer accepted successfully!');
-        console.log('Accept API call successful, fetching updated data...');
         await fetchInternData();
-        console.log('After accept - updated offerStatus:', profile?.offerStatus);
+        setActiveSection('dashboard');
       } else {
         throw new Error('Failed to accept offer');
       }
@@ -253,9 +277,6 @@ const InternPanel = () => {
       toast.error('Please provide a reason for rejection');
       return;
     }
-    
-    console.log('Before reject - current offerStatus:', profile?.offerStatus);
-    
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
@@ -275,9 +296,7 @@ const InternPanel = () => {
         toast.success('Offer rejected successfully');
         setShowRejectForm(false);
         setRejectionReason('');
-        console.log('Reject API call successful, fetching updated data...');
         await fetchInternData();
-        console.log('After reject - updated offerStatus:', profile?.offerStatus);
       } else {
         throw new Error('Failed to reject offer');
       }
@@ -291,7 +310,6 @@ const InternPanel = () => {
   const handleQuickStatusUpdate = async (taskId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      console.log('DEBUG: Intern quick updating task:', taskId, 'to status:', newStatus);
       
       // Try intern-specific endpoint first
       let response = await fetch(`/api/intern/tasks/${taskId}`, {
@@ -305,7 +323,6 @@ const InternPanel = () => {
       
       // If intern endpoint fails, try direct task update
       if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Intern endpoint failed, trying direct task update...');
         response = await fetch(`/api/tasks/${taskId}`, {
           method: 'PUT',
           headers: {
@@ -367,11 +384,6 @@ const InternPanel = () => {
     
     try {
       const token = localStorage.getItem('token');
-      console.log('DEBUG: Updating task:', selectedTask._id);
-      console.log('DEBUG: Task assignedTo:', selectedTask.assignedTo);
-      console.log('DEBUG: New status:', updateStatus);
-      console.log('DEBUG: Token exists:', !!token);
-      console.log('DEBUG: User details:', user);
       
       // Direct task update with task ID
       let response = await fetch(`/api/tasks/${selectedTask._id}`, {
@@ -385,7 +397,6 @@ const InternPanel = () => {
       
       // If direct update fails, try intern-specific endpoint for backend save
       if (!response.ok && response.status === 403) {
-        console.log('DEBUG: Direct update failed, trying intern endpoint for backend save...');
         response = await fetch(`/api/intern/tasks/${selectedTask._id}`, {
           method: 'PUT',
           headers: {
@@ -398,7 +409,6 @@ const InternPanel = () => {
       
       // If intern endpoint fails, try status update endpoint
       if (!response.ok && (response.status === 403 || response.status === 404)) {
-        console.log('DEBUG: Intern endpoint failed, trying status update endpoint...');
         response = await fetch(`/api/tasks/${selectedTask._id}/status`, {
           method: 'PUT',
           headers: {
@@ -421,7 +431,6 @@ const InternPanel = () => {
         
         // If all API endpoints fail, update locally and show appropriate message
         if (response.status === 403 || response.status === 404) {
-          console.log('DEBUG: All endpoints failed, updating locally...');
           toast.success('Backend save failed - updated locally only');
           setShowUpdateModal(false);
           setSelectedTask(null);
@@ -485,6 +494,36 @@ const InternPanel = () => {
     }
   };
 
+  const handleGenerateGrowthAnalysis = async () => {
+    try {
+      setGrowthAnalysisLoading(true);
+      setGrowthAnalysisError(null);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/intern/growth-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ windowDays: 30 }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to generate growth analysis');
+      }
+
+      setGrowthAnalysis(data);
+      toast.success('AI growth analysis generated');
+    } catch (e) {
+      setGrowthAnalysisError(e.message);
+      toast.error(e.message);
+    } finally {
+      setGrowthAnalysisLoading(false);
+    }
+  };
+
   const handleProfileUpdate = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -530,33 +569,57 @@ const InternPanel = () => {
     }
   };
 
-  const handleBackendSave = async () => {
+  const handlePaperFileChange = (topicId, file) => {
+    setPaperFiles((currentFiles) => ({
+      ...currentFiles,
+      [topicId]: file || null,
+    }));
+  };
+
+  const handleTopicNotesChange = (topicId, value) => {
+    setSubmissionNotes((currentNotes) => ({
+      ...currentNotes,
+      [topicId]: value,
+    }));
+  };
+
+  const handleResearchPaperSubmit = async (topicId) => {
+    const file = paperFiles[topicId];
+    if (!file) {
+      toast.error('Please choose a PDF research paper first.');
+      return;
+    }
+
     try {
+      setSubmittingTopicId(topicId);
       const token = localStorage.getItem('token');
-      
-      // Save all tasks to backend
-      const savePromises = tasks.map(task => 
-        fetch(`/api/tasks/${task._id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify({ status: task.status })
-        })
-      );
-      
-      const results = await Promise.all(savePromises);
-      const successful = results.filter(r => r.ok).length;
-      
-      if (successful === tasks.length) {
-        toast.success(`✅ All ${tasks.length} tasks saved to backend successfully!`);
-      } else {
-        toast.warning(`⚠️ ${successful}/${tasks.length} tasks saved to backend`);
+      const formData = new FormData();
+      formData.append('researchPaper', file);
+      formData.append('submissionNotes', submissionNotes[topicId] || '');
+
+      const response = await fetch(`/api/intern/presentation-topics/${topicId}/submit`, {
+        method: 'POST',
+        headers: {
+          'x-auth-token': token,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit research paper');
       }
+
+      setPresentationTopics((currentTopics) =>
+        currentTopics.map((topic) => (topic._id === data._id ? data : topic))
+      );
+      setPaperFiles((currentFiles) => ({ ...currentFiles, [topicId]: null }));
+      setSubmissionNotes((currentNotes) => ({ ...currentNotes, [topicId]: '' }));
+      toast.success('Research paper submitted successfully.');
     } catch (err) {
-      console.error('Error saving to backend:', err);
-      toast.error('❌ Error saving to backend');
+      toast.error(err.message);
+    } finally {
+      setSubmittingTopicId(null);
     }
   };
 
@@ -674,11 +737,38 @@ const InternPanel = () => {
             </li>
             <li>
               <button 
+                className={`nav-btn ${activeSection === 'certificate' ? 'active' : ''}`}
+                onClick={() => setActiveSection('certificate')}
+              >
+                <i className="fas fa-award"></i>
+                Certificate
+              </button>
+            </li>
+            <li>
+              <button 
                 className={`nav-btn ${activeSection === 'resources' ? 'active' : ''}`}
                 onClick={() => setActiveSection('resources')}
               >
                 <i className="fas fa-book-open"></i>
                 Resources
+              </button>
+            </li>
+            <li>
+              <button 
+                className={`nav-btn ${activeSection === 'presentation-topics' ? 'active' : ''}`}
+                onClick={() => setActiveSection('presentation-topics')}
+              >
+                <i className="fas fa-file-pdf"></i>
+                Presentation Topics
+              </button>
+            </li>
+            <li>
+              <button
+                className={`nav-btn ${activeSection === 'meetings' ? 'active' : ''}`}
+                onClick={() => setActiveSection('meetings')}
+              >
+                <i className="fas fa-video"></i>
+                Group Meetings
               </button>
             </li>
             <li>
@@ -719,22 +809,6 @@ const InternPanel = () => {
           <div className="header-left">
             <h1>Welcome back, {profileForm.firstName || 'Intern'}!</h1>
             <p>Here's what's happening with your internship today.</p>
-            <button 
-              onClick={handleBackendSave}
-              className="backend-save-btn"
-              style={{
-                marginLeft: '20px',
-                padding: '8px 16px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              Save All to Backend
-            </button>
           </div>
           <div className="header-right">
             <div className="notification-bell">
@@ -924,6 +998,14 @@ const InternPanel = () => {
                       <div className="offer-status accepted">
                         <i className="fas fa-check-circle"></i>
                         <span>Offer Accepted</span>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => setActiveSection('dashboard')}
+                          style={{ marginLeft: 12 }}
+                        >
+                          Go to Dashboard
+                        </button>
                       </div>
                     )}
                     
@@ -936,6 +1018,16 @@ const InternPanel = () => {
                             <strong>Reason:</strong> {profile.rejectionReason}
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {profile?.offerStatus === 'expired' && (
+                      <div className="offer-status rejected">
+                        <i className="fas fa-exclamation-triangle"></i>
+                        <span>Offer Expired</span>
+                        <div className="rejection-reason">
+                          <strong>Note:</strong> Acceptance deadline passed. Please contact admin for next steps.
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1166,24 +1258,104 @@ const InternPanel = () => {
               
               <div className="reports-grid">
                 <div className="report-card performance-chart">
-                  <h3>Performance Trend</h3>
-                  <div className="chart-placeholder">
-                    <i className="fas fa-chart-line"></i>
-                    <p>Performance chart will be displayed here</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <h3 style={{ margin: 0 }}>AI Growth Analysis</h3>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleGenerateGrowthAnalysis}
+                      disabled={growthAnalysisLoading}
+                      style={{ padding: '8px 14px', fontSize: 14 }}
+                    >
+                      {growthAnalysisLoading ? 'Generating...' : 'Generate'}
+                    </button>
                   </div>
+
+                  {growthAnalysisError && (
+                    <p style={{ marginTop: 12, color: '#ff6b6b' }}>{growthAnalysisError}</p>
+                  )}
+
+                  {growthAnalysis?.metrics ? (
+                    <div style={{ marginTop: 14 }}>
+                      <p style={{ margin: '6px 0' }}>
+                        <strong>Window:</strong> {growthAnalysis.metrics.windowDays} days
+                      </p>
+                      <p style={{ margin: '6px 0' }}>
+                        <strong>Tasks:</strong> {growthAnalysis.metrics.tasks?.completed || 0} completed / {growthAnalysis.metrics.tasks?.total || 0} total
+                      </p>
+                      <p style={{ margin: '6px 0' }}>
+                        <strong>Avg Score:</strong> {growthAnalysis.metrics.reports?.avgPerformanceScore ?? 'N/A'}
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{ marginTop: 12, opacity: 0.9 }}>
+                      Generate an AI summary based on your tasks, diary entries, and reports.
+                    </p>
+                  )}
+
+                  {growthAnalysis?.analysis && (
+                    <div style={{ marginTop: 14 }}>
+                      {typeof growthAnalysis.analysis.overall_score !== 'undefined' && (
+                        <p style={{ margin: '6px 0' }}>
+                          <strong>Overall Score:</strong> {growthAnalysis.analysis.overall_score}
+                        </p>
+                      )}
+                      {growthAnalysis.analysis.summary && (
+                        <p style={{ margin: '10px 0', lineHeight: 1.5 }}>{growthAnalysis.analysis.summary}</p>
+                      )}
+
+                      {Array.isArray(growthAnalysis.analysis.strengths) && growthAnalysis.analysis.strengths.length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <strong>Strengths</strong>
+                          <ul>
+                            {growthAnalysis.analysis.strengths.slice(0, 6).map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {Array.isArray(growthAnalysis.analysis.improvement_areas) && growthAnalysis.analysis.improvement_areas.length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <strong>Improve Next</strong>
+                          <ul>
+                            {growthAnalysis.analysis.improvement_areas.slice(0, 6).map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {Array.isArray(growthAnalysis.analysis.next_7_days_plan) && growthAnalysis.analysis.next_7_days_plan.length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <strong>Next 7 Days Plan</strong>
+                          <ul>
+                            {growthAnalysis.analysis.next_7_days_plan.slice(0, 7).map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="report-card skills-progress">
                   <h3>Skills Development</h3>
                   <div className="skills-list">
-                    {profileForm.skills?.map((skill, index) => (
-                      <div key={index} className="skill-item">
-                        <span className="skill-name">{skill}</span>
-                        <div className="skill-progress">
-                          <div className="progress-bar" style={{width: `${Math.random() * 100}%`}}></div>
+                    {Array.isArray(growthAnalysis?.analysis?.suggested_skills) && growthAnalysis.analysis.suggested_skills.length > 0 ? (
+                      growthAnalysis.analysis.suggested_skills.slice(0, 10).map((skill, index) => (
+                        <div key={index} className="skill-item">
+                          <span className="skill-name">{skill}</span>
                         </div>
-                      </div>
-                    )) || (
+                      ))
+                    ) : Array.isArray(profileForm.skills) && profileForm.skills.length > 0 ? (
+                      profileForm.skills.map((skill, index) => (
+                        <div key={index} className="skill-item">
+                          <span className="skill-name">{skill}</span>
+                        </div>
+                      ))
+                    ) : (
                       <p>No skills added yet</p>
                     )}
                   </div>
@@ -1215,6 +1387,66 @@ const InternPanel = () => {
             </div>
           )}
 
+          {/* Certificate Section */}
+          {activeSection === 'certificate' && (
+            <div className="certificate-section">
+              <div className="section-header">
+                <h2>Internship Certificate</h2>
+                <p>View your internship completion certificate.</p>
+              </div>
+
+              {profile?.internshipStatus === 'completed' && certificateData ? (
+                <div className="certificate-card">
+                  <div ref={certificateRef}>
+                    <CertificatePreview
+                      internName={profileForm.firstName || user.email.split('@')[0]}
+                      internshipTitle={internshipInfo?.internshipTitle || 'Nexbyte_Core Internship Program'}
+                      startDate={internshipInfo?.startDate || profile?.internshipStartDate}
+                      endDate={internshipInfo?.endDate || profile?.internshipEndDate}
+                      certificateId={certificateData?.certificateId}
+                      isSample={false}
+                    />
+                  </div>
+
+                  <div className="certificate-actions">
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (!window.html2pdf || !certificateRef.current) {
+                          toast.error('Download is not available in this environment.');
+                          return;
+                        }
+                        window.html2pdf().from(certificateRef.current).save(`certificate_${certificateData.certificateId}.pdf`);
+                      }}
+                    >
+                      <i className="fas fa-download"></i>
+                      Download Certificate
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        if (!certificateData?.certificateId) {
+                          toast.error('Certificate not available.');
+                          return;
+                        }
+                        window.open(`/certificate/${certificateData.certificateId}`, '_blank');
+                      }}
+                    >
+                      <i className="fas fa-external-link-alt"></i>
+                      View Fullscreen
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="certificate-card">
+                  <p className="certificate-info-text">
+                    Your certificate will be available after your internship is marked <strong>completed</strong>.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Resources Section */}
           {activeSection === 'resources' && (
             <div className="resources-section">
@@ -1243,6 +1475,107 @@ const InternPanel = () => {
                     <i className="fas fa-book-open"></i>
                     <h3>No resources available</h3>
                     <p>Learning materials will be added soon.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'presentation-topics' && (
+            <div className="presentation-topics-section">
+              <div className="section-header">
+                <h2>Presentation Topics</h2>
+                <p>View assigned topics and submit your research paper in PDF format</p>
+              </div>
+
+              <div className="presentation-topic-list">
+                {presentationTopics.length > 0 ? (
+                  presentationTopics.map((topic) => (
+                    <div key={topic._id} className="presentation-topic-card">
+                      <div className="resource-admin-meta">
+                        <span>{topic.status}</span>
+                        <span>{topic.dueDate ? new Date(topic.dueDate).toLocaleDateString() : 'No Due Date'}</span>
+                      </div>
+                      <h3>{topic.title}</h3>
+                      <p>{topic.description}</p>
+                      {topic.researchPaperUrl ? (
+                        <div className="presentation-topic-links">
+                          <a href={topic.researchPaperUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                            <i className="fas fa-external-link-alt"></i>
+                            View Submitted Paper
+                          </a>
+                          <p className="resource-tags">
+                            Submitted: {topic.researchPaperOriginalName || 'Research Paper.pdf'}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="resource-tags">Research paper not submitted yet.</p>
+                      )}
+
+                      <div className="presentation-submit-box">
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          onChange={(e) => handlePaperFileChange(topic._id, e.target.files && e.target.files[0])}
+                        />
+                        <textarea
+                          placeholder="Optional notes for admin"
+                          value={submissionNotes[topic._id] || ''}
+                          onChange={(e) => handleTopicNotesChange(topic._id, e.target.value)}
+                        />
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleResearchPaperSubmit(topic._id)}
+                          disabled={submittingTopicId === topic._id}
+                        >
+                          <i className="fas fa-upload"></i>
+                          {submittingTopicId === topic._id ? 'Submitting...' : topic.researchPaperUrl ? 'Resubmit Paper' : 'Submit Paper'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <i className="fas fa-file-alt"></i>
+                    <h3>No presentation topics assigned</h3>
+                    <p>Admin will assign a presentation topic here when ready.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'meetings' && (
+            <div className="resources-section">
+              <div className="section-header">
+                <h2>Group Meetings</h2>
+                <p>Check upcoming intern meetings and join directly from here</p>
+              </div>
+
+              <div className="resources-grid">
+                {groupMeetings.length > 0 ? (
+                  groupMeetings.map((meeting) => (
+                    <div key={meeting._id} className="resource-card">
+                      <div className="resource-icon">
+                        <i className="fas fa-video"></i>
+                      </div>
+                      <div className="resource-content">
+                        <h3>{meeting.title}</h3>
+                        <p>{meeting.description}</p>
+                        <p><strong>Date:</strong> {formatMeetingDate(meeting.scheduledAt)}</p>
+                        <p><strong>Time:</strong> {formatMeetingTime(meeting.scheduledAt)}</p>
+                        <p><strong>Duration:</strong> {meeting.durationMinutes} minutes</p>
+                        <a href={meeting.meetLink} target="_blank" rel="noreferrer" className="btn btn-primary">
+                          Join Meet
+                        </a>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <i className="fas fa-video-slash"></i>
+                    <h3>No group meetings scheduled</h3>
+                    <p>Admin jab next intern meet schedule karega to woh yahan dikh jayegi.</p>
                   </div>
                 )}
               </div>

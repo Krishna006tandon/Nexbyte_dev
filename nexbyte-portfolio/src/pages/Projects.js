@@ -5,6 +5,20 @@ import '../components/HomeSidebar.css';
 
 const projects = [
   {
+    title: 'Poonam Cooking & Baking Classes Website',
+    description: 'A full-stack web platform designed for a local offline cooking and baking institute, focused on simplifying class enrollment and business management. The platform provides a seamless experience for both students and administrators.',
+    features: [
+      'Course Exploration: View detailed information for various cooking and baking classes.',
+      'Easy Enrollment: Structured form with integrated advance payment functionality.',
+      'Student Portal: Access to recipe notes and exclusive course-related content after enrollment.',
+      'Admin Dashboard: Efficient management of classes, products, student data, and learning materials.',
+      'Dynamic Content: Tools for tracking enrollments, handling payments, and updating content in real-time.',
+      'Responsive Design: Minimal and warm UI/UX optimized for all devices.'
+    ],
+    techStack: 'React.js, Node.js, Express.js, MongoDB, Payment Gateway Integration',
+    liveLink: 'https://poonamcookingclasses.vercel.app/'
+  },
+  {
     title: 'OverXchange',
     description: 'A web application designed to bridge the gap between suppliers and vendors in the food industry. The platform provides a robust solution for order management, inventory tracking, and analytics.',
     features: [
@@ -16,7 +30,7 @@ const projects = [
       'Secure Authentication & Payments: Secure login using JWT (JSON Web Tokens) and a secure structure for payment processing.'
     ],
     techStack: 'Python, Flask, MongoDB, HTML, CSS, JavaScript',
-    liveLink: 'https://over-xchange-zrvi.vercel.app/'
+    liveLink: 'https://over-xchange.vercel.app/'
   },
   {
     title: 'ZenSpace',
@@ -69,10 +83,31 @@ const projects = [
     ],
     techStack: 'WordPress, WooCommerce, PHP, MySQL, JavaScript',
     liveLink: null
+  },
+  {
+    title: 'UNEXA SuperApp',
+    description: 'UNEXA is a real-time SuperApp combining WhatsApp-style messaging, Instagram media sharing, and YouTube communication features in a unified platform.',
+    features: [
+      'Real-time messaging with read receipts & typing indicators',
+      'Photo/video capture and sharing',
+      'Voice/video calling',
+      'Group chats and message reactions',
+      'Story viewer analytics',
+      'Cross-platform deployment'
+    ],
+    techStack: 'React Native + Expo, Node.js + Express + MongoDB, Socket.IO, Cloudinary, Agora WebRTC, JWT',
+    liveLink: null
   }
 ];
 
 const Projects = () => {
+  const handleMoreDetails = (projectTitle) => {
+    const subject = `Request for More Details: ${projectTitle}`;
+    const body = `Hi,\n\nI am interested in learning more about your project: ${projectTitle}.\n\nCould you please provide additional information about this project?\n\nThank you!`;
+    const mailtoLink = `mailto:nexbyte.dev@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+  };
+
   return (
     <div className="container mt-5">
       <h1 className="text-center mb-5">My Projects</h1>
@@ -91,11 +126,19 @@ const Projects = () => {
                 </ul>
                 <h6>Tech Stack:</h6>
                 <p>{project.techStack}</p>
-                {project.liveLink && (
-                  <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-auto">
-                    Live Demo
-                  </a>
-                )}
+                <div className="mt-auto d-flex gap-2">
+                  {project.liveLink && (
+                    <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+                      Live Demo
+                    </a>
+                  )}
+                  <button 
+                    onClick={() => handleMoreDetails(project.title)} 
+                    className="btn btn-outline-primary"
+                  >
+                    More Details
+                  </button>
+                </div>
               </div>
             </div>
           </div>
