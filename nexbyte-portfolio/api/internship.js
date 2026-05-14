@@ -6,6 +6,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const InternshipApplication = require('./models/InternshipApplication');
 const User = require('./models/User');
+const InternshipRole = require('./models/InternshipRole');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const mailSender = require('./mailSender');
@@ -139,12 +140,8 @@ const upload = multer({
   }
 });
 
-// Mock data storage (in production, this would be a database)
-// let internshipApplications = [];
-
-let internshipRoles = [
+const DEFAULT_ROLES = [
   {
-    id: 1,
     name: 'Web Development Intern',
     description: 'Learn full-stack web development with React, Node.js, and modern frameworks',
     duration: '3 months',
@@ -153,10 +150,9 @@ let internshipRoles = [
     skills: ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js', 'MongoDB'],
     mentor: 'John Doe',
     maxInterns: 5,
-    currentInterns: 2
+    currentInterns: 0,
   },
   {
-    id: 2,
     name: 'Frontend Intern',
     description: 'Focus on modern frontend technologies and UI/UX best practices',
     duration: '2 months',
@@ -165,9 +161,80 @@ let internshipRoles = [
     skills: ['HTML', 'CSS', 'JavaScript', 'React', 'Vue.js', 'TailwindCSS'],
     mentor: 'Jane Smith',
     maxInterns: 3,
-    currentInterns: 1
-  }
+    currentInterns: 0,
+  },
+  {
+    name: 'Backend Intern',
+    description: 'Learn server-side development, databases, and API design',
+    duration: '3 months',
+    isActive: true,
+    requirements: 'Basic programming knowledge',
+    skills: ['Node.js', 'Express', 'MongoDB', 'REST APIs'],
+    mentor: 'Mike Johnson',
+    maxInterns: 4,
+    currentInterns: 0,
+  },
+  {
+    name: 'UI/UX Intern',
+    description: 'Design beautiful user interfaces and improve user experience',
+    duration: '2 months',
+    isActive: true,
+    requirements: 'Basic design knowledge',
+    skills: ['Figma', 'User Research', 'Prototyping'],
+    mentor: 'Sarah Wilson',
+    maxInterns: 2,
+    currentInterns: 0,
+  },
+  {
+    name: 'Digital Marketing Intern',
+    description: 'Learn digital marketing strategies and campaign management',
+    duration: '2 months',
+    isActive: true,
+    requirements: 'Basic marketing knowledge',
+    skills: ['SEO', 'Social Media Marketing', 'Google Analytics'],
+    mentor: 'Tom Brown',
+    maxInterns: 3,
+    currentInterns: 0,
+  },
+  // Requested new roles
+  {
+    name: 'Software Development',
+    description: 'Work on software development tasks, backend APIs, and product features.',
+    duration: '3 months',
+    isActive: true,
+    requirements: 'Programming basics, problem solving, and willingness to learn',
+    skills: ['JavaScript', 'Node.js', 'Git'],
+    mentor: 'NexByte Mentor',
+    maxInterns: 5,
+    currentInterns: 0,
+  },
+  {
+    name: 'App Development',
+    description: 'Build mobile app features and learn modern app development practices.',
+    duration: '3 months',
+    isActive: true,
+    requirements: 'Programming basics and interest in mobile development',
+    skills: ['React Native', 'JavaScript', 'APIs'],
+    mentor: 'NexByte Mentor',
+    maxInterns: 5,
+    currentInterns: 0,
+  },
 ];
+
+const ensureDefaultRoles = async () => {
+  try {
+    for (const role of DEFAULT_ROLES) {
+      await InternshipRole.updateOne(
+        { name: role.name },
+        { $setOnInsert: role },
+        { upsert: true }
+      );
+    }
+  } catch (e) {
+    // Don't fail API initialization if seeding fails
+    console.warn('Failed to ensure default internship roles:', e.message);
+  }
+};
 
 let emailLogs = [];
 let cachedTransporter = null;
@@ -679,41 +746,49 @@ router.get('/email-logs', (req, res) => {
 
 // GET internship roles
 router.get('/roles', (req, res) => {
-  res.json(internshipRoles);
+  (async () => {
+    await ensureDefaultRoles();
+    const roles = await InternshipRole.find().sort({ createdAt: 1 });
+    res.json(roles);
+  })().catch((error) => res.status(500).json({ message: error.message }));
 });
 
 // POST new role
 router.post('/roles', auth, admin, (req, res) => {
-  const role = {
-    id: Date.now(),
-    ...req.body,
-    currentInterns: 0,
-    isActive: true
-  };
-  internshipRoles.push(role);
-  res.status(201).json(role);
+  (async () => {
+    await ensureDefaultRoles();
+    const role = new InternshipRole({
+      ...req.body,
+      currentInterns: req.body.currentInterns ?? 0,
+      isActive: req.body.isActive ?? true,
+    });
+    await role.save();
+    res.status(201).json(role);
+  })().catch((error) => {
+    res.status(400).json({ message: error.message });
+  });
 });
 
 // PUT update role
 router.put('/roles/:id', auth, admin, (req, res) => {
-  const roleIndex = internshipRoles.findIndex(role => role.id === parseInt(req.params.id));
-  if (roleIndex === -1) {
-    return res.status(404).json({ message: 'Role not found' });
-  }
-  
-  internshipRoles[roleIndex] = { ...internshipRoles[roleIndex], ...req.body };
-  res.json(internshipRoles[roleIndex]);
+  (async () => {
+    await ensureDefaultRoles();
+    const updated = await InternshipRole.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!updated) return res.status(404).json({ message: 'Role not found' });
+    res.json(updated);
+  })().catch((error) => res.status(400).json({ message: error.message }));
 });
 
 // DELETE role
 router.delete('/roles/:id', auth, admin, (req, res) => {
-  const roleIndex = internshipRoles.findIndex(role => role.id === parseInt(req.params.id));
-  if (roleIndex === -1) {
-    return res.status(404).json({ message: 'Role not found' });
-  }
-  
-  internshipRoles.splice(roleIndex, 1);
-  res.json({ message: 'Role deleted successfully' });
+  (async () => {
+    const deleted = await InternshipRole.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Role not found' });
+    res.json({ message: 'Role deleted successfully' });
+  })().catch((error) => res.status(500).json({ message: error.message }));
 });
 
 // Note: Email sending is implemented via SMTP using utils/emailTransport.

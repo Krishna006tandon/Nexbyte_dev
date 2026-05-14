@@ -197,7 +197,7 @@ const Internship = () => {
           <h2>Available Internship Roles</h2>
           <div className="roles-grid">
             {roles.map((role) => (
-              <div key={role.id || role.name} className="role-card">
+              <div key={role._id || role.id || role.name} className="role-card">
                 <h3>{role.name}</h3>
                 <button className="role-apply-btn" onClick={() => {
                   setFormData(prev => ({ ...prev, role: role.name }));

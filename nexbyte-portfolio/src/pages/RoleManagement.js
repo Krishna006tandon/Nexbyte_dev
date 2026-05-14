@@ -105,8 +105,9 @@ const RoleManagement = () => {
         skills: skillInput.split(',').map(s => s.trim()).filter(Boolean)
       };
 
-      const res = await axios.put(`/api/internship/roles/${editingRole.id}`, payload, authHeaders);
-      setRoles(prev => prev.map(r => (r.id === editingRole.id ? res.data : r)));
+      const roleId = editingRole._id || editingRole.id;
+      const res = await axios.put(`/api/internship/roles/${roleId}`, payload, authHeaders);
+      setRoles(prev => prev.map(r => ((r._id || r.id) === roleId ? res.data : r)));
       closeEditModal();
     } catch (err) {
       alert(err?.response?.data?.message || 'Failed to update role');
@@ -117,14 +118,14 @@ const RoleManagement = () => {
     if (!window.confirm('Are you sure you want to delete this role?')) return;
     try {
       await axios.delete(`/api/internship/roles/${roleId}`, authHeaders);
-      setRoles(prev => prev.filter(r => r.id !== roleId));
+      setRoles(prev => prev.filter(r => (r._id || r.id) !== roleId));
     } catch (err) {
       alert(err?.response?.data?.message || 'Failed to delete role');
     }
   };
 
   const handleToggleActive = async (roleId) => {
-    const role = roles.find(r => r.id === roleId);
+    const role = roles.find(r => (r._id || r.id) === roleId);
     if (!role) return;
     try {
       const res = await axios.put(
@@ -132,7 +133,7 @@ const RoleManagement = () => {
         { isActive: !role.isActive },
         authHeaders
       );
-      setRoles(prev => prev.map(r => (r.id === roleId ? res.data : r)));
+      setRoles(prev => prev.map(r => ((r._id || r.id) === roleId ? res.data : r)));
     } catch (err) {
       alert(err?.response?.data?.message || 'Failed to update role status');
     }
@@ -182,7 +183,7 @@ const RoleManagement = () => {
           <div style={{ color: 'rgba(255,255,255,0.8)' }}>No roles found.</div>
         ) : (
           roles.map(role => (
-            <div key={role.id} className={`role-card ${!role.isActive ? 'inactive' : ''}`}>
+            <div key={role._id || role.id} className={`role-card ${!role.isActive ? 'inactive' : ''}`}>
               <div className="role-header">
                 <h3>{role.name}</h3>
                 <div className="role-actions">
@@ -190,14 +191,14 @@ const RoleManagement = () => {
                     ✏️
                   </button>
                   <button
-                    onClick={() => handleToggleActive(role.id)}
+                    onClick={() => handleToggleActive(role._id || role.id)}
                     className={`action-btn toggle-btn ${role.isActive ? 'active' : 'inactive'}`}
                     title={role.isActive ? 'Deactivate' : 'Activate'}
                   >
                     {role.isActive ? '🔴' : '🟢'}
                   </button>
                   <button
-                    onClick={() => handleDeleteRole(role.id)}
+                    onClick={() => handleDeleteRole(role._id || role.id)}
                     className="action-btn delete-btn"
                     title="Delete Role"
                   >
@@ -241,7 +242,7 @@ const RoleManagement = () => {
                   <h4>Skills</h4>
                   <div className="skills-list">
                     {(role.skills || []).map((skill, idx) => (
-                      <span key={`${role.id}-${idx}`} className="skill-tag">
+                      <span key={`${role._id || role.id}-${idx}`} className="skill-tag">
                         {skill}
                       </span>
                     ))}
@@ -477,4 +478,3 @@ const RoleManagement = () => {
 };
 
 export default RoleManagement;
-
