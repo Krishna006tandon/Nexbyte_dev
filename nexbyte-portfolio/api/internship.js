@@ -60,47 +60,34 @@ const getCloudinaryConfig = () => {
   return { cloudName, apiKey, apiSecret };
 };
 
-const cloudinaryAdminAuthHeader = (cfg) => {
-  const token = Buffer.from(`${cfg.apiKey}:${cfg.apiSecret}`).toString('base64');
-  return `Basic ${token}`;
-};
-
-const getCloudinarySignedDownloadUrl = async ({ publicId, filename }) => {
+const getCloudinarySignedDownloadUrl = ({ publicId, format }) => {
   const cfg = getCloudinaryConfig();
   if (!cfg) return null;
   if (!publicId) return null;
 
-  // Cloudinary "download" endpoint returns a short-lived URL even for private/authenticated assets.
-  // Docs: https://cloudinary.com/documentation/admin_api#get_a_short_lived_download_link
-  const endpoint = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/raw/download`;
+  // Signed download URL pattern (works for private/authenticated assets when signed).
+  // Example (image): https://api.cloudinary.com/v1_1/<cloud>/image/download?...signature...
+  // We'll use the same pattern for raw: /raw/download
+  const timestamp = Math.floor(Date.now() / 1000);
+  const finalFormat = format || 'pdf';
 
-  const expiresAt = Math.floor(Date.now() / 1000) + 5 * 60; // 5 minutes
-  const body = {
+  const paramsToSign = {
+    format: finalFormat,
     public_id: publicId,
-    attachment: true,
-    expires_at: expiresAt,
+    timestamp,
   };
-  if (filename) body.filename = filename;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: cloudinaryAdminAuthHeader(cfg),
-    },
-    body: JSON.stringify(body),
+  const signature = buildCloudinarySignature(paramsToSign, cfg.apiSecret);
+
+  const qs = new URLSearchParams({
+    api_key: cfg.apiKey,
+    public_id: publicId,
+    format: finalFormat,
+    timestamp: String(timestamp),
+    signature,
   });
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const msg =
-      data && data.error && data.error.message
-        ? data.error.message
-        : `Cloudinary download link failed (${response.status})`;
-    throw new Error(msg);
-  }
-
-  return data && data.url ? data.url : null;
+  return `https://api.cloudinary.com/v1_1/${cfg.cloudName}/raw/download?${qs.toString()}`;
 };
 
 const sha1 = (input) => crypto.createHash('sha1').update(String(input)).digest('hex');
@@ -768,19 +755,17 @@ router.get('/applications/:id/resume', async (req, res) => {
       return res.status(404).json({ message: 'Resume not found' });
     }
 
-    // If resume is stored on Cloudinary (including private/authenticated), generate a short-lived signed URL.
+    // If resume is stored on Cloudinary (including private/authenticated), generate a signed download URL.
     if (application.resumePublicId || (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_'))) {
       const publicId = application.resumePublicId || application.resume;
-      try {
-        const signedUrl = await getCloudinarySignedDownloadUrl({
-          publicId,
-          filename: application.resumeOriginalName || 'resume.pdf',
+      const signedUrl = getCloudinarySignedDownloadUrl({ publicId, format: 'pdf' });
+      if (!signedUrl) {
+        return res.status(500).json({
+          message:
+            'Cloudinary is not configured for signed downloads. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.',
         });
-        if (signedUrl) return res.redirect(302, signedUrl);
-      } catch (e) {
-        console.warn('Cloudinary signed download failed:', e.message);
-        // fall through to the next strategy
       }
+      return res.redirect(302, signedUrl);
     }
 
     // If resume lives on an external URL, redirect the browser to it (may still be public).
