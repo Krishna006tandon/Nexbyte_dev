@@ -60,6 +60,28 @@ const getCloudinaryConfig = () => {
   return { cloudName, apiKey, apiSecret };
 };
 
+const getVercelBlobToken = () =>
+  process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
+
+const uploadResumeToVercelBlob = async (file) => {
+  const token = getVercelBlobToken();
+  if (!token) return null;
+
+  const { put } = await import('@vercel/blob');
+
+  const safeName = sanitizeFilename(file.originalname || 'resume.pdf');
+  const key = `resumes/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+  const blob = new Blob([file.buffer], { type: file.mimetype || 'application/pdf' });
+
+  const result = await put(key, blob, {
+    access: 'public',
+    contentType: file.mimetype || 'application/pdf',
+    addRandomSuffix: false,
+  });
+
+  return { url: result.url, pathname: result.pathname };
+};
+
 const getCloudinarySignedDownloadUrl = ({ publicId }) => {
   const cfg = getCloudinaryConfig();
   if (!cfg) return null;
@@ -465,21 +487,29 @@ router.post('/applications', upload.single('resume'), async (req, res) => {
     let resume = null;
     let resumeUrl = null;
     let resumePublicId = null;
+    let resumeBlobPath = null;
     let resumeOriginalName = null;
 
     if (req.file) {
       resumeOriginalName = req.file.originalname || null;
       try {
-        const uploaded = await uploadResumeToCloudinary(req.file);
-        if (uploaded) {
-          resume = uploaded.publicId;
-          resumePublicId = uploaded.publicId;
-          resumeUrl = uploaded.secureUrl;
+        const blobUploaded = await uploadResumeToVercelBlob(req.file);
+        if (blobUploaded) {
+          resume = blobUploaded.pathname;
+          resumeUrl = blobUploaded.url;
+          resumeBlobPath = blobUploaded.pathname;
         } else {
-          resume = saveResumeToLocal(req.file);
+          const uploaded = await uploadResumeToCloudinary(req.file);
+          if (uploaded) {
+            resume = uploaded.publicId;
+            resumePublicId = uploaded.publicId;
+            resumeUrl = uploaded.secureUrl;
+          } else {
+            resume = saveResumeToLocal(req.file);
+          }
         }
       } catch (e) {
-        console.warn('Cloudinary resume upload failed; falling back to local storage.', e.message);
+        console.warn('Resume upload failed; falling back to local storage.', e.message);
         resume = saveResumeToLocal(req.file);
       }
     }
@@ -491,6 +521,7 @@ router.post('/applications', upload.single('resume'), async (req, res) => {
       resume,
       resumeUrl,
       resumePublicId,
+      resumeBlobPath,
       resumeOriginalName,
       interviewAvailability,
       dateApplied: new Date()
@@ -557,7 +588,7 @@ router.get('/applications/:id/resume', async (req, res) => {
       req.query.download === '1' || String(req.query.download || '').toLowerCase() === 'true';
 
     const application = await InternshipApplication.findById(req.params.id).select(
-      'resume resumeUrl resumePublicId resumeOriginalName'
+      'resume resumeUrl resumePublicId resumeBlobPath resumeOriginalName'
     );
 
     if (!application) {
@@ -590,6 +621,22 @@ router.get('/applications/:id/resume', async (req, res) => {
       if (forceDownload) {
         const attachmentUrl = toCloudinaryAttachmentUrl(redirectUrl);
         if (attachmentUrl) return res.redirect(302, attachmentUrl);
+
+        // For non-Cloudinary URLs (e.g. Vercel Blob), proxy the bytes so the browser downloads it.
+        try {
+          const r = await fetch(redirectUrl);
+          if (!r.ok) {
+            return res.status(502).json({ message: 'Failed to fetch remote resume' });
+          }
+          const contentType = r.headers.get('content-type') || 'application/pdf';
+          const downloadName = sanitizeFilename(application.resumeOriginalName || 'resume.pdf');
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+          const buf = Buffer.from(await r.arrayBuffer());
+          return res.send(buf);
+        } catch (e) {
+          return res.status(502).json({ message: 'Failed to proxy resume download' });
+        }
       }
       return res.redirect(302, redirectUrl);
     }
