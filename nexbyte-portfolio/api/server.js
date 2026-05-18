@@ -881,9 +881,12 @@ app.post('/api/users', auth, admin, async (req, res) => {
       role: role || 'member', // Changed default role from 'user' to 'member'
       internType: role === 'intern' ? internType : undefined,
       offerLetter: offerLetterContent, // Save offer letter HTML if generated
+      offerStatus: role === 'intern' ? 'pending' : undefined,
       internshipStartDate: role === 'intern' ? internshipStartDate : undefined,
       internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
       acceptanceDate: role === 'intern' ? acceptanceDate : undefined,
+      internFeeAmountInINR: role === 'intern' ? 600 : undefined,
+      internFeeStatus: role === 'intern' ? 'pending' : undefined,
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -2745,7 +2748,7 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     if (user.role !== 'intern') {
       return res.status(403).json({ message: 'Only interns can accept offers' });
     }
@@ -2859,6 +2862,123 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
   } catch (err) {
     console.error('Error accepting offer:', err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/intern/submit-payment
+// @desc    Submit internship fee payment details
+// @access  Private (intern)
+app.post('/api/intern/submit-payment', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role !== 'intern') return res.status(403).json({ message: 'Only interns can submit payments' });
+
+    return res.status(410).json({
+      message: 'Manual payment submission is disabled. Please pay via Razorpay from the Intern Panel.',
+      internFeeStatus: user.internFeeStatus,
+      internFeeAmountInINR: user.internFeeAmountInINR ?? 600,
+    });
+  } catch (err) {
+    console.error('Error submitting intern payment:', err.message);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST api/intern/razorpay-order
+// @desc    Create a Razorpay order for internship fee payment
+// @access  Private (intern)
+app.post('/api/intern/razorpay-order', auth, async (req, res) => {
+  try {
+    const config = getRazorpayConfig();
+    if (!config) {
+      return res.status(500).json({ message: 'Razorpay is not configured' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role !== 'intern') return res.status(403).json({ message: 'Only interns can pay internship fee' });
+
+    if (user.internFeeStatus === 'paid') {
+      return res.status(400).json({ message: 'Internship fee is already paid' });
+    }
+
+    const amountInINR = Number(user.internFeeAmountInINR ?? 600);
+    const amount = Math.round(amountInINR * 100); // paise
+
+    const order = await callRazorpayApi('orders', {
+      amount,
+      currency: 'INR',
+      receipt: `intern_fee_${user._id}_${Date.now()}`.slice(0, 40),
+      notes: { internUserId: String(user._id), purpose: 'intern_fee' },
+    });
+
+    user.internFeeRazorpayOrderId = order.id;
+    await user.save();
+
+    return res.json({
+      key: config.keyId,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency || 'INR',
+      internFeeAmountInINR: amountInINR,
+    });
+  } catch (err) {
+    console.error('Error creating intern Razorpay order:', err.message);
+    return res.status(500).json({ message: err.message || 'Failed to create payment order' });
+  }
+});
+
+// @route   POST api/intern/verify-razorpay-payment
+// @desc    Verify Razorpay payment and mark intern fee as paid
+// @access  Private (intern)
+app.post('/api/intern/verify-razorpay-payment', auth, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ message: 'Missing Razorpay payment details' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role !== 'intern') return res.status(403).json({ message: 'Only interns can verify payments' });
+
+    if (user.internFeeStatus === 'paid') {
+      return res.json({
+        message: 'Internship fee already paid',
+        internFeeStatus: user.internFeeStatus,
+        internFeePaidAt: user.internFeePaidAt,
+      });
+    }
+
+    if (!user.internFeeRazorpayOrderId || user.internFeeRazorpayOrderId !== razorpay_order_id) {
+      return res.status(400).json({ message: 'Razorpay order mismatch. Please create a new payment order.' });
+    }
+
+    const isValid = verifyRazorpaySignature({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+    });
+    if (!isValid) {
+      return res.status(400).json({ message: 'Invalid Razorpay payment signature' });
+    }
+
+    user.internFeeStatus = 'paid';
+    user.internFeePaidAt = new Date();
+    user.internFeeRazorpayPaymentId = razorpay_payment_id;
+    user.internFeeRazorpaySignature = razorpay_signature;
+    await user.save();
+
+    return res.json({
+      message: 'Payment verified successfully',
+      internFeeStatus: user.internFeeStatus,
+      internFeeAmountInINR: user.internFeeAmountInINR ?? 600,
+      internFeePaidAt: user.internFeePaidAt,
+    });
+  } catch (err) {
+    console.error('Error verifying intern Razorpay payment:', err.message);
+    return res.status(500).json({ message: err.message || 'Failed to verify payment' });
   }
 });
 
@@ -3045,6 +3165,10 @@ const verifyIntern = (req, res, next) => {
     User.findById(req.user.id).then(user => {
       if (!user || user.role !== 'intern') {
         return res.status(403).json({ message: 'Access denied. Intern role required.' });
+      }
+      // Gate access unless offer is accepted OR fee is paid
+      if (user.offerStatus !== 'accepted' && user.internFeeStatus !== 'paid') {
+        return res.status(402).json({ message: 'Payment required. Please complete internship fee payment.' });
       }
       req.userObj = user;
       next();

@@ -194,20 +194,23 @@ const ApplicationDetail = () => {
     }
   };
 
-  const handleDownloadResume = () => {
-    const resumeUrl =
-      application && application._id
-        ? `/api/internship/applications/${application._id}/resume`
-        : application && application.resume
-          ? `/api/internship/resumes/${application.resume}`
-          : null;
+  const handleDownloadResume = async () => {
+    // Extract ID from URL if useParams doesn't work
+    const urlId = window.location.pathname.split('/').pop();
+    const finalId = id || urlId;
 
-    if (!resumeUrl) {
-      console.error('No resume available');
+    if (!finalId || finalId === 'undefined') {
+      console.error('No valid application ID available');
       return;
     }
 
-    window.open(resumeUrl, '_blank');
+    if (!application?.resume && !application?.resumeUrl && !application?.resumePublicId) {
+      alert('No resume available for this application.');
+      return;
+    }
+
+    // Let the browser handle the download/redirect (works for both local and Cloudinary storage).
+    window.open(`/api/internship/applications/${finalId}/resume?download=1`, '_blank');
   };
 
   const handleSendEmail = () => {

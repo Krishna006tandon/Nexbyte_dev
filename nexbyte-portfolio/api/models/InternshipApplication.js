@@ -41,6 +41,10 @@ const InternshipApplicationSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  resumeBlobPath: {
+    type: String,
+    required: false
+  },
   resumeOriginalName: {
     type: String,
     required: false

@@ -1,161 +1,167 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import './RoleManagement.css';
 
+const emptyRole = {
+  name: '',
+  description: '',
+  duration: '3 months',
+  isActive: true,
+  requirements: '',
+  skills: [],
+  mentor: '',
+  maxInterns: 3
+};
+
 const RoleManagement = () => {
-  const [roles, setRoles] = useState([
-    {
-      id: 1,
-      name: 'Web Development Intern',
-      description: 'Learn full-stack web development with React, Node.js, and modern frameworks',
-      duration: '3 months',
-      isActive: true,
-      requirements: 'Basic HTML, CSS, JavaScript knowledge',
-      skills: ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js', 'MongoDB'],
-      mentor: 'John Doe',
-      maxInterns: 5,
-      currentInterns: 2
-    },
-    {
-      id: 2,
-      name: 'Frontend Intern',
-      description: 'Focus on modern frontend technologies and UI/UX best practices',
-      duration: '2 months',
-      isActive: true,
-      requirements: 'HTML, CSS, JavaScript basics',
-      skills: ['HTML', 'CSS', 'JavaScript', 'React', 'Vue.js', 'TailwindCSS'],
-      mentor: 'Jane Smith',
-      maxInterns: 3,
-      currentInterns: 1
-    },
-    {
-      id: 3,
-      name: 'Backend Intern',
-      description: 'Learn server-side development, databases, and API design',
-      duration: '3 months',
-      isActive: true,
-      requirements: 'Basic programming knowledge',
-      skills: ['Node.js', 'Express', 'MongoDB', 'PostgreSQL', 'REST APIs'],
-      mentor: 'Mike Johnson',
-      maxInterns: 4,
-      currentInterns: 0
-    },
-    {
-      id: 4,
-      name: 'UI/UX Intern',
-      description: 'Design beautiful user interfaces and improve user experience',
-      duration: '2 months',
-      isActive: false,
-      requirements: 'Basic design knowledge',
-      skills: ['Figma', 'Adobe XD', 'User Research', 'Prototyping', 'Design Systems'],
-      mentor: 'Sarah Wilson',
-      maxInterns: 2,
-      currentInterns: 0
-    },
-    {
-      id: 5,
-      name: 'Digital Marketing Intern',
-      description: 'Learn digital marketing strategies and campaign management',
-      duration: '2 months',
-      isActive: true,
-      requirements: 'Basic marketing knowledge',
-      skills: ['SEO', 'Social Media Marketing', 'Content Marketing', 'Google Analytics'],
-      mentor: 'Tom Brown',
-      maxInterns: 3,
-      currentInterns: 1
-    }
-  ]);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
-  const [newRole, setNewRole] = useState({
-    name: '',
-    description: '',
-    duration: '3 months',
-    isActive: true,
-    requirements: '',
-    skills: [],
-    mentor: '',
-    maxInterns: 3
-  });
-
+  const [newRole, setNewRole] = useState(emptyRole);
   const [skillInput, setSkillInput] = useState('');
 
-  const handleAddRole = () => {
-    const role = {
-      ...newRole,
-      id: Date.now(),
-      currentInterns: 0
+  const authHeaders = useMemo(() => {
+    const token = localStorage.getItem('token');
+    return { headers: { 'x-auth-token': token } };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchRoles = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get('/api/internship/roles');
+        if (!isMounted) return;
+        setRoles(Array.isArray(res.data) ? res.data : []);
+        setError(null);
+      } catch (err) {
+        if (!isMounted) return;
+        setError('Failed to load roles');
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
     };
-    setRoles([...roles, role]);
-    setNewRole({
-      name: '',
-      description: '',
-      duration: '3 months',
-      isActive: true,
-      requirements: '',
-      skills: [],
-      mentor: '',
-      maxInterns: 3
-    });
-    setShowAddModal(false);
+
+    fetchRoles();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const resetAddForm = () => {
+    setNewRole(emptyRole);
     setSkillInput('');
   };
 
-  const handleEditRole = (role) => {
-    setEditingRole(role);
-    setShowEditModal(true);
-    setSkillInput(role.skills.join(', '));
-  };
-
-  const handleUpdateRole = () => {
-    setRoles(roles.map(role => 
-      role.id === editingRole.id 
-        ? { ...editingRole, skills: skillInput.split(',').map(s => s.trim()).filter(s => s) }
-        : role
-    ));
+  const closeEditModal = () => {
     setShowEditModal(false);
     setEditingRole(null);
     setSkillInput('');
   };
 
-  const handleDeleteRole = (roleId) => {
-    if (window.confirm('Are you sure you want to delete this role?')) {
-      setRoles(roles.filter(role => role.id !== roleId));
-    }
-  };
-
-  const handleToggleActive = (roleId) => {
-    setRoles(roles.map(role => 
-      role.id === roleId 
-        ? { ...role, isActive: !role.isActive }
-        : role
-    ));
-  };
-
-  const handleAddSkill = (e) => {
-    if (e.key === 'Enter' && skillInput.trim()) {
-      const skills = skillInput.split(',').map(s => s.trim()).filter(s => s);
-      if (showAddModal) {
-        setNewRole({ ...newRole, skills });
-      } else if (showEditModal) {
-        setEditingRole({ ...editingRole, skills });
+  const handleAddRole = async () => {
+    try {
+      if (!newRole.name.trim() || !newRole.description.trim()) {
+        alert('Role name and description are required');
+        return;
       }
-      setSkillInput('');
+
+      const payload = {
+        ...newRole,
+        skills: Array.isArray(newRole.skills) ? newRole.skills : [],
+        isActive: newRole.isActive !== false
+      };
+
+      const res = await axios.post('/api/internship/roles', payload, authHeaders);
+      setRoles(prev => [...prev, res.data]);
+      setShowAddModal(false);
+      resetAddForm();
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to add role');
     }
   };
 
-  const handleRemoveSkill = (index) => {
-    if (showAddModal) {
-      setNewRole({
-        ...newRole,
-        skills: newRole.skills.filter((_, i) => i !== index)
-      });
-    } else if (showEditModal) {
-      setEditingRole({
+  const handleEditRole = (role) => {
+    setEditingRole(role);
+    setShowEditModal(true);
+    setSkillInput((role.skills || []).join(', '));
+  };
+
+  const handleUpdateRole = async () => {
+    try {
+      if (!editingRole?.name?.trim() || !editingRole?.description?.trim()) {
+        alert('Role name and description are required');
+        return;
+      }
+
+      const payload = {
         ...editingRole,
-        skills: editingRole.skills.filter((_, i) => i !== index)
-      });
+        skills: skillInput.split(',').map(s => s.trim()).filter(Boolean)
+      };
+
+      const roleId = editingRole._id || editingRole.id;
+      const res = await axios.put(`/api/internship/roles/${roleId}`, payload, authHeaders);
+      setRoles(prev => prev.map(r => ((r._id || r.id) === roleId ? res.data : r)));
+      closeEditModal();
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to update role');
+    }
+  };
+
+  const handleDeleteRole = async (roleId) => {
+    if (!window.confirm('Are you sure you want to delete this role?')) return;
+    try {
+      await axios.delete(`/api/internship/roles/${roleId}`, authHeaders);
+      setRoles(prev => prev.filter(r => (r._id || r.id) !== roleId));
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to delete role');
+    }
+  };
+
+  const handleToggleActive = async (roleId) => {
+    const role = roles.find(r => (r._id || r.id) === roleId);
+    if (!role) return;
+    try {
+      const res = await axios.put(
+        `/api/internship/roles/${roleId}`,
+        { isActive: !role.isActive },
+        authHeaders
+      );
+      setRoles(prev => prev.map(r => ((r._id || r.id) === roleId ? res.data : r)));
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to update role status');
+    }
+  };
+
+  const handleSkillsKeyDown = (e, mode) => {
+    if (e.key !== 'Enter') return;
+    if (!skillInput.trim()) return;
+    e.preventDefault();
+
+    const skills = skillInput
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (mode === 'add') {
+      setNewRole(prev => ({ ...prev, skills }));
+    } else if (mode === 'edit') {
+      setEditingRole(prev => ({ ...prev, skills }));
+    }
+    setSkillInput('');
+  };
+
+  const handleRemoveSkill = (index, mode) => {
+    if (mode === 'add') {
+      setNewRole(prev => ({ ...prev, skills: (prev.skills || []).filter((_, i) => i !== index) }));
+    } else if (mode === 'edit') {
+      setEditingRole(prev => ({ ...prev, skills: (prev.skills || []).filter((_, i) => i !== index) }));
     }
   };
 
@@ -168,80 +174,86 @@ const RoleManagement = () => {
         </button>
       </div>
 
-      {/* Roles Grid */}
       <div className="roles-grid">
-        {roles.map(role => (
-          <div key={role.id} className={`role-card ${!role.isActive ? 'inactive' : ''}`}>
-            <div className="role-header">
-              <h3>{role.name}</h3>
-              <div className="role-actions">
-                <button 
-                  onClick={() => handleEditRole(role)}
-                  className="action-btn edit-btn"
-                  title="Edit Role"
-                >
-                  ✏️
-                </button>
-                <button 
-                  onClick={() => handleToggleActive(role.id)}
-                  className={`action-btn toggle-btn ${role.isActive ? 'active' : 'inactive'}`}
-                  title={role.isActive ? 'Deactivate' : 'Activate'}
-                >
-                  {role.isActive ? '🔴' : '🟢'}
-                </button>
-                <button 
-                  onClick={() => handleDeleteRole(role.id)}
-                  className="action-btn delete-btn"
-                  title="Delete Role"
-                >
-                  🗑️
-                </button>
+        {loading ? (
+          <div style={{ color: 'rgba(255,255,255,0.8)' }}>Loading roles...</div>
+        ) : error ? (
+          <div style={{ color: '#ff6b6b' }}>{error}</div>
+        ) : roles.length === 0 ? (
+          <div style={{ color: 'rgba(255,255,255,0.8)' }}>No roles found.</div>
+        ) : (
+          roles.map(role => (
+            <div key={role._id || role.id} className={`role-card ${!role.isActive ? 'inactive' : ''}`}>
+              <div className="role-header">
+                <h3>{role.name}</h3>
+                <div className="role-actions">
+                  <button onClick={() => handleEditRole(role)} className="action-btn edit-btn" title="Edit Role">
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(role._id || role.id)}
+                    className={`action-btn toggle-btn ${role.isActive ? 'active' : 'inactive'}`}
+                    title={role.isActive ? 'Deactivate' : 'Activate'}
+                  >
+                    {role.isActive ? '🔴' : '🟢'}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRole(role._id || role.id)}
+                    className="action-btn delete-btn"
+                    title="Delete Role"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              <div className="role-content">
+                <p className="role-description">{role.description}</p>
+
+                <div className="role-details">
+                  <div className="detail-item">
+                    <span className="label">Duration:</span>
+                    <span className="value">{role.duration}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="label">Mentor:</span>
+                    <span className="value">{role.mentor}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="label">Capacity:</span>
+                    <span className="value">
+                      {role.currentInterns || 0}/{role.maxInterns}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="label">Status:</span>
+                    <span className={`status-badge ${role.isActive ? 'active' : 'inactive'}`}>
+                      {role.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="role-requirements">
+                  <h4>Requirements</h4>
+                  <p>{role.requirements}</p>
+                </div>
+
+                <div className="role-skills">
+                  <h4>Skills</h4>
+                  <div className="skills-list">
+                    {(role.skills || []).map((skill, idx) => (
+                      <span key={`${role._id || role.id}-${idx}`} className="skill-tag">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="role-content">
-              <p className="role-description">{role.description}</p>
-              
-              <div className="role-details">
-                <div className="detail-item">
-                  <span className="label">Duration:</span>
-                  <span className="value">{role.duration}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Mentor:</span>
-                  <span className="value">{role.mentor}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Capacity:</span>
-                  <span className="value">{role.currentInterns}/{role.maxInterns}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Status:</span>
-                  <span className={`status-badge ${role.isActive ? 'active' : 'inactive'}`}>
-                    {role.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="role-requirements">
-                <h4>Requirements:</h4>
-                <p>{role.requirements}</p>
-              </div>
-
-              <div className="role-skills">
-                <h4>Skills to Learn:</h4>
-                <div className="skills-list">
-                  {role.skills.map((skill, index) => (
-                    <span key={index} className="skill-tag">{skill}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
-      {/* Add Role Modal */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -253,7 +265,6 @@ const RoleManagement = () => {
                   type="text"
                   value={newRole.name}
                   onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
-                  placeholder="e.g., Web Development Intern"
                   className="form-input"
                 />
               </div>
@@ -277,7 +288,6 @@ const RoleManagement = () => {
                 <textarea
                   value={newRole.description}
                   onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
-                  placeholder="Describe what interns will learn and do..."
                   className="form-textarea"
                   rows="3"
                 />
@@ -289,7 +299,6 @@ const RoleManagement = () => {
                   type="text"
                   value={newRole.requirements}
                   onChange={(e) => setNewRole({ ...newRole, requirements: e.target.value })}
-                  placeholder="Basic knowledge required..."
                   className="form-input"
                 />
               </div>
@@ -300,7 +309,6 @@ const RoleManagement = () => {
                   type="text"
                   value={newRole.mentor}
                   onChange={(e) => setNewRole({ ...newRole, mentor: e.target.value })}
-                  placeholder="Mentor name"
                   className="form-input"
                 />
               </div>
@@ -310,9 +318,9 @@ const RoleManagement = () => {
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max="50"
                   value={newRole.maxInterns}
-                  onChange={(e) => setNewRole({ ...newRole, maxInterns: parseInt(e.target.value) })}
+                  onChange={(e) => setNewRole({ ...newRole, maxInterns: parseInt(e.target.value, 10) || 1 })}
                   className="form-input"
                 />
               </div>
@@ -323,15 +331,17 @@ const RoleManagement = () => {
                   type="text"
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyPress={handleAddSkill}
+                  onKeyDown={(e) => handleSkillsKeyDown(e, 'add')}
                   placeholder="Enter skills separated by commas..."
                   className="form-input"
                 />
                 <div className="skills-preview">
-                  {newRole.skills.map((skill, index) => (
+                  {(newRole.skills || []).map((skill, index) => (
                     <span key={index} className="skill-tag removable">
                       {skill}
-                      <button onClick={() => handleRemoveSkill(index)} className="remove-skill">×</button>
+                      <button onClick={() => handleRemoveSkill(index, 'add')} className="remove-skill" type="button">
+                        ×
+                      </button>
                     </span>
                   ))}
                 </div>
@@ -342,20 +352,13 @@ const RoleManagement = () => {
               <button onClick={handleAddRole} className="save-btn">
                 Add Role
               </button>
-              <button onClick={() => {
-                setShowAddModal(false);
-                setNewRole({
-                  name: '',
-                  description: '',
-                  duration: '3 months',
-                  isActive: true,
-                  requirements: '',
-                  skills: [],
-                  mentor: '',
-                  maxInterns: 3
-                });
-                setSkillInput('');
-              }} className="cancel-btn">
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  resetAddForm();
+                }}
+                className="cancel-btn"
+              >
                 Cancel
               </button>
             </div>
@@ -363,7 +366,6 @@ const RoleManagement = () => {
         </div>
       )}
 
-      {/* Edit Role Modal */}
       {showEditModal && editingRole && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -428,9 +430,11 @@ const RoleManagement = () => {
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max="50"
                   value={editingRole.maxInterns}
-                  onChange={(e) => setEditingRole({ ...editingRole, maxInterns: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setEditingRole({ ...editingRole, maxInterns: parseInt(e.target.value, 10) || 1 })
+                  }
                   className="form-input"
                 />
               </div>
@@ -441,15 +445,17 @@ const RoleManagement = () => {
                   type="text"
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyPress={handleAddSkill}
+                  onKeyDown={(e) => handleSkillsKeyDown(e, 'edit')}
                   placeholder="Enter skills separated by commas..."
                   className="form-input"
                 />
                 <div className="skills-preview">
-                  {editingRole.skills.map((skill, index) => (
+                  {(editingRole.skills || []).map((skill, index) => (
                     <span key={index} className="skill-tag removable">
                       {skill}
-                      <button onClick={() => handleRemoveSkill(index)} className="remove-skill">×</button>
+                      <button onClick={() => handleRemoveSkill(index, 'edit')} className="remove-skill" type="button">
+                        ×
+                      </button>
                     </span>
                   ))}
                 </div>
@@ -460,11 +466,7 @@ const RoleManagement = () => {
               <button onClick={handleUpdateRole} className="save-btn">
                 Update Role
               </button>
-              <button onClick={() => {
-                setShowEditModal(false);
-                setEditingRole(null);
-                setSkillInput('');
-              }} className="cancel-btn">
+              <button onClick={closeEditModal} className="cancel-btn">
                 Cancel
               </button>
             </div>

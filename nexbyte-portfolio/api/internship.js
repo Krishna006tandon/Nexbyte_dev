@@ -3,13 +3,36 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const InternshipApplication = require('./models/InternshipApplication');
 const User = require('./models/User');
+const InternshipRole = require('./models/InternshipRole');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const mailSender = require('./mailSender');
 const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
+const auth = (req, res, next) => {
+  const token = req.cookies?.token || req.header('x-auth-token');
+  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+const admin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  next();
+};
+
+// Note: Multer is configured below with memory storage (upload handled in route).
 const getUploadsDir = () =>
   process.env.VERCEL ? '/tmp/uploads/resumes' : path.join(__dirname, '../uploads/resumes');
 
@@ -37,6 +60,60 @@ const getCloudinaryConfig = () => {
   return { cloudName, apiKey, apiSecret };
 };
 
+const getVercelBlobToken = () =>
+  process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
+
+const uploadResumeToVercelBlob = async (file) => {
+  const token = getVercelBlobToken();
+  if (!token) return null;
+
+  const { put } = await import('@vercel/blob');
+
+  const safeName = sanitizeFilename(file.originalname || 'resume.pdf');
+  const key = `resumes/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+  const blob = new Blob([file.buffer], { type: file.mimetype || 'application/pdf' });
+
+  const result = await put(key, blob, {
+    access: 'public',
+    contentType: file.mimetype || 'application/pdf',
+    addRandomSuffix: false,
+  });
+
+  return { url: result.url, pathname: result.pathname };
+};
+
+const getCloudinarySignedDownloadUrl = ({ publicId }) => {
+  const cfg = getCloudinaryConfig();
+  if (!cfg) return null;
+  if (!publicId) return null;
+
+  // Signed "raw/download" URL. Cloudinary expects signature over the provided params.
+  // Example URL parameters include: public_id, attachment, expires_at, timestamp, signature, api_key.
+  // (public_id for raw assets should include extension, e.g. "file.pdf")
+  const timestamp = Math.floor(Date.now() / 1000);
+  const expiresAt = timestamp + 5 * 60; // 5 minutes
+
+  const paramsToSign = {
+    attachment: true,
+    expires_at: expiresAt,
+    public_id: publicId,
+    timestamp,
+  };
+
+  const signature = buildCloudinarySignature(paramsToSign, cfg.apiSecret);
+
+  const qs = new URLSearchParams({
+    api_key: cfg.apiKey,
+    public_id: publicId,
+    attachment: 'true',
+    expires_at: String(expiresAt),
+    timestamp: String(timestamp),
+    signature,
+  });
+
+  return `https://api.cloudinary.com/v1_1/${cfg.cloudName}/raw/download?${qs.toString()}`;
+};
+
 const sha1 = (input) => crypto.createHash('sha1').update(String(input)).digest('hex');
 
 const buildCloudinarySignature = (params, apiSecret) => {
@@ -48,13 +125,69 @@ const buildCloudinarySignature = (params, apiSecret) => {
   return sha1(`${toSign}${apiSecret}`);
 };
 
+const sha1Base64Url = (input) =>
+  crypto
+    .createHash('sha1')
+    .update(String(input))
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+const buildCloudinaryDeliverySignatureComponent = ({ pathToSign, apiSecret }) => {
+  // Signature format: s--SIGNATURE-- where SIGNATURE is first 8 chars of url-safe sha1 base64 digest.
+  // Cloudinary signs the path that follows the signature component and typically includes a leading '/'.
+  // See: https://cloudinary.com/documentation/delivery_url_signatures
+  const normalized = pathToSign.startsWith('/') ? pathToSign : `/${pathToSign}`;
+  const digest = sha1Base64Url(`${normalized}${apiSecret}`);
+  return `s--${digest.slice(0, 8)}--`;
+};
+
+const extractCloudinaryVersionFromUrl = (url) => {
+  if (typeof url !== 'string') return null;
+  const match = url.match(/\/v(\d+)\//);
+  return match ? match[1] : null;
+};
+
+const extractCloudinaryCloudNameFromUrl = (url) => {
+  if (typeof url !== 'string') return null;
+  const match = url.match(/^https?:\/\/res\.cloudinary\.com\/([^/]+)\//i);
+  return match ? match[1] : null;
+};
+
+const getCloudinaryAuthenticatedRawDeliveryUrl = ({ publicId, version }) => {
+  const cfg = getCloudinaryConfig();
+  if (!cfg) return null;
+  if (!publicId) return null;
+
+  // Build path that comes AFTER the signature component.
+  const versionPart = version ? `v${version}/` : '';
+  // Cloudinary expects URL-encoded public_id path segments.
+  const encodedPublicId = String(publicId)
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  const pathToSign = `${versionPart}${encodedPublicId}`;
+  const sigComponent = buildCloudinaryDeliverySignatureComponent({
+    pathToSign,
+    apiSecret: cfg.apiSecret,
+  });
+
+  return `https://res.cloudinary.com/${cfg.cloudName}/raw/authenticated/${sigComponent}/${pathToSign}`;
+};
+
 const uploadResumeToCloudinary = async (file) => {
   const cfg = getCloudinaryConfig();
   if (!cfg) return null;
 
   const timestamp = Math.floor(Date.now() / 1000);
   const publicId = `nexbyte_resume_${crypto.randomUUID()}`;
-  const signature = buildCloudinarySignature({ public_id: publicId, timestamp }, cfg.apiSecret);
+  // Ensure files are publicly downloadable (avoid 401 on delivery)
+  const accessMode = 'public';
+  const signature = buildCloudinarySignature(
+    { public_id: publicId, timestamp, access_mode: accessMode },
+    cfg.apiSecret
+  );
 
   const form = new FormData();
   const blob = new Blob([file.buffer], { type: file.mimetype || 'application/pdf' });
@@ -62,6 +195,7 @@ const uploadResumeToCloudinary = async (file) => {
   form.append('api_key', cfg.apiKey);
   form.append('timestamp', String(timestamp));
   form.append('public_id', publicId);
+  form.append('access_mode', accessMode);
   form.append('signature', signature);
 
   const url = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/raw/upload`;
@@ -98,6 +232,16 @@ const getApplicationResumeRedirectUrl = (application) => {
   return null;
 };
 
+const isCloudinaryRawUploadUrl = (value) =>
+  typeof value === 'string' && /^https?:\/\/res\.cloudinary\.com\/[^/]+\/raw\/upload\//i.test(value);
+
+const toCloudinaryAttachmentUrl = (rawUploadUrl) => {
+  if (!isCloudinaryRawUploadUrl(rawUploadUrl)) return null;
+  // Insert `fl_attachment/` directly after `/raw/upload/`.
+  if (/\/raw\/upload\/fl_attachment\//i.test(rawUploadUrl)) return rawUploadUrl;
+  return rawUploadUrl.replace(/\/raw\/upload\//i, '/raw/upload/fl_attachment/');
+};
+
 // Configure multer for file uploads (memory storage; Cloudinary upload in route)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -117,12 +261,8 @@ const upload = multer({
   }
 });
 
-// Mock data storage (in production, this would be a database)
-// let internshipApplications = [];
-
-let internshipRoles = [
+const DEFAULT_ROLES = [
   {
-    id: 1,
     name: 'Web Development Intern',
     description: 'Learn full-stack web development with React, Node.js, and modern frameworks',
     duration: '3 months',
@@ -131,10 +271,9 @@ let internshipRoles = [
     skills: ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js', 'MongoDB'],
     mentor: 'John Doe',
     maxInterns: 5,
-    currentInterns: 2
+    currentInterns: 0,
   },
   {
-    id: 2,
     name: 'Frontend Intern',
     description: 'Focus on modern frontend technologies and UI/UX best practices',
     duration: '2 months',
@@ -143,9 +282,80 @@ let internshipRoles = [
     skills: ['HTML', 'CSS', 'JavaScript', 'React', 'Vue.js', 'TailwindCSS'],
     mentor: 'Jane Smith',
     maxInterns: 3,
-    currentInterns: 1
-  }
+    currentInterns: 0,
+  },
+  {
+    name: 'Backend Intern',
+    description: 'Learn server-side development, databases, and API design',
+    duration: '3 months',
+    isActive: true,
+    requirements: 'Basic programming knowledge',
+    skills: ['Node.js', 'Express', 'MongoDB', 'REST APIs'],
+    mentor: 'Mike Johnson',
+    maxInterns: 4,
+    currentInterns: 0,
+  },
+  {
+    name: 'UI/UX Intern',
+    description: 'Design beautiful user interfaces and improve user experience',
+    duration: '2 months',
+    isActive: true,
+    requirements: 'Basic design knowledge',
+    skills: ['Figma', 'User Research', 'Prototyping'],
+    mentor: 'Sarah Wilson',
+    maxInterns: 2,
+    currentInterns: 0,
+  },
+  {
+    name: 'Digital Marketing Intern',
+    description: 'Learn digital marketing strategies and campaign management',
+    duration: '2 months',
+    isActive: true,
+    requirements: 'Basic marketing knowledge',
+    skills: ['SEO', 'Social Media Marketing', 'Google Analytics'],
+    mentor: 'Tom Brown',
+    maxInterns: 3,
+    currentInterns: 0,
+  },
+  // Requested new roles
+  {
+    name: 'Software Development',
+    description: 'Work on software development tasks, backend APIs, and product features.',
+    duration: '3 months',
+    isActive: true,
+    requirements: 'Programming basics, problem solving, and willingness to learn',
+    skills: ['JavaScript', 'Node.js', 'Git'],
+    mentor: 'NexByte Mentor',
+    maxInterns: 5,
+    currentInterns: 0,
+  },
+  {
+    name: 'App Development',
+    description: 'Build mobile app features and learn modern app development practices.',
+    duration: '3 months',
+    isActive: true,
+    requirements: 'Programming basics and interest in mobile development',
+    skills: ['React Native', 'JavaScript', 'APIs'],
+    mentor: 'NexByte Mentor',
+    maxInterns: 5,
+    currentInterns: 0,
+  },
 ];
+
+const ensureDefaultRoles = async () => {
+  try {
+    for (const role of DEFAULT_ROLES) {
+      await InternshipRole.updateOne(
+        { name: role.name },
+        { $setOnInsert: role },
+        { upsert: true }
+      );
+    }
+  } catch (e) {
+    // Don't fail API initialization if seeding fails
+    console.warn('Failed to ensure default internship roles:', e.message);
+  }
+};
 
 let emailLogs = [];
 let cachedTransporter = null;
@@ -277,21 +487,29 @@ router.post('/applications', upload.single('resume'), async (req, res) => {
     let resume = null;
     let resumeUrl = null;
     let resumePublicId = null;
+    let resumeBlobPath = null;
     let resumeOriginalName = null;
 
     if (req.file) {
       resumeOriginalName = req.file.originalname || null;
       try {
-        const uploaded = await uploadResumeToCloudinary(req.file);
-        if (uploaded) {
-          resume = uploaded.publicId;
-          resumePublicId = uploaded.publicId;
-          resumeUrl = uploaded.secureUrl;
+        const blobUploaded = await uploadResumeToVercelBlob(req.file);
+        if (blobUploaded) {
+          resume = blobUploaded.pathname;
+          resumeUrl = blobUploaded.url;
+          resumeBlobPath = blobUploaded.pathname;
         } else {
-          resume = saveResumeToLocal(req.file);
+          const uploaded = await uploadResumeToCloudinary(req.file);
+          if (uploaded) {
+            resume = uploaded.publicId;
+            resumePublicId = uploaded.publicId;
+            resumeUrl = uploaded.secureUrl;
+          } else {
+            resume = saveResumeToLocal(req.file);
+          }
         }
       } catch (e) {
-        console.warn('Cloudinary resume upload failed; falling back to local storage.', e.message);
+        console.warn('Resume upload failed; falling back to local storage.', e.message);
         resume = saveResumeToLocal(req.file);
       }
     }
@@ -303,6 +521,7 @@ router.post('/applications', upload.single('resume'), async (req, res) => {
       resume,
       resumeUrl,
       resumePublicId,
+      resumeBlobPath,
       resumeOriginalName,
       interviewAvailability,
       dateApplied: new Date()
@@ -365,17 +584,61 @@ router.get('/applications/:id', async (req, res) => {
 // GET application resume by application ID
 router.get('/applications/:id/resume', async (req, res) => {
   try {
+    const forceDownload =
+      req.query.download === '1' || String(req.query.download || '').toLowerCase() === 'true';
+
     const application = await InternshipApplication.findById(req.params.id).select(
-      'resume resumeUrl resumePublicId'
+      'resume resumeUrl resumePublicId resumeBlobPath resumeOriginalName'
     );
 
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
 
+    const cloudinaryPublicId =
+      application.resumePublicId ||
+      (typeof application.resume === 'string' && application.resume.startsWith('nexbyte_resume_')
+        ? application.resume
+        : null);
+
+    // Cloudinary: prefer forcing browser download when requested.
+    if (cloudinaryPublicId) {
+      if (forceDownload) {
+        const signedDownloadUrl = getCloudinarySignedDownloadUrl({ publicId: cloudinaryPublicId });
+        if (signedDownloadUrl) return res.redirect(302, signedDownloadUrl);
+
+        const rawUrl = buildCloudinaryRawUrl(cloudinaryPublicId);
+        const attachmentUrl = rawUrl ? toCloudinaryAttachmentUrl(rawUrl) : null;
+        if (attachmentUrl) return res.redirect(302, attachmentUrl);
+      }
+
+      const rawUrl = buildCloudinaryRawUrl(cloudinaryPublicId);
+      if (rawUrl) return res.redirect(302, rawUrl);
+    }
+
     const redirectUrl = getApplicationResumeRedirectUrl(application);
     if (redirectUrl) {
-      return res.redirect(redirectUrl);
+      if (forceDownload) {
+        const attachmentUrl = toCloudinaryAttachmentUrl(redirectUrl);
+        if (attachmentUrl) return res.redirect(302, attachmentUrl);
+
+        // For non-Cloudinary URLs (e.g. Vercel Blob), proxy the bytes so the browser downloads it.
+        try {
+          const r = await fetch(redirectUrl);
+          if (!r.ok) {
+            return res.status(502).json({ message: 'Failed to fetch remote resume' });
+          }
+          const contentType = r.headers.get('content-type') || 'application/pdf';
+          const downloadName = sanitizeFilename(application.resumeOriginalName || 'resume.pdf');
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+          const buf = Buffer.from(await r.arrayBuffer());
+          return res.send(buf);
+        } catch (e) {
+          return res.status(502).json({ message: 'Failed to proxy resume download' });
+        }
+      }
+      return res.redirect(302, redirectUrl);
     }
 
     if (application.resume && !isHttpUrl(application.resume)) {
@@ -383,7 +646,8 @@ router.get('/applications/:id/resume', async (req, res) => {
       const filePath = path.join(uploadsDir, application.resume);
       const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
       if (fs.existsSync(absolutePath)) {
-        return res.sendFile(absolutePath);
+        const downloadName = sanitizeFilename(application.resumeOriginalName || application.resume);
+        return forceDownload ? res.download(absolutePath, downloadName) : res.sendFile(absolutePath);
       }
     }
 
@@ -628,62 +892,90 @@ router.get('/email-logs', (req, res) => {
 
 // GET internship roles
 router.get('/roles', (req, res) => {
-  res.json(internshipRoles);
+  (async () => {
+    await ensureDefaultRoles();
+    const roles = await InternshipRole.find().sort({ createdAt: 1 });
+    res.json(roles);
+  })().catch((error) => res.status(500).json({ message: error.message }));
 });
 
 // POST new role
-router.post('/roles', (req, res) => {
-  const role = {
-    id: Date.now(),
-    ...req.body,
-    currentInterns: 0,
-    isActive: true
-  };
-  internshipRoles.push(role);
-  res.status(201).json(role);
+router.post('/roles', auth, admin, (req, res) => {
+  (async () => {
+    await ensureDefaultRoles();
+    const role = new InternshipRole({
+      ...req.body,
+      currentInterns: req.body.currentInterns ?? 0,
+      isActive: req.body.isActive ?? true,
+    });
+    await role.save();
+    res.status(201).json(role);
+  })().catch((error) => {
+    res.status(400).json({ message: error.message });
+  });
 });
 
 // PUT update role
-router.put('/roles/:id', (req, res) => {
-  const roleIndex = internshipRoles.findIndex(role => role.id === parseInt(req.params.id));
-  if (roleIndex === -1) {
-    return res.status(404).json({ message: 'Role not found' });
-  }
-  
-  internshipRoles[roleIndex] = { ...internshipRoles[roleIndex], ...req.body };
-  res.json(internshipRoles[roleIndex]);
+router.put('/roles/:id', auth, admin, (req, res) => {
+  (async () => {
+    await ensureDefaultRoles();
+    const updated = await InternshipRole.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!updated) return res.status(404).json({ message: 'Role not found' });
+    res.json(updated);
+  })().catch((error) => res.status(400).json({ message: error.message }));
 });
 
 // DELETE role
-router.delete('/roles/:id', (req, res) => {
-  const roleIndex = internshipRoles.findIndex(role => role.id === parseInt(req.params.id));
-  if (roleIndex === -1) {
-    return res.status(404).json({ message: 'Role not found' });
-  }
-  
-  internshipRoles.splice(roleIndex, 1);
-  res.json({ message: 'Role deleted successfully' });
+router.delete('/roles/:id', auth, admin, (req, res) => {
+  (async () => {
+    const deleted = await InternshipRole.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Role not found' });
+    res.json({ message: 'Role deleted successfully' });
+  })().catch((error) => res.status(500).json({ message: error.message }));
 });
 
 // Note: Email sending is implemented via SMTP using utils/emailTransport.
 
 // Create uploads directory if it doesn't exist (local dev only)
+// On Vercel, the filesystem is ephemeral and not suitable for persistent uploads.
 if (!process.env.VERCEL) {
-  const uploadsDirLocal = path.join(__dirname, '../uploads/resumes');
-  const uploadsParentDirLocal = path.join(__dirname, '../uploads');
+  const uploadsDir = path.join(__dirname, '../uploads/resumes');
+  const uploadsParentDir = path.join(__dirname, '../uploads');
 
   try {
-    // Create parent uploads directory first
-    if (!fs.existsSync(uploadsParentDirLocal)) {
-      fs.mkdirSync(uploadsParentDirLocal, { recursive: true });
+    if (!fs.existsSync(uploadsParentDir)) {
+      fs.mkdirSync(uploadsParentDir, { recursive: true });
     }
-    // Create resumes directory
-    if (!fs.existsSync(uploadsDirLocal)) {
-      fs.mkdirSync(uploadsDirLocal, { recursive: true });
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
     }
   } catch (error) {
-    console.error('Error creating local upload directories:', error);
+    console.error('Error creating upload directories:', error);
   }
 }
+
+// Multer / upload error handler (keeps errors JSON for the frontend)
+router.use((err, req, res, next) => {
+  if (!err) return next();
+
+  // Multer errors (e.g. size limit)
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'Resume file is too large. Max size is 5MB.' });
+    }
+    return res.status(400).json({ message: err.message || 'File upload failed' });
+  }
+
+  // File filter errors
+  if (typeof err.message === 'string' && err.message.toLowerCase().includes('only pdf')) {
+    return res.status(400).json({ message: 'Only PDF files are allowed for resume upload.' });
+  }
+
+  console.error('Internship router error:', err);
+  return res.status(500).json({ message: 'Server error' });
+});
 
 module.exports = router;

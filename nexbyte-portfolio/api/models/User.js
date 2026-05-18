@@ -8,6 +8,10 @@ const userSchema = new mongoose.Schema({
 
   // Internship & offer management
   offerLetter: { type: String },
+  offerStatus: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+  offerAcceptedDate: { type: Date },
+  offerRejectedDate: { type: Date },
+  rejectionReason: { type: String },
   offerStatus: { type: String, enum: ['pending', 'accepted', 'rejected', 'expired'], default: 'pending' },
   offerAcceptedDate: { type: Date },
   offerRejectedDate: { type: Date },
@@ -18,6 +22,13 @@ const userSchema = new mongoose.Schema({
   internshipEndDate: { type: Date },
   acceptanceDate: { type: Date },
   internType: { type: String, enum: ['free', 'stipend'], default: 'free' },
+  internFeeAmountInINR: { type: Number, default: 600 },
+  internFeeStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
+  internFeeTransactionId: { type: String },
+  internFeePaidAt: { type: Date },
+  internFeeRazorpayOrderId: { type: String },
+  internFeeRazorpayPaymentId: { type: String },
+  internFeeRazorpaySignature: { type: String },
 
   // Track current internship & certificate status
   internshipStatus: { 

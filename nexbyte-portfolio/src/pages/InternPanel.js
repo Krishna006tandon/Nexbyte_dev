@@ -36,6 +36,7 @@ const InternPanel = () => {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -101,19 +102,8 @@ const InternPanel = () => {
         }
       };
 
-      // Fetch data with fallbacks
-      const [profileData, tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes] = await Promise.all([
-        fetchWithErrorHandling('/api/profile', null),
-        fetchWithErrorHandling('/api/tasks', []), // Use regular tasks endpoint with auth middleware
-        fetchWithErrorHandling('/api/diary', []),
-        fetchWithErrorHandling('/api/reports', []),
-        fetchWithErrorHandling('/api/notifications', []),
-        fetchWithErrorHandling('/api/resources', []),
-        fetchWithErrorHandling('/api/intern/presentation-topics', []),
-        fetchWithErrorHandling('/api/intern/group-meetings', []),
-        fetchWithErrorHandling('/api/team', []),
-        fetchWithErrorHandling('/api/internships/me', null)
-      ]);
+      // Always fetch profile first; if fee is unpaid, block panel data loading.
+      const profileData = await fetchWithErrorHandling('/api/profile', null);
 
       // Set data with fallbacks
       if (profileData) {
@@ -127,6 +117,34 @@ const InternPanel = () => {
           skills: profileData.skills || []
         });
       }
+
+      if (profileData && profileData.offerStatus !== 'accepted' && profileData.internFeeStatus !== 'paid') {
+        setTasks([]);
+        setDiaryEntries([]);
+        setReports([]);
+        setNotifications([]);
+        setResources([]);
+        setPresentationTopics([]);
+        setGroupMeetings([]);
+        setTeamMembers([]);
+        setInternshipInfo(null);
+        setCertificateData(null);
+        return;
+      }
+
+      // Fetch remaining data with fallbacks
+      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes] = await Promise.all([
+        fetchWithErrorHandling('/api/tasks', []), // Uses intern auth middleware
+        fetchWithErrorHandling('/api/diary', []),
+        fetchWithErrorHandling('/api/reports', []),
+        fetchWithErrorHandling('/api/notifications', []),
+        fetchWithErrorHandling('/api/resources', []),
+        fetchWithErrorHandling('/api/intern/presentation-topics', []),
+        fetchWithErrorHandling('/api/intern/group-meetings', []),
+        fetchWithErrorHandling('/api/team', []),
+        fetchWithErrorHandling('/api/internships/me', null)
+      ]);
+
       if (internshipRes) {
         setInternshipInfo(internshipRes.internship || null);
         setCertificateData(internshipRes.certificateData || null);
@@ -145,6 +163,110 @@ const InternPanel = () => {
       setError(err.message);
     } finally {
       setDataLoading(false);
+    }
+  };
+
+  const loadRazorpayCheckout = () => {
+    if (window.Razorpay) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePayInternshipFee = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Login required');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const scriptLoaded = await loadRazorpayCheckout();
+      if (!scriptLoaded) {
+        throw new Error('Failed to load Razorpay checkout');
+      }
+
+      const orderRes = await fetch('/api/intern/razorpay-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+      });
+
+      const orderData = await orderRes.json().catch(() => ({}));
+      if (!orderRes.ok) {
+        throw new Error(orderData.message || 'Failed to create payment order');
+      }
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'NexByte',
+        description: 'Internship Fee Payment',
+        order_id: orderData.orderId,
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch('/api/intern/verify-razorpay-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token,
+              },
+              body: JSON.stringify(response),
+            });
+
+            const verifyData = await verifyRes.json().catch(() => ({}));
+            if (!verifyRes.ok) {
+              throw new Error(verifyData.message || 'Payment verification failed');
+            }
+
+            toast.success('Payment successful. Access unlocked.');
+            await fetchInternData();
+          } catch (verifyError) {
+            toast.error(verifyError.message || 'Payment verification failed');
+          } finally {
+            setIsProcessingPayment(false);
+          }
+        },
+        prefill: {
+          name: `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim(),
+          email: profile?.email || '',
+          contact: profile?.phone || '',
+        },
+        notes: {
+          purpose: 'intern_fee',
+        },
+        theme: {
+          color: '#1f7a8c',
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessingPayment(false);
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.on('payment.failed', (resp) => {
+        const description = resp?.error?.description || 'Payment failed';
+        toast.error(description);
+        setIsProcessingPayment(false);
+      });
+      razorpay.open();
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+      setIsProcessingPayment(false);
     }
   };
 
@@ -625,6 +747,34 @@ const InternPanel = () => {
     return <div className="intern-panel-error">Error: {error}</div>;
   }
 
+  if (profile && profile.offerStatus !== 'accepted' && profile.internFeeStatus !== 'paid') {
+    return (
+      <div className="intern-panel-container">
+        <ToastContainer position="top-right" autoClose={5000} />
+        <div className="intern-panel-content" style={{ padding: '24px', width: '100%' }}>
+          <div className="dashboard-card" style={{ maxWidth: '720px', margin: '0 auto' }}>
+            <h2>Complete Payment to Access Intern Panel</h2>
+            <p style={{ marginTop: '10px' }}>
+              Internship Fee:{' '}
+              <strong>{profile?.internFeeAmountInINR ?? 600} INR</strong>
+            </p>
+            <p style={{ opacity: 0.9, marginTop: '6px' }}>
+              Your access will unlock automatically after Razorpay verification.
+            </p>
+            <button
+              className="btn btn-success"
+              onClick={handlePayInternshipFee}
+              disabled={isProcessingPayment}
+              style={{ marginTop: '14px' }}
+            >
+              {isProcessingPayment ? 'Opening Razorpay...' : 'Pay via Razorpay'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const stats = getTaskStats();
   const growthData = getGrowthData();
 
@@ -888,23 +1038,44 @@ const InternPanel = () => {
                     
                     {(!profile?.offerStatus || profile?.offerStatus === 'pending') && (
                       <>
-                        <button 
-                          className="btn btn-success"
-                          onClick={handleAcceptOffer}
-                          disabled={isSubmitting}
-                        >
-                          <i className="fas fa-check"></i>
-                          {isSubmitting ? 'Processing...' : 'Accept Offer'}
-                        </button>
-                        
-                        <button 
-                          className="btn btn-danger"
-                          onClick={() => setShowRejectForm(!showRejectForm)}
-                          disabled={isSubmitting}
-                        >
-                          <i className="fas fa-times"></i>
-                          {showRejectForm ? 'Cancel' : 'Reject Offer'}
-                        </button>
+                        {profile?.internFeeStatus !== 'paid' ? (
+                          <div style={{ width: '100%', marginTop: '12px' }}>
+                            <div className="reject-form" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                              <h4>Internship Fee Payment</h4>
+                              <p style={{ marginTop: '6px' }}>
+                                Amount: <strong>{profile?.internFeeAmountInINR ?? 600} INR</strong>
+                              </p>
+                              <button
+                                className="btn btn-success"
+                                onClick={handlePayInternshipFee}
+                                disabled={isProcessingPayment}
+                                style={{ marginTop: '10px' }}
+                              >
+                                {isProcessingPayment ? 'Opening Razorpay...' : 'Pay via Razorpay'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button 
+                              className="btn btn-success"
+                              onClick={handleAcceptOffer}
+                              disabled={isSubmitting}
+                            >
+                              <i className="fas fa-check"></i>
+                              {isSubmitting ? 'Processing...' : 'Accept Offer'}
+                            </button>
+                            
+                            <button 
+                              className="btn btn-danger"
+                              onClick={() => setShowRejectForm(!showRejectForm)}
+                              disabled={isSubmitting}
+                            >
+                              <i className="fas fa-times"></i>
+                              {showRejectForm ? 'Cancel' : 'Reject Offer'}
+                            </button>
+                          </>
+                        )}
                         
                         {showRejectForm && (
                           <div className="reject-form">
