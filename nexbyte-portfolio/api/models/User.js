@@ -26,6 +26,16 @@ const userSchema = new mongoose.Schema({
     default: 'not_started' 
   },
   currentInternship: { type: mongoose.Schema.Types.ObjectId, ref: 'Internship' },
+
+  // Intern payment tracking (set by admin/manual verification)
+  internPaymentStatus: {
+    type: String,
+    enum: ['unpaid', 'paid'],
+    default: 'unpaid',
+    index: true,
+  },
+  internPaymentPaidAt: { type: Date },
+  internPaymentReference: { type: String },
 }, {
   timestamps: true
 });

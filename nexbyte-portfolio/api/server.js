@@ -942,6 +942,49 @@ app.get('/api/users', auth, admin, async (req, res) => {
   }
 });
 
+// @route   POST api/users/:userId/send-intern-payment-reminder
+// @desc    Send internship payment reminder email to an intern
+// @access  Private (admin)
+app.post('/api/users/:userId/send-intern-payment-reminder', auth, admin, async (req, res) => {
+  try {
+    const intern = await User.findById(req.params.userId).select('-password');
+    if (!intern) return res.status(404).json({ message: 'User not found' });
+    if (intern.role !== 'intern') return res.status(400).json({ message: 'Target user is not an intern' });
+    if (intern.internPaymentStatus === 'paid') {
+      return res.status(400).json({ message: 'Intern is already marked as paid' });
+    }
+
+    const paymentLink = process.env.INTERN_PAYMENT_LINK || '';
+    const internName = intern.email?.split('@')?.[0] || 'Intern';
+
+    const mailOptions = {
+      from: process.env.SMTP_USER || process.env.EMAIL_USER,
+      to: intern.email,
+      subject: 'Internship Fee Payment Pending - NexByte',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2>Hello ${internName},</h2>
+          <p>Our records show that your internship fee payment is still <strong>pending</strong>.</p>
+          <p>Please complete the payment at the earliest so we can continue your onboarding smoothly.</p>
+          ${paymentLink ? `<p>Payment link: <a href="${paymentLink}">${paymentLink}</a></p>` : ''}
+          <p>If you have already paid, please reply to this email with your payment reference/transaction ID.</p>
+          <p>Regards,<br/>NexByte Core Team</p>
+        </div>
+      `,
+    };
+
+    const result = await sendMailSafe(mailOptions, 'intern-payment-reminder');
+    if (!result.success) {
+      return res.status(500).json({ message: result.error || 'Failed to send reminder email' });
+    }
+
+    return res.json({ message: 'Reminder email sent', previewUrl: result.previewUrl || null });
+  } catch (err) {
+    console.error('Error sending intern payment reminder:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET api/profile
 // @desc    Get current user profile
 // @access  Private

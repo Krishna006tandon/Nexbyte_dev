@@ -52,6 +52,7 @@ const Admin = () => {
   const [selectedSrsClient, setSelectedSrsClient] = useState(null);
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
+  const [paymentReminderSendingTo, setPaymentReminderSendingTo] = useState(null);
   const activeTrackerMilestone = milestone || selectedClientForTracker?.milestone;
   const formatMeetingDate = (value) =>
     new Date(value).toLocaleDateString('en-IN', {
@@ -64,6 +65,11 @@ const Admin = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+
+  const formatPaymentStatus = (member) => {
+    if (member?.role !== 'intern') return 'N/A';
+    return member?.internPaymentStatus === 'paid' ? 'Paid' : 'Unpaid';
+  };
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -371,7 +377,34 @@ const Admin = () => {
     }
   };
 
+  const handleSendInternPaymentReminder = async (internId) => {
+    const token = localStorage.getItem('token');
+    try {
+      setPaymentReminderSendingTo(internId);
+      setSuccessMessage('');
+      setErrorMessage('');
 
+      const res = await fetch(`/api/users/${internId}/send-intern-payment-reminder`, {
+        method: 'POST',
+        headers: { 'x-auth-token': token },
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccessMessage(data.message || 'Reminder email sent');
+        setTimeout(() => setSuccessMessage(''), 8000);
+      } else {
+        setErrorMessage(data.message || 'Failed to send reminder email');
+        setTimeout(() => setErrorMessage(''), 8000);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Failed to send reminder email');
+      setTimeout(() => setErrorMessage(''), 8000);
+    } finally {
+      setPaymentReminderSendingTo(null);
+    }
+  };
 
 
   const handleAddClient = async (e) => {
@@ -1420,6 +1453,8 @@ const Admin = () => {
               </div>
 
               <h3>All Members</h3>
+              {successMessage && <p className="resource-message success">{successMessage}</p>}
+              {errorMessage && <p className="resource-message error">{errorMessage}</p>}
               <table>
                 <thead>
                   <tr>
@@ -1429,6 +1464,7 @@ const Admin = () => {
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Acceptance Date</th>
+                    <th>Payment</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -1441,11 +1477,21 @@ const Admin = () => {
                       <td>{member.role === 'intern' ? formatDate(member.internshipStartDate) : 'N/A'}</td>
                       <td>{member.role === 'intern' ? formatDate(member.internshipEndDate) : 'N/A'}</td>
                       <td>{formatDate(member.acceptanceDate)}</td>
+                      <td>{formatPaymentStatus(member)}</td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                         {(member.role === 'intern' || member.role === 'user' || member.role === 'member') && (
                           <button onClick={() => handleShowInternReport(member._id)} className="btn btn-info">
                             {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
+                          </button>
+                        )}
+                        {member.role === 'intern' && member.internPaymentStatus !== 'paid' && (
+                          <button
+                            onClick={() => handleSendInternPaymentReminder(member._id)}
+                            className="btn btn-secondary"
+                            disabled={paymentReminderSendingTo === member._id}
+                          >
+                            {paymentReminderSendingTo === member._id ? 'Sending...' : 'Send Payment Mail'}
                           </button>
                         )}
                       </td>
