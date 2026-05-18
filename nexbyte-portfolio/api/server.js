@@ -988,6 +988,42 @@ app.post('/api/users/:userId/send-intern-payment-reminder', auth, admin, async (
   }
 });
 
+// @route   PATCH api/users/:userId/intern-payment
+// @desc    Mark intern payment status (paid/unpaid) and store reference
+// @access  Private (admin)
+app.patch('/api/users/:userId/intern-payment', auth, admin, async (req, res) => {
+  try {
+    const { status, reference } = req.body || {};
+    if (!status || !['paid', 'unpaid'].includes(status)) {
+      return res.status(400).json({ message: "Invalid status. Use 'paid' or 'unpaid'." });
+    }
+
+    const intern = await User.findById(req.params.userId);
+    if (!intern) return res.status(404).json({ message: 'User not found' });
+    if (intern.role !== 'intern') return res.status(400).json({ message: 'Target user is not an intern' });
+
+    intern.internPaymentStatus = status;
+    intern.internFeeStatus = status;
+    if (status === 'paid') {
+      intern.internPaymentPaidAt = new Date();
+      intern.internPaymentReference = reference ? String(reference).trim() : intern.internPaymentReference;
+      intern.internFeePaidAt = intern.internFeePaidAt || new Date();
+    } else {
+      intern.internPaymentPaidAt = null;
+      intern.internPaymentReference = reference ? String(reference).trim() : intern.internPaymentReference;
+      intern.internFeePaidAt = null;
+    }
+
+    await intern.save();
+    const safe = intern.toObject();
+    delete safe.password;
+    return res.json(safe);
+  } catch (err) {
+    console.error('Error updating intern payment status:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET api/profile
 // @desc    Get current user profile
 // @access  Private

@@ -38,6 +38,19 @@ const userSchema = new mongoose.Schema({
   },
   currentInternship: { type: mongoose.Schema.Types.ObjectId, ref: 'Internship' },
 
+  // Internship fee payment (paid internship)
+  internFeeStatus: {
+    type: String,
+    enum: ['unpaid', 'paid'],
+    default: 'unpaid',
+    index: true,
+  },
+  internFeeAmountInINR: { type: Number, default: 600 },
+  internFeePaidAt: { type: Date },
+  internFeeRazorpayOrderId: { type: String },
+  internFeeRazorpayPaymentId: { type: String },
+  internFeeRazorpaySignature: { type: String },
+
   // Intern payment tracking (set by admin/manual verification)
   internPaymentStatus: {
     type: String,

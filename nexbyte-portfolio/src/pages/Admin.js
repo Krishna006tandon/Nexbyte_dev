@@ -53,6 +53,8 @@ const Admin = () => {
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
   const [paymentReminderSendingTo, setPaymentReminderSendingTo] = useState(null);
+  const [paymentStatusUpdatingFor, setPaymentStatusUpdatingFor] = useState(null);
+  const [paymentReferenceByInternId, setPaymentReferenceByInternId] = useState({});
   const activeTrackerMilestone = milestone || selectedClientForTracker?.milestone;
   const formatMeetingDate = (value) =>
     new Date(value).toLocaleDateString('en-IN', {
@@ -68,7 +70,14 @@ const Admin = () => {
 
   const formatPaymentStatus = (member) => {
     if (member?.role !== 'intern') return 'N/A';
-    return member?.internPaymentStatus === 'paid' ? 'Paid' : 'Unpaid';
+    return member?.internFeeStatus === 'paid' ? 'Paid' : 'Unpaid';
+  };
+
+  const refreshMembers = async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/users', { headers: { 'x-auth-token': token } });
+    const data = await res.json();
+    if (res.ok) setMembers(data);
   };
 
   const location = useLocation();
@@ -403,6 +412,37 @@ const Admin = () => {
       setTimeout(() => setErrorMessage(''), 8000);
     } finally {
       setPaymentReminderSendingTo(null);
+    }
+  };
+
+  const handleUpdateInternPaymentStatus = async (internId, nextStatus) => {
+    const token = localStorage.getItem('token');
+    try {
+      setPaymentStatusUpdatingFor(internId);
+      setSuccessMessage('');
+      setErrorMessage('');
+
+      const reference = paymentReferenceByInternId[internId] || '';
+      const res = await fetch(`/api/users/${internId}/intern-payment`, {
+        method: 'PATCH',
+        headers: { 'x-auth-token': token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus, reference }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await refreshMembers();
+        setSuccessMessage(`Payment marked as ${nextStatus}`);
+        setTimeout(() => setSuccessMessage(''), 8000);
+      } else {
+        setErrorMessage(data.message || 'Failed to update payment status');
+        setTimeout(() => setErrorMessage(''), 8000);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Failed to update payment status');
+      setTimeout(() => setErrorMessage(''), 8000);
+    } finally {
+      setPaymentStatusUpdatingFor(null);
     }
   };
 
@@ -1485,7 +1525,7 @@ const Admin = () => {
                             {reportLoading && selectedInternForReport === member._id ? 'Loading...' : 'View Report'}
                           </button>
                         )}
-                        {member.role === 'intern' && member.internPaymentStatus !== 'paid' && (
+                        {member.role === 'intern' && member.internFeeStatus !== 'paid' && (
                           <button
                             onClick={() => handleSendInternPaymentReminder(member._id)}
                             className="btn btn-secondary"
@@ -1493,6 +1533,36 @@ const Admin = () => {
                           >
                             {paymentReminderSendingTo === member._id ? 'Sending...' : 'Send Payment Mail'}
                           </button>
+                        )}
+                        {member.role === 'intern' && (
+                          <>
+                            <input
+                              type="text"
+                              placeholder="Payment ref (optional)"
+                              value={paymentReferenceByInternId[member._id] || ''}
+                              onChange={(e) =>
+                                setPaymentReferenceByInternId((prev) => ({ ...prev, [member._id]: e.target.value }))
+                              }
+                              style={{ marginLeft: '8px', maxWidth: '180px' }}
+                            />
+                            {member.internFeeStatus === 'paid' ? (
+                              <button
+                                onClick={() => handleUpdateInternPaymentStatus(member._id, 'unpaid')}
+                                className="btn btn-warning"
+                                disabled={paymentStatusUpdatingFor === member._id}
+                              >
+                                {paymentStatusUpdatingFor === member._id ? 'Updating...' : 'Mark Unpaid'}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleUpdateInternPaymentStatus(member._id, 'paid')}
+                                className="btn btn-success"
+                                disabled={paymentStatusUpdatingFor === member._id}
+                              >
+                                {paymentStatusUpdatingFor === member._id ? 'Updating...' : 'Mark Paid'}
+                              </button>
+                            )}
+                          </>
                         )}
                       </td>
                     </tr>
