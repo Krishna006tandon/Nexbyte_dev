@@ -708,10 +708,24 @@ const InternPanel = () => {
   };
 
   const getTaskStats = () => {
+    const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+    const isCompleted = (status) => {
+      const st = normalizeStatus(status);
+      return st === 'completed' || st === 'done' || st === 'approved';
+    };
+    const isPending = (status) => {
+      const st = normalizeStatus(status);
+      return st === 'pending' || st === 'to do' || st === 'todo' || st === 'backlog';
+    };
+    const isInProgress = (status) => {
+      const st = normalizeStatus(status);
+      return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing';
+    };
+
     const total = tasks.length;
-    const completed = tasks.filter(t => t.status === 'completed').length;
-    const pending = tasks.filter(t => t.status === 'pending').length;
-    const inProgress = tasks.filter(t => t.status === 'in-progress').length;
+    const completed = tasks.filter(t => isCompleted(t.status)).length;
+    const pending = tasks.filter(t => isPending(t.status)).length;
+    const inProgress = tasks.filter(t => isInProgress(t.status)).length;
     
     return { total, completed, pending, inProgress };
   };

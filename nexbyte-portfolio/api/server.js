@@ -754,6 +754,92 @@ ${JSON.stringify(payload)}
   return { sent };
 }
 
+async function notifyOverdueInProgressTasks({ now = new Date(), dryRun = false } = {}) {
+  const adminEmail = process.env.ADMIN_EMAIL || 'nexbyte.dev@gmail.com';
+  const cooldownMs = 24 * 60 * 60 * 1000;
+
+  const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+  const isInProgress = (s) => {
+    const st = normalizeStatus(s);
+    return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review';
+  };
+  const isCompleted = (s) => {
+    const st = normalizeStatus(s);
+    return st === 'completed' || st === 'done' || st === 'approved';
+  };
+
+  const tasks = await Task.find({ assignedTo: { $ne: null } })
+    .populate('assignedTo', 'email')
+    .select('title status estimated_effort_hours dueDate startedAt lastStatusChangedAt inProgressOverdueNotifiedAt inProgressOverdueNotifyCount assignedTo createdAt')
+    .sort({ lastStatusChangedAt: 1, startedAt: 1, createdAt: 1 });
+
+  let scanned = 0;
+  let eligible = 0;
+  let sent = 0;
+
+  for (const task of tasks) {
+    scanned += 1;
+    if (!isInProgress(task.status) || isCompleted(task.status)) continue;
+
+    const since = task.lastStatusChangedAt || task.startedAt;
+    if (!(since instanceof Date) || Number.isNaN(since.getTime())) continue;
+
+    const inProgressMs = now.getTime() - since.getTime();
+    const estimatedHours = Number(task.estimated_effort_hours) || 0;
+    const thresholdHours = Math.max(24, estimatedHours > 0 ? estimatedHours * 1.5 : 24);
+    const thresholdMs = thresholdHours * 60 * 60 * 1000;
+
+    const duePastMs = task.dueDate instanceof Date ? now.getTime() - task.dueDate.getTime() : null;
+    const isOverdueByDuration = inProgressMs >= thresholdMs;
+    const isOverdueByDueDate = duePastMs != null && duePastMs >= (60 * 60 * 1000);
+    if (!isOverdueByDuration && !isOverdueByDueDate) continue;
+
+    const lastNotifiedAt = task.inProgressOverdueNotifiedAt;
+    if (lastNotifiedAt instanceof Date && now.getTime() - lastNotifiedAt.getTime() < cooldownMs) continue;
+
+    const internEmail = task.assignedTo?.email;
+    if (!internEmail) continue;
+
+    eligible += 1;
+
+    const inProgressHours = Math.round((inProgressMs / (60 * 60 * 1000)) * 10) / 10;
+    const sinceText = since.toLocaleString();
+    const dueText = task.dueDate ? new Date(task.dueDate).toLocaleString() : 'N/A';
+
+    const subject = `Task Overdue Alert: ${task.title}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+        <h2 style="margin:0 0 10px;">Task taking longer than expected</h2>
+        <p>This is an automated reminder that a task has been in progress for a long time.</p>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:12px 0;">
+          <p style="margin:0 0 6px;"><strong>Task:</strong> ${task.title}</p>
+          <p style="margin:0 0 6px;"><strong>Status:</strong> ${task.status}</p>
+          <p style="margin:0 0 6px;"><strong>In-progress since:</strong> ${sinceText}</p>
+          <p style="margin:0 0 6px;"><strong>Time in progress:</strong> ~${inProgressHours} hours</p>
+          <p style="margin:0 0 6px;"><strong>Estimated effort:</strong> ${estimatedHours || 'N/A'} hours</p>
+          <p style="margin:0;"><strong>Due date:</strong> ${dueText}</p>
+        </div>
+        <p>Please update the task status or add a comment with the current blocker.</p>
+        <p style="color:#6b7280;font-size:12px;">If you already updated it recently, you can ignore this email.</p>
+      </div>
+    `;
+
+    const to = [internEmail, adminEmail].filter(Boolean).join(',');
+    if (!dryRun) {
+      const result = await sendMailSafe({ from: getFromAddress('NexByte'), to, subject, html }, 'task-inprogress-overdue');
+      if (result.success) {
+        sent += 1;
+        await Task.updateOne(
+          { _id: task._id },
+          { $set: { inProgressOverdueNotifiedAt: now }, $inc: { inProgressOverdueNotifyCount: 1 } }
+        );
+      }
+    }
+  }
+
+  return { scanned, eligible, sent };
+}
+
 function startPortalAutomationJobs() {
   if (portalAutomationsStarted) return;
   portalAutomationsStarted = true;
@@ -791,6 +877,12 @@ function startPortalAutomationJobs() {
       console.error('Automation scheduler error:', e);
     }
   }, 15 * 60 * 1000);
+
+  // In-progress overdue task reminders (hourly) + run once at startup
+  notifyOverdueInProgressTasks().catch(e => console.error('In-progress overdue task job error:', e));
+  setInterval(() => {
+    notifyOverdueInProgressTasks().catch(e => console.error('In-progress overdue task job error:', e));
+  }, 60 * 60 * 1000);
 }
 
 function startPortalAutomationJobsWhenReady() {
@@ -800,6 +892,32 @@ function startPortalAutomationJobsWhenReady() {
 }
 
 startPortalAutomationJobsWhenReady();
+
+app.get('/api/automation/cron/in-progress-overdue', async (req, res) => {
+  try {
+    const dryRun = String(req.query?.dryRun || '').trim() === '1';
+    const result = await notifyOverdueInProgressTasks({ dryRun });
+    res.json({ ok: true, dryRun, ...result });
+  } catch (e) {
+    console.error('Cron in-progress overdue error:', e);
+    res.status(500).json({ ok: false, message: 'Failed to run in-progress overdue job', error: e.message });
+  }
+});
+
+app.get('/api/automation/cron/in-progress-overdue/:secret', async (req, res) => {
+  try {
+    const expected = process.env.AUTOMATION_SECRET;
+    if (!expected || req.params.secret !== expected) {
+      return res.status(401).json({ ok: false, message: 'Unauthorized' });
+    }
+    const dryRun = String(req.query?.dryRun || '').trim() === '1';
+    const result = await notifyOverdueInProgressTasks({ dryRun });
+    res.json({ ok: true, dryRun, ...result });
+  } catch (e) {
+    console.error('Cron in-progress overdue (secret) error:', e);
+    res.status(500).json({ ok: false, message: 'Failed to run in-progress overdue job', error: e.message });
+  }
+});
 
 // @route   POST api/register
 // @desc    Register a new user (public)
@@ -2476,8 +2594,38 @@ app.put('/api/tasks/:id', auth, admin, async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+        const isInProgressStatus = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review';
+        };
+        const isCompletedStatus = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'completed' || st === 'done' || st === 'approved';
+        };
+
+        const now = new Date();
+        const prevStatus = task.status;
+        const nextStatus = status;
+
+        // Track active time: accumulate when leaving an in-progress state
+        if (isInProgressStatus(prevStatus) && !isInProgressStatus(nextStatus)) {
+            const since = task.lastStatusChangedAt || task.startedAt;
+            if (since instanceof Date && !Number.isNaN(since.getTime())) {
+                const deltaSeconds = Math.max(0, Math.floor((now.getTime() - since.getTime()) / 1000));
+                task.totalActiveSeconds = (Number(task.totalActiveSeconds) || 0) + deltaSeconds;
+            }
+            task.lastStatusChangedAt = now;
+        }
+
+        // Start timer when entering in-progress for the first time
+        if (!isInProgressStatus(prevStatus) && isInProgressStatus(nextStatus)) {
+            task.startedAt = task.startedAt || now;
+            task.lastStatusChangedAt = now;
+        }
+
         // Check if status is changing to 'Done' to award credits
-        if (status === 'Done' && task.status !== 'Done') {
+        if (isCompletedStatus(nextStatus) && !isCompletedStatus(prevStatus)) {
             if (task.assignedTo && task.reward_amount_in_INR > 0) {
                 const user = await User.findById(task.assignedTo);
                 if (user) {
@@ -2485,10 +2633,10 @@ app.put('/api/tasks/:id', auth, admin, async (req, res) => {
                     await user.save();
                 }
             }
-            task.completedAt = new Date();
+            task.completedAt = now;
         }
 
-        task.status = status;
+        task.status = nextStatus;
         await task.save();
 
         res.json(task);
@@ -2513,19 +2661,57 @@ app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
             .populate('comments.user', 'email')
             .sort({ createdAt: -1 });
 
+        const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+        const isCompleted = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'completed' || st === 'done' || st === 'approved';
+        };
+        const isInProgress = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review';
+        };
+        const isPending = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'pending' || st === 'to do' || st === 'todo' || st === 'backlog';
+        };
+
+        const getActiveSeconds = (task) => {
+            const base = Number(task.totalActiveSeconds) || 0;
+            const st = task.status;
+            if (!isInProgress(st)) return base;
+            const since = task.lastStatusChangedAt || task.startedAt;
+            if (!(since instanceof Date) || Number.isNaN(since.getTime())) return base;
+            const deltaSeconds = Math.max(0, Math.floor((Date.now() - since.getTime()) / 1000));
+            return base + deltaSeconds;
+        };
+
         // Calculate statistics
         const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(task => task.status === 'Done').length;
-        const inProgressTasks = tasks.filter(task => task.status === 'In Progress').length;
-        const pendingTasks = tasks.filter(task => task.status === 'Pending').length;
+        const completedTaskList = tasks.filter(task => isCompleted(task.status));
+        const inProgressTaskList = tasks.filter(task => isInProgress(task.status));
+        const pendingTaskList = tasks.filter(task => isPending(task.status));
+
+        const completedTasks = completedTaskList.length;
+        const inProgressTasks = inProgressTaskList.length;
+        const pendingTasks = pendingTaskList.length;
         
         // Calculate total earnings
-        const totalEarnings = tasks
-            .filter(task => task.status === 'Done')
-            .reduce((sum, task) => sum + (task.reward_amount_in_INR || 0), 0);
+        const totalEarnings = completedTaskList.reduce((sum, task) => sum + (task.reward_amount_in_INR || 0), 0);
 
         // Task completion rate
         const completionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : 0;
+
+        const sum = (arr, pick) => arr.reduce((acc, x) => acc + (Number(pick(x)) || 0), 0);
+        const estimatedHoursCompleted = sum(completedTaskList, t => t.estimated_effort_hours);
+        const actualHoursCompleted = completedTaskList.length
+            ? completedTaskList.reduce((acc, t) => acc + (getActiveSeconds(t) / 3600), 0)
+            : 0;
+
+        const efficiencyRatio = actualHoursCompleted > 0 ? (estimatedHoursCompleted / actualHoursCompleted) : null;
+        const efficiencyClamped = efficiencyRatio == null ? null : Math.max(0, Math.min(1.5, efficiencyRatio));
+        const growthScore = totalTasks > 0 && efficiencyClamped != null
+            ? Math.round(Math.min(100, (parseFloat(completionRate) || 0) * efficiencyClamped))
+            : Math.round(parseFloat(completionRate) || 0);
 
         // Tasks by priority
         const highPriorityTasks = tasks.filter(task => task.priority === 'High');
@@ -2536,13 +2722,13 @@ app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
         const mediumPriorityCompleted = mediumPriorityTasks.filter(task => task.status === 'Done').length;
         const lowPriorityCompleted = lowPriorityTasks.filter(task => task.status === 'Done').length;
 
-        // Monthly task completion trend
+        // Monthly task completion trend (use explicit completedAt when available)
         const monthlyStats = {};
-        tasks.forEach(task => {
-            if (task.status === 'Done' && task.updatedAt) {
-                const month = new Date(task.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-                monthlyStats[month] = (monthlyStats[month] || 0) + 1;
-            }
+        completedTaskList.forEach(task => {
+            const completedAt = task.completedAt || task.updatedAt || task.createdAt;
+            if (!completedAt) return;
+            const month = new Date(completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+            monthlyStats[month] = (monthlyStats[month] || 0) + 1;
         });
 
         // Recent activity
@@ -2566,7 +2752,11 @@ app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
                 pendingTasks,
                 completionRate: parseFloat(completionRate),
                 totalEarnings,
-                averageTaskValue: totalTasks > 0 ? (totalEarnings / totalTasks).toFixed(2) : 0
+                averageTaskValue: completedTasks > 0 ? (totalEarnings / completedTasks).toFixed(2) : 0,
+                estimatedHoursCompleted: Math.round(estimatedHoursCompleted * 100) / 100,
+                actualHoursCompleted: Math.round(actualHoursCompleted * 100) / 100,
+                efficiencyRatio: efficiencyRatio == null ? null : Math.round(efficiencyRatio * 100) / 100,
+                growthScore
             },
             priorityBreakdown: {
                 high: {
@@ -2592,7 +2782,7 @@ app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
                 status: task.status,
                 priority: task.priority,
                 reward: task.reward_amount_in_INR || 0,
-                completedAt: task.status === 'Done' ? task.updatedAt : null,
+                completedAt: isCompleted(task.status) ? (task.completedAt || task.updatedAt) : null,
                 comments: task.comments.length
             }))
         };
@@ -3345,6 +3535,17 @@ app.post('/api/intern/growth-analysis', verifyIntern, async (req, res) => {
         estimatedHoursTotal: sum(tasks, t => t.estimated_effort_hours),
         rewardInrCompleted: sum(completedTasks, t => t.reward_amount_in_INR),
       },
+      time: {
+        actualHoursCompleted: Math.round(
+          completedTasks.reduce((acc, t) => acc + (((Number(t.totalActiveSeconds) || 0) / 3600)), 0) * 100
+        ) / 100,
+        efficiencyRatio: (() => {
+          const actual = completedTasks.reduce((acc, t) => acc + (((Number(t.totalActiveSeconds) || 0) / 3600)), 0);
+          const estimated = sum(completedTasks, t => t.estimated_effort_hours);
+          if (!actual) return null;
+          return Math.round((estimated / actual) * 100) / 100;
+        })(),
+      },
       reports: {
         count: reports.length,
         avgPerformanceScore:
@@ -4081,12 +4282,51 @@ app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
 app.put('/api/tasks/:id/status', auth, admin, async (req, res) => {
   try {
     const { status } = req.body;
-    
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).populate('assignedTo', 'email');
+
+    if (!status) {
+      return res.status(400).json({ message: 'Status is required' });
+    }
+
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+    const isInProgressStatus = (s) => {
+      const st = normalizeStatus(s);
+      return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review';
+    };
+    const isCompletedStatus = (s) => {
+      const st = normalizeStatus(s);
+      return st === 'completed' || st === 'done' || st === 'approved';
+    };
+
+    const now = new Date();
+    const prevStatus = task.status;
+    const nextStatus = status;
+
+    if (isInProgressStatus(prevStatus) && !isInProgressStatus(nextStatus)) {
+      const since = task.lastStatusChangedAt || task.startedAt;
+      if (since instanceof Date && !Number.isNaN(since.getTime())) {
+        const deltaSeconds = Math.max(0, Math.floor((now.getTime() - since.getTime()) / 1000));
+        task.totalActiveSeconds = (Number(task.totalActiveSeconds) || 0) + deltaSeconds;
+      }
+      task.lastStatusChangedAt = now;
+    }
+
+    if (!isInProgressStatus(prevStatus) && isInProgressStatus(nextStatus)) {
+      task.startedAt = task.startedAt || now;
+      task.lastStatusChangedAt = now;
+    }
+
+    if (isCompletedStatus(nextStatus) && !isCompletedStatus(prevStatus)) {
+      task.completedAt = now;
+    }
+
+    task.status = nextStatus;
+    const updatedTask = await task.save();
+    await updatedTask.populate('assignedTo', 'email');
     
     if (!updatedTask) {
       return res.status(404).json({ message: 'Task not found' });

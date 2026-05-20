@@ -54,6 +54,23 @@ const TaskSchema = new Schema({
     type: Date,
     default: Date.now
   },
+  startedAt: {
+    type: Date,
+  },
+  lastStatusChangedAt: {
+    type: Date,
+  },
+  totalActiveSeconds: {
+    type: Number,
+    default: 0
+  },
+  inProgressOverdueNotifiedAt: {
+    type: Date,
+  },
+  inProgressOverdueNotifyCount: {
+    type: Number,
+    default: 0
+  },
   completedAt: {
     type: Date,
   }
