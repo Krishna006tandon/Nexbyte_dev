@@ -13,6 +13,11 @@ function parsePort(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function isGmailHost(host) {
+  const h = String(host || '').trim().toLowerCase();
+  return h === 'smtp.gmail.com' || h.endsWith('.gmail.com') || h.includes('gmail');
+}
+
 function getSmtpConfig() {
   // User preference: allow configuring with simple EMAIL_* vars (no SMTP_* required),
   // while still supporting SMTP_* for advanced setups.
@@ -77,6 +82,30 @@ function createTransporter() {
   return transport;
 }
 
+function formatEmailSendError(error, cfgOverride) {
+  const cfg = cfgOverride || getSmtpConfig();
+  const baseMessage = error && error.message ? error.message : String(error || 'Unknown email error');
+
+  const code = error && error.code ? String(error.code) : '';
+  const responseCode = error && typeof error.responseCode === 'number' ? error.responseCode : null;
+
+  const isAuthError =
+    code === 'EAUTH' ||
+    responseCode === 535 ||
+    /invalid login|badcredentials|username and password not accepted/i.test(baseMessage);
+
+  if (isAuthError && isGmailHost(cfg.host)) {
+    return (
+      `${baseMessage}\n` +
+      'Gmail SMTP auth failed. Gmail no longer accepts normal account passwords for SMTP in most cases.\n' +
+      'Fix: enable 2-Step Verification on the sender account, create a Gmail App Password, and set it as SMTP_PASS (or EMAIL_PASSWORD).\n' +
+      'Alternative: use a transactional email provider (SendGrid/Mailgun/SES) and set SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS.'
+    );
+  }
+
+  return baseMessage;
+}
+
 function getPreviewUrl(info) {
   try {
     return nodemailer.getTestMessageUrl(info) || null;
@@ -88,6 +117,7 @@ function getPreviewUrl(info) {
 module.exports = {
   createTransporter,
   getFromAddress,
+  formatEmailSendError,
   getPreviewUrl,
   getSmtpConfig,
 };

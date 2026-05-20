@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
+const { createTransporter, formatEmailSendError, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
 // Send client credentials email
 const sendClientCredentials = async (clientEmail, details) => {
@@ -99,8 +99,9 @@ const sendClientCredentials = async (clientEmail, details) => {
         console.log('Email sent successfully:', info.messageId);
         return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
-        console.error('Error sending email:', error);
-        return { success: false, error: error.message };
+        const friendly = formatEmailSendError(error);
+        console.error('Error sending email:', friendly);
+        return { success: false, error: friendly };
     }
 };
 
@@ -188,8 +189,9 @@ const sendPasswordChangeNotification = async (clientEmail, clientName) => {
         console.log('Password change notification email sent successfully:', info.messageId);
         return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
-        console.error('Error sending password change notification email:', error);
-        return { success: false, error: error.message };
+        const friendly = formatEmailSendError(error);
+        console.error('Error sending password change notification email:', friendly);
+        return { success: false, error: friendly };
     }
 };
 
@@ -245,8 +247,9 @@ const sendPasswordReset = async (clientEmail, clientName, clientPassword) => {
         console.log('Password reset email sent successfully:', info.messageId);
         return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
-        console.error('Error sending password reset email:', error);
-        return { success: false, error: error.message };
+        const friendly = formatEmailSendError(error);
+        console.error('Error sending password reset email:', friendly);
+        return { success: false, error: friendly };
     }
 };
 
@@ -363,8 +366,9 @@ const sendUserCredentials = async (userEmail, details) => {
         if (previewUrl) console.log('Email preview URL:', previewUrl);
         return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
-        console.error('Error sending user credentials email:', error);
-        return { success: false, error: error.message };
+        const friendly = formatEmailSendError(error);
+        console.error('Error sending user credentials email:', friendly);
+        return { success: false, error: friendly };
     }
 };
 

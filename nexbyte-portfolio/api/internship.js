@@ -10,7 +10,7 @@ const InternshipRole = require('./models/InternshipRole');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const mailSender = require('./mailSender');
-const { createTransporter, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
+const { createTransporter, formatEmailSendError, getFromAddress, getPreviewUrl } = require('./utils/emailTransport');
 
 const auth = (req, res, next) => {
   const token = req.cookies?.token || req.header('x-auth-token');
@@ -406,8 +406,9 @@ const sendMailLogged = async ({ type, to, subject, html }) => {
     if (previewUrl) console.log('Email preview URL:', previewUrl);
     return { success: true, messageId: info.messageId, previewUrl };
   } catch (e) {
-    logEmail({ type, recipient: to, subject, status: 'failed', error: e.message });
-    return { success: false, error: e.message };
+    const friendly = formatEmailSendError(e);
+    logEmail({ type, recipient: to, subject, status: 'failed', error: friendly });
+    return { success: false, error: friendly };
   }
 };
 

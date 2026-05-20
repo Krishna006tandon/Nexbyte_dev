@@ -332,7 +332,7 @@ app.get('/api/contacts', auth, admin, async (req, res) => {
   }
 });
 
-const { createTransporter, getFromAddress, getPreviewUrl, getSmtpConfig } = require('./utils/emailTransport');
+const { createTransporter, formatEmailSendError, getFromAddress, getPreviewUrl, getSmtpConfig } = require('./utils/emailTransport');
 
 // Helper function to generate offer letter content
 const generateOfferLetter = (email, startDate, endDate, acceptanceDate) => {
@@ -380,8 +380,9 @@ const sendMailSafe = async (mailOptions, label) => {
     if (previewUrl) console.log('Email preview URL:', previewUrl);
     return { success: true, messageId: info.messageId, previewUrl };
   } catch (error) {
-    console.error(`Error sending email (${label}):`, error);
-    return { success: false, error: error.message };
+    const friendly = formatEmailSendError(error);
+    console.error(`Error sending email (${label}):`, friendly);
+    return { success: false, error: friendly };
   }
 };
 
