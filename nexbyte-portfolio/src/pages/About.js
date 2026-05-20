@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Card from '../components/Card';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
@@ -11,7 +11,7 @@ export const metadata = {
   description:
     "Learn about NexByte_Core - a leading web development company providing innovative digital solutions, custom web applications, and expert development services.",
 };
-const teamMembers = [
+const fallbackTeamMembers = [
   {
     name: 'Krishna Tandon',
     role: 'Full Stack Developer',
@@ -47,6 +47,27 @@ const teamMembers = [
 ];
 
 const About = () => {
+  const [teamMembers, setTeamMembers] = useState(fallbackTeamMembers);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/public/team-members');
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          setTeamMembers(data);
+        }
+      } catch {
+        // keep fallback
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <>
       <Helmet>
@@ -93,8 +114,12 @@ const About = () => {
                 <p className="role">{member.role}</p>
                 <p>{member.bio}</p>
                 <div className="social-links">
-                  <a href={member.github} target="_blank" rel="noopener noreferrer"><FaGithub /></a>
-                  <a href={member.linkedin} target="_blank" rel="noopener noreferrer"><FaLinkedin /></a>
+                  {member.github && (
+                    <a href={member.github} target="_blank" rel="noopener noreferrer"><FaGithub /></a>
+                  )}
+                  {member.linkedin && (
+                    <a href={member.linkedin} target="_blank" rel="noopener noreferrer"><FaLinkedin /></a>
+                  )}
                 </div>
               </Card>
             ))}

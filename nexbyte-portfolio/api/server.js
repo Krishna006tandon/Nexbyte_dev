@@ -21,6 +21,7 @@ const cookieParser = require('cookie-parser');
 const User = require('./models/User');
 const Bill = require('./models/Bill');
 const Task = require('./models/Task');
+const TeamMember = require('./models/TeamMember');
 const Diary = require('./models/Diary');
 const Report = require('./models/Report');
 const Notification = require('./models/Notification');
@@ -916,6 +917,85 @@ app.get('/api/automation/cron/in-progress-overdue/:secret', async (req, res) => 
   } catch (e) {
     console.error('Cron in-progress overdue (secret) error:', e);
     res.status(500).json({ ok: false, message: 'Failed to run in-progress overdue job', error: e.message });
+  }
+});
+
+// Public: About Us -> Our Team
+app.get('/api/public/team-members', async (req, res) => {
+  try {
+    const team = await TeamMember.find({ isActive: true }).sort({ order: 1, createdAt: 1 });
+    res.json(team);
+  } catch (e) {
+    console.error('Error fetching public team members:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin: Team CRUD
+app.get('/api/admin/team-members', auth, admin, async (req, res) => {
+  try {
+    const team = await TeamMember.find({}).sort({ order: 1, createdAt: 1 });
+    res.json(team);
+  } catch (e) {
+    console.error('Error fetching admin team members:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/team-members', auth, admin, async (req, res) => {
+  try {
+    const { name, role, imageUrl, bio, github, linkedin, order, isActive } = req.body || {};
+    if (!name || !role) {
+      return res.status(400).json({ message: 'name and role are required' });
+    }
+
+    const created = await TeamMember.create({
+      name,
+      role,
+      imageUrl: imageUrl || '',
+      bio: bio || '',
+      github: github || '',
+      linkedin: linkedin || '',
+      order: Number.isFinite(Number(order)) ? Number(order) : 0,
+      isActive: typeof isActive === 'boolean' ? isActive : true,
+    });
+    res.status(201).json(created);
+  } catch (e) {
+    console.error('Error creating team member:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/admin/team-members/:id', auth, admin, async (req, res) => {
+  try {
+    const patch = req.body || {};
+    const update = {};
+    if (typeof patch.name === 'string') update.name = patch.name;
+    if (typeof patch.role === 'string') update.role = patch.role;
+    if (typeof patch.imageUrl === 'string') update.imageUrl = patch.imageUrl;
+    if (typeof patch.bio === 'string') update.bio = patch.bio;
+    if (typeof patch.github === 'string') update.github = patch.github;
+    if (typeof patch.linkedin === 'string') update.linkedin = patch.linkedin;
+    if (typeof patch.isActive === 'boolean') update.isActive = patch.isActive;
+    if (patch.order !== undefined) update.order = Number.isFinite(Number(patch.order)) ? Number(patch.order) : 0;
+
+    const updated = await TeamMember.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!updated) return res.status(404).json({ message: 'Team member not found' });
+    res.json(updated);
+  } catch (e) {
+    console.error('Error updating team member:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/team-members/:id', auth, admin, async (req, res) => {
+  try {
+    const deleted = await TeamMember.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Team member not found' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Error deleting team member:', e);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

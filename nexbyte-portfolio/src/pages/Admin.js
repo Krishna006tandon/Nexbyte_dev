@@ -26,6 +26,19 @@ const Admin = () => {
   const [resourceInterns, setResourceInterns] = useState([]);
   const [presentationTopics, setPresentationTopics] = useState([]);
   const [groupMeetings, setGroupMeetings] = useState([]);
+  const [aboutTeamMembers, setAboutTeamMembers] = useState([]);
+  const [aboutTeamLoading, setAboutTeamLoading] = useState(false);
+  const [aboutTeamError, setAboutTeamError] = useState('');
+  const [aboutTeamForm, setAboutTeamForm] = useState({
+    name: '',
+    role: '',
+    imageUrl: '',
+    bio: '',
+    github: '',
+    linkedin: '',
+    order: 0,
+    isActive: true,
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
@@ -80,6 +93,106 @@ const Admin = () => {
     if (res.ok) setMembers(data);
   };
 
+  const fetchAboutTeamMembers = async () => {
+    setAboutTeamLoading(true);
+    setAboutTeamError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/team-members', {
+        headers: { 'x-auth-token': token },
+      });
+      const data = await res.json().catch(() => []);
+      if (!res.ok) throw new Error(data?.message || 'Failed to load team members');
+      setAboutTeamMembers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setAboutTeamError(e.message);
+    } finally {
+      setAboutTeamLoading(false);
+    }
+  };
+
+  const handleAboutTeamFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setAboutTeamForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleAddAboutTeamMember = async (e) => {
+    e.preventDefault();
+    setAboutTeamError('');
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        ...aboutTeamForm,
+        order: Number(aboutTeamForm.order) || 0,
+      };
+      const res = await fetch('/api/admin/team-members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to add team member');
+      setAboutTeamForm({
+        name: '',
+        role: '',
+        imageUrl: '',
+        bio: '',
+        github: '',
+        linkedin: '',
+        order: 0,
+        isActive: true,
+      });
+      await fetchAboutTeamMembers();
+      setSuccessMessage('Team member added');
+    } catch (e2) {
+      setAboutTeamError(e2.message);
+    }
+  };
+
+  const handleDeleteAboutTeamMember = async (id) => {
+    if (!window.confirm('Delete this team member?')) return;
+    setAboutTeamError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/admin/team-members/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to delete team member');
+      await fetchAboutTeamMembers();
+      setSuccessMessage('Team member deleted');
+    } catch (e) {
+      setAboutTeamError(e.message);
+    }
+  };
+
+  const handleToggleAboutTeamActive = async (member) => {
+    setAboutTeamError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/admin/team-members/${member._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ isActive: !member.isActive }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to update team member');
+      await fetchAboutTeamMembers();
+    } catch (e) {
+      setAboutTeamError(e.message);
+    }
+  };
+
   const location = useLocation();
   const navigate = useNavigate();
   const { setSrsFullData } = useContext(SrsContext);
@@ -101,6 +214,13 @@ const Admin = () => {
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.state, projects, navigate, location.pathname]);
+
+  useEffect(() => {
+    if (location.pathname === '/admin/about-us') {
+      fetchAboutTeamMembers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -2333,6 +2453,132 @@ const Admin = () => {
 
           {location.pathname === '/admin/role-management' && (
             <RoleManagement />
+          )}
+
+          {location.pathname === '/admin/about-us' && (
+            <div>
+              <h2>About Us - Our Team</h2>
+              <p style={{ color: '#6b7280', marginTop: 6 }}>
+                Add, disable, or delete team members shown on the public About page.
+              </p>
+
+              {aboutTeamError && (
+                <div className="error-message" style={{ marginTop: 12 }}>
+                  {aboutTeamError}
+                </div>
+              )}
+
+              <div className="card" style={{ marginTop: 16 }}>
+                <h3>Add Team Member</h3>
+                <form onSubmit={handleAddAboutTeamMember} style={{ display: 'grid', gap: 10, maxWidth: 720 }}>
+                  <input
+                    name="name"
+                    placeholder="Name *"
+                    value={aboutTeamForm.name}
+                    onChange={handleAboutTeamFormChange}
+                    required
+                  />
+                  <input
+                    name="role"
+                    placeholder="Role *"
+                    value={aboutTeamForm.role}
+                    onChange={handleAboutTeamFormChange}
+                    required
+                  />
+                  <input
+                    name="imageUrl"
+                    placeholder="Image URL (e.g. /krishna.jpeg)"
+                    value={aboutTeamForm.imageUrl}
+                    onChange={handleAboutTeamFormChange}
+                  />
+                  <textarea
+                    name="bio"
+                    placeholder="Bio"
+                    value={aboutTeamForm.bio}
+                    onChange={handleAboutTeamFormChange}
+                    rows={3}
+                  />
+                  <input
+                    name="github"
+                    placeholder="GitHub URL"
+                    value={aboutTeamForm.github}
+                    onChange={handleAboutTeamFormChange}
+                  />
+                  <input
+                    name="linkedin"
+                    placeholder="LinkedIn URL"
+                    value={aboutTeamForm.linkedin}
+                    onChange={handleAboutTeamFormChange}
+                  />
+                  <input
+                    name="order"
+                    type="number"
+                    placeholder="Order"
+                    value={aboutTeamForm.order}
+                    onChange={handleAboutTeamFormChange}
+                  />
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      name="isActive"
+                      type="checkbox"
+                      checked={aboutTeamForm.isActive}
+                      onChange={handleAboutTeamFormChange}
+                    />
+                    Active (visible on About page)
+                  </label>
+                  <button type="submit" className="btn btn-success">
+                    Add
+                  </button>
+                </form>
+              </div>
+
+              <div className="card" style={{ marginTop: 16 }}>
+                <h3>Current Team</h3>
+                {aboutTeamLoading ? (
+                  <p>Loading...</p>
+                ) : aboutTeamMembers.length === 0 ? (
+                  <p>No team members found.</p>
+                ) : (
+                  <table style={{ width: '100%', marginTop: 10 }}>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Order</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aboutTeamMembers.map((m) => (
+                        <tr key={m._id}>
+                          <td>{m.name}</td>
+                          <td>{m.role}</td>
+                          <td>{m.order ?? 0}</td>
+                          <td>{m.isActive ? 'Active' : 'Hidden'}</td>
+                          <td style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => handleToggleAboutTeamActive(m)}
+                            >
+                              {m.isActive ? 'Hide' : 'Show'}
+                            </button>
+                            <button
+                              className="btn btn-danger"
+                              type="button"
+                              onClick={() => handleDeleteAboutTeamMember(m._id)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
           )}
 
           {['/admin', '/admin/'].includes(location.pathname) && (

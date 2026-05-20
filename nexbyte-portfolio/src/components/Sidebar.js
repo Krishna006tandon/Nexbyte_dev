@@ -25,6 +25,7 @@ const Sidebar = () => {
     { to: "/admin/internship-dashboard", text: "Internship Dashboard" },
     { to: "/admin/application-list", text: "Application List" },
     { to: "/admin/email-automation", text: "Email Automation" },
+    { to: "/admin/about-us", text: "About Us" },
     { to: "/admin/role-management", text: "Role Management" },
     
     
