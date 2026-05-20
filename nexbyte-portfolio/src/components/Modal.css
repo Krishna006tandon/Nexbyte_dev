@@ -33,6 +33,11 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+.modal-content.modal-size-sm { max-width: 480px; }
+.modal-content.modal-size-md { max-width: 600px; }
+.modal-content.modal-size-lg { max-width: 980px; }
+.modal-content.modal-size-xl { max-width: 1200px; }
+
 .modal-header {
   display: flex;
   justify-content: space-between;

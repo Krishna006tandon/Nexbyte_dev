@@ -2632,9 +2632,8 @@ const Admin = () => {
         )}
 
         {showInternReport && internReport && (
-          <Modal isOpen={showInternReport} onClose={closeInternReport} size="lg">
+          <Modal isOpen={showInternReport} onClose={closeInternReport} title="Intern Performance Report" size="xl">
             <div className="intern-report-modal">
-              <h2>Intern Performance Report</h2>
               {reportLoading ? (
                 <p>Loading report...</p>
               ) : (

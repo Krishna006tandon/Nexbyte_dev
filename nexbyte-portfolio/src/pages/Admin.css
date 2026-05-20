@@ -633,7 +633,9 @@ tbody tr:hover {
 .intern-report-modal {
   padding: 18px;
   color: var(--primary-text);
-  max-width: 980px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .intern-report-modal h2 {
