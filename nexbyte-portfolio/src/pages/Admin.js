@@ -39,6 +39,7 @@ const Admin = () => {
     order: 0,
     isActive: true,
   });
+  const [aboutTeamImageFile, setAboutTeamImageFile] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
@@ -119,13 +120,33 @@ const Admin = () => {
     }));
   };
 
+  const handleAboutTeamImageChange = (e) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    setAboutTeamImageFile(file);
+  };
+
   const handleAddAboutTeamMember = async (e) => {
     e.preventDefault();
     setAboutTeamError('');
     try {
       const token = localStorage.getItem('token');
+      let uploadedImageUrl = '';
+      if (aboutTeamImageFile) {
+        const form = new FormData();
+        form.append('image', aboutTeamImageFile);
+        const upRes = await fetch('/api/admin/team-members/upload-image', {
+          method: 'POST',
+          headers: { 'x-auth-token': token },
+          body: form,
+        });
+        const upData = await upRes.json().catch(() => ({}));
+        if (!upRes.ok) throw new Error(upData?.message || 'Failed to upload image');
+        uploadedImageUrl = upData.url || '';
+      }
+
       const payload = {
         ...aboutTeamForm,
+        imageUrl: uploadedImageUrl || aboutTeamForm.imageUrl,
         order: Number(aboutTeamForm.order) || 0,
       };
       const res = await fetch('/api/admin/team-members', {
@@ -148,6 +169,7 @@ const Admin = () => {
         order: 0,
         isActive: true,
       });
+      setAboutTeamImageFile(null);
       await fetchAboutTeamMembers();
       setSuccessMessage('Team member added');
     } catch (e2) {
@@ -2490,6 +2512,11 @@ const Admin = () => {
                     placeholder="Image URL (e.g. /krishna.jpeg)"
                     value={aboutTeamForm.imageUrl}
                     onChange={handleAboutTeamFormChange}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAboutTeamImageChange}
                   />
                   <textarea
                     name="bio"

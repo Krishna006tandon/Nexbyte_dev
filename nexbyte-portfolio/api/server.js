@@ -905,6 +905,19 @@ app.get('/api/automation/cron/in-progress-overdue', async (req, res) => {
   }
 });
 
+const uploadImage = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: function (req, file, cb) {
+    const mime = String(file.mimetype || '').toLowerCase();
+    const ok = mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/webp' || mime === 'image/gif';
+    if (ok) cb(null, true);
+    else cb(new Error('Only image files (png, jpg, webp, gif) are allowed'), false);
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
 app.get('/api/automation/cron/in-progress-overdue/:secret', async (req, res) => {
   try {
     const expected = process.env.AUTOMATION_SECRET;
@@ -996,6 +1009,35 @@ app.delete('/api/admin/team-members/:id', auth, admin, async (req, res) => {
   } catch (e) {
     console.error('Error deleting team member:', e);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/team-members/upload-image', auth, admin, uploadImage.single('image'), async (req, res) => {
+  try {
+    const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      return res.status(500).json({ message: 'Vercel Blob token not configured (BLOB_READ_WRITE_TOKEN)' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: 'image file is required' });
+    }
+
+    const { put } = await import('@vercel/blob');
+    const safeName = String(req.file.originalname || 'team-image').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const key = `team/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+    const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'application/octet-stream' });
+
+    const result = await put(key, blob, {
+      access: 'public',
+      contentType: req.file.mimetype || undefined,
+      addRandomSuffix: false,
+      token,
+    });
+
+    res.json({ url: result.url, pathname: result.pathname, contentType: req.file.mimetype || null });
+  } catch (e) {
+    console.error('Error uploading team image to blob:', e);
+    res.status(500).json({ message: 'Failed to upload image', error: e.message });
   }
 });
 

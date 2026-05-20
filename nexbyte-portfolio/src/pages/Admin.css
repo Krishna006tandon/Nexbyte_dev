@@ -628,3 +628,194 @@ tbody tr:hover {
   background-color: #FFC107;
   color: black;
 }
+
+/* Intern Performance Report (Modal) */
+.intern-report-modal {
+  padding: 18px;
+  color: var(--primary-text);
+  max-width: 980px;
+}
+
+.intern-report-modal h2 {
+  margin: 0 0 14px 0;
+}
+
+.intern-report-modal .report-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.intern-report-modal .report-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.intern-report-modal .report-header p {
+  margin: 0;
+  color: var(--secondary-text);
+}
+
+.intern-report-modal .stats-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.intern-report-modal .stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.intern-report-modal .stat-card h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--secondary-text);
+  font-weight: 600;
+}
+
+.intern-report-modal .stat-number {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.intern-report-modal .report-section {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.intern-report-modal .report-section h4 {
+  margin: 0 0 10px 0;
+}
+
+.intern-report-modal .priority-breakdown {
+  display: grid;
+  gap: 10px;
+}
+
+.intern-report-modal .priority-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-hover);
+}
+
+.intern-report-modal .priority-label {
+  font-weight: 600;
+  color: var(--primary-text);
+}
+
+.intern-report-modal .recent-activity {
+  display: grid;
+  gap: 10px;
+}
+
+.intern-report-modal .activity-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-hover);
+}
+
+.intern-report-modal .activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.intern-report-modal .task-title {
+  font-weight: 650;
+}
+
+.intern-report-modal .activity-details {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  color: var(--secondary-text);
+  font-size: 0.9rem;
+}
+
+.intern-report-modal .status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--primary-text);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.intern-report-modal .status-badge.done,
+.intern-report-modal .status-badge.completed,
+.intern-report-modal .status-badge.approved {
+  background: rgba(40, 167, 69, 0.16);
+  border-color: rgba(40, 167, 69, 0.22);
+  color: var(--success-color);
+}
+
+.intern-report-modal .status-badge.in-progress,
+.intern-report-modal .status-badge.inprogress,
+.intern-report-modal .status-badge.review,
+.intern-report-modal .status-badge.testing,
+.intern-report-modal .status-badge.under-review {
+  background: rgba(255, 174, 66, 0.16);
+  border-color: rgba(255, 174, 66, 0.22);
+  color: #ffb347;
+}
+
+.intern-report-modal .status-badge.pending,
+.intern-report-modal .status-badge.to-do,
+.intern-report-modal .status-badge.todo,
+.intern-report-modal .status-badge.backlog {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: var(--secondary-text);
+}
+
+.intern-report-modal .report-footer {
+  margin-top: 12px;
+  color: var(--secondary-text);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .intern-report-modal .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .intern-report-modal {
+    padding: 12px;
+  }
+  .intern-report-modal .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .intern-report-modal .priority-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
