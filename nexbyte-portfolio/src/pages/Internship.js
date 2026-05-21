@@ -54,7 +54,7 @@ const Internship = () => {
   );
 
   const faqs = [
-    { q: 'Is this internship paid?', a: 'No, this is an unpaid learning-focused internship.' },
+    { q: 'Is this internship paid?', a: 'Yes, this is a paid learning-focused internship.' },
     { q: 'Will I get a certificate?', a: 'Yes, after successful completion of the internship.' },
     { q: 'Is it remote?', a: 'Yes, this is a remote internship.' },
     { q: 'How long is the internship?', a: '1, 2, or 3 months based on your preference and performance.' }
@@ -194,7 +194,7 @@ const Internship = () => {
           <h2>Internship Details</h2>
           <div className="type-grid">
             <div className="type-item">
-              <strong>Type:</strong> Unpaid / Free Internship
+              <strong>Type:</strong> paid
             </div>
             <div className="type-item">
               <strong>Mode:</strong> Remote
@@ -203,7 +203,7 @@ const Internship = () => {
               <strong>Duration:</strong> 1 / 2 / 3 months
             </div>
           </div>
-          <p className="honest-line">This is a learning-focused, unpaid internship designed for students and freshers.</p>
+          <p className="honest-line">This is a learning-focused, paid internship designed for students and freshers.</p>
         </div>
       </section>
 
@@ -293,7 +293,7 @@ const Internship = () => {
         <div className="container">
           <h2>Internship Rules</h2>
           <div className="rules-list">
-            <div className="rule-item">• This is an unpaid internship</div>
+            <div className="rule-item">• This is an paid internship</div>
             <div className="rule-item">• No stipend provided</div>
             <div className="rule-item">• Certificate only after successful completion</div>
             <div className="rule-item">• Work consistency required</div>
