@@ -120,6 +120,13 @@ process.on('unhandledRejection', (err) => {
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // limit each IP to 10 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      message: 'Too many login attempts from this IP, please try again after 15 minutes',
+    });
+  },
   message: 'Too many login attempts from this IP, please try again after 15 minutes'
 });
 
@@ -3639,7 +3646,7 @@ app.get('/api/automation/cron/weekly-progress/:secret', async (req, res) => {
 // Intern Panel API Endpoints
 
 // Middleware to verify token and check if user is intern
-const verifyIntern = (req, res, next) => {
+function verifyIntern(req, res, next) {
   const token = req.header('x-auth-token');
   
   if (!token) {
@@ -3667,7 +3674,7 @@ const verifyIntern = (req, res, next) => {
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });
   }
-};
+}
 
 // Get intern tasks
 app.get('/api/tasks', verifyIntern, async (req, res) => {
@@ -5111,6 +5118,13 @@ app.get('/api/certificates/:certificateId', auth, async (req, res) => {
 });
 
 module.exports = app;
+
+// Fallback error handler (keeps responses JSON for the frontend)
+app.use((err, req, res, next) => {
+  console.error('Unhandled express error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ message: 'Server error', error: err?.message || String(err) });
+});
 
 if (process.env.NODE_ENV !== 'production') {
   const port = process.env.PORT || 3001;

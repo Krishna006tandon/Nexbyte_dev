@@ -28,7 +28,16 @@ const Login = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers?.get?.('content-type') || '';
+      const rawText = typeof res.text === 'function' ? await res.text() : null;
+      const data =
+        rawText != null
+          ? (contentType.includes('application/json')
+              ? JSON.parse(rawText || '{}')
+              : { message: rawText || 'Server returned a non-JSON response.' })
+          : (typeof res.json === 'function'
+              ? await res.json()
+              : { message: 'Server returned an unreadable response.' });
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
