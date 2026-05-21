@@ -25,6 +25,7 @@ const InternPanel = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [internshipInfo, setInternshipInfo] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
+  const [internReport, setInternReport] = useState(null);
 
   // AI Growth analysis (generated on demand)
   const [growthAnalysis, setGrowthAnalysis] = useState(null);
@@ -141,7 +142,7 @@ const InternPanel = () => {
       }
 
       // Fetch remaining data with fallbacks
-      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes] = await Promise.all([
+      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes, internReportRes] = await Promise.all([
         fetchWithErrorHandling('/api/tasks', []), // Uses intern auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
@@ -150,7 +151,8 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/intern/presentation-topics', []),
         fetchWithErrorHandling('/api/intern/group-meetings', []),
         fetchWithErrorHandling('/api/team', []),
-        fetchWithErrorHandling('/api/internships/me', null)
+        fetchWithErrorHandling('/api/internships/me', null),
+        fetchWithErrorHandling('/api/intern/my-report', null)
       ]);
 
       if (internshipRes) {
@@ -165,6 +167,7 @@ const InternPanel = () => {
       setPresentationTopics(presentationTopicsData);
       setGroupMeetings(groupMeetingsData);
       setTeamMembers(teamData);
+      setInternReport(internReportRes);
 
     } catch (err) {
       console.error('Error in fetchInternData:', err);
@@ -851,6 +854,7 @@ const InternPanel = () => {
 
   const stats = getTaskStats();
   const growthData = getGrowthData();
+  const internGrowthScore = internReport?.statistics?.growthScore ?? (growthData.length > 0 ? growthData[growthData.length - 1].performance : 0);
 
   return (
     <div className="intern-panel-container">
@@ -1046,7 +1050,7 @@ const InternPanel = () => {
                     <i className="fas fa-chart-line"></i>
                   </div>
                   <div className="stat-info">
-                    <h3>{growthData.length > 0 ? growthData[growthData.length - 1].performance : 0}%</h3>
+                    <h3>{internGrowthScore}%</h3>
                     <p>Growth Score</p>
                   </div>
                 </div>
@@ -1434,7 +1438,36 @@ const InternPanel = () => {
                 <h2>Growth & Performance Report</h2>
                 <p>Track your progress and skill development</p>
               </div>
-              
+
+              {internReport?.statistics && (
+                <div className="dashboard-card" style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <h3 style={{ margin: 0 }}>Your Growth Snapshot</h3>
+                    <span style={{ opacity: 0.85 }}>
+                      Growth Score: <strong>{internReport.statistics.growthScore}%</strong>
+                    </span>
+                  </div>
+                  <div className="stats-grid" style={{ marginTop: 12 }}>
+                    <div className="stat-card">
+                      <h4>Total Tasks</h4>
+                      <div className="stat-number">{internReport.statistics.totalTasks}</div>
+                    </div>
+                    <div className="stat-card">
+                      <h4>Completed</h4>
+                      <div className="stat-number">{internReport.statistics.completedTasks}</div>
+                    </div>
+                    <div className="stat-card">
+                      <h4>In Progress</h4>
+                      <div className="stat-number">{internReport.statistics.inProgressTasks}</div>
+                    </div>
+                    <div className="stat-card">
+                      <h4>Pending</h4>
+                      <div className="stat-number">{internReport.statistics.pendingTasks}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+               
               <div className="reports-grid">
                 <div className="report-card performance-chart">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>

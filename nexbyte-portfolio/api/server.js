@@ -2916,6 +2916,146 @@ app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
     }
 });
 
+// @route   GET api/intern/my-report
+// @desc    Get current intern growth and performance report (same as admin report)
+// @access  Private (intern)
+app.get('/api/intern/my-report', verifyIntern, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const tasks = await Task.find({ assignedTo: req.user.id })
+            .populate('comments.user', 'email')
+            .sort({ createdAt: -1 });
+
+        const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+        const isCompleted = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'completed' || st === 'done' || st === 'approved';
+        };
+        const isInProgress = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review';
+        };
+        const isPending = (s) => {
+            const st = normalizeStatus(s);
+            return st === 'pending' || st === 'to do' || st === 'todo' || st === 'backlog';
+        };
+
+        const getActiveSeconds = (task) => {
+            const base = Number(task.totalActiveSeconds) || 0;
+            const st = task.status;
+            if (!isInProgress(st)) return base;
+            const since = task.lastStatusChangedAt || task.startedAt;
+            if (!(since instanceof Date) || Number.isNaN(since.getTime())) return base;
+            const deltaSeconds = Math.max(0, Math.floor((Date.now() - since.getTime()) / 1000));
+            return base + deltaSeconds;
+        };
+
+        const totalTasks = tasks.length;
+        const completedTaskList = tasks.filter(task => isCompleted(task.status));
+        const inProgressTaskList = tasks.filter(task => isInProgress(task.status));
+        const pendingTaskList = tasks.filter(task => isPending(task.status));
+
+        const completedTasks = completedTaskList.length;
+        const inProgressTasks = inProgressTaskList.length;
+        const pendingTasks = pendingTaskList.length;
+
+        const totalEarnings = completedTaskList.reduce((sum, task) => sum + (task.reward_amount_in_INR || 0), 0);
+        const completionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : 0;
+
+        const sum = (arr, pick) => arr.reduce((acc, x) => acc + (Number(pick(x)) || 0), 0);
+        const estimatedHoursCompleted = sum(completedTaskList, t => t.estimated_effort_hours);
+        const actualHoursCompleted = completedTaskList.length
+            ? completedTaskList.reduce((acc, t) => acc + (getActiveSeconds(t) / 3600), 0)
+            : 0;
+
+        const efficiencyRatio = actualHoursCompleted > 0 ? (estimatedHoursCompleted / actualHoursCompleted) : null;
+        const efficiencyClamped = efficiencyRatio == null ? null : Math.max(0, Math.min(1.5, efficiencyRatio));
+        const growthScore = totalTasks > 0 && efficiencyClamped != null
+            ? Math.round(Math.min(100, (parseFloat(completionRate) || 0) * efficiencyClamped))
+            : Math.round(parseFloat(completionRate) || 0);
+
+        const highPriorityTasks = tasks.filter(task => task.priority === 'High');
+        const mediumPriorityTasks = tasks.filter(task => task.priority === 'Medium');
+        const lowPriorityTasks = tasks.filter(task => task.priority === 'Low');
+
+        const highPriorityCompleted = highPriorityTasks.filter(task => task.status === 'Done').length;
+        const mediumPriorityCompleted = mediumPriorityTasks.filter(task => task.status === 'Done').length;
+        const lowPriorityCompleted = lowPriorityTasks.filter(task => task.status === 'Done').length;
+
+        const monthlyStats = {};
+        completedTaskList.forEach(task => {
+            const completedAt = task.completedAt || task.updatedAt || task.createdAt;
+            if (!completedAt) return;
+            const month = new Date(completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+            monthlyStats[month] = (monthlyStats[month] || 0) + 1;
+        });
+
+        const recentTasks = tasks.slice(0, 5);
+
+        const report = {
+            user: {
+                id: user._id,
+                email: user.email,
+                role: user.role,
+                internshipStartDate: user.internshipStartDate,
+                internshipEndDate: user.internshipEndDate,
+                acceptanceDate: user.acceptanceDate,
+                internType: user.internType,
+                createdAt: user.createdAt
+            },
+            statistics: {
+                totalTasks,
+                completedTasks,
+                inProgressTasks,
+                pendingTasks,
+                completionRate: parseFloat(completionRate),
+                totalEarnings,
+                averageTaskValue: completedTasks > 0 ? (totalEarnings / completedTasks).toFixed(2) : 0,
+                estimatedHoursCompleted: Math.round(estimatedHoursCompleted * 100) / 100,
+                actualHoursCompleted: Math.round(actualHoursCompleted * 100) / 100,
+                efficiencyRatio: efficiencyRatio == null ? null : Math.round(efficiencyRatio * 100) / 100,
+                growthScore
+            },
+            priorityBreakdown: {
+                high: {
+                    total: highPriorityTasks.length,
+                    completed: highPriorityCompleted,
+                    completionRate: highPriorityTasks.length > 0 ? (highPriorityCompleted / highPriorityTasks.length * 100).toFixed(1) : 0
+                },
+                medium: {
+                    total: mediumPriorityTasks.length,
+                    completed: mediumPriorityCompleted,
+                    completionRate: mediumPriorityTasks.length > 0 ? (mediumPriorityCompleted / mediumPriorityTasks.length * 100).toFixed(1) : 0
+                },
+                low: {
+                    total: lowPriorityTasks.length,
+                    completed: lowPriorityCompleted,
+                    completionRate: lowPriorityTasks.length > 0 ? (lowPriorityCompleted / lowPriorityTasks.length * 100).toFixed(1) : 0
+                }
+            },
+            monthlyTrend: monthlyStats,
+            recentActivity: recentTasks.map(task => ({
+                id: task._id,
+                title: task.title,
+                status: task.status,
+                priority: task.priority,
+                reward: task.reward_amount_in_INR || 0,
+                completedAt: isCompleted(task.status) ? (task.completedAt || task.updatedAt) : null,
+                comments: task.comments.length
+            }))
+        };
+
+        res.json(report);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   GET api/tasks/my-tasks
 // @desc    Get tasks assigned to current user
 // @access  Private
@@ -3672,21 +3812,28 @@ app.post('/api/intern/growth-analysis', verifyIntern, async (req, res) => {
       }
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ message: 'GEMINI_API_KEY is not configured' });
-    }
-
     const windowDaysRaw = Number(req.body?.windowDays);
     const windowDays = Number.isFinite(windowDaysRaw) ? windowDaysRaw : 30;
     const safeWindowDays = Math.max(7, Math.min(180, Math.floor(windowDays)));
 
     const since = new Date(Date.now() - safeWindowDays * 24 * 60 * 60 * 1000);
 
-    const [tasks, reports, diary] = await Promise.all([
+    let [tasks, reports, diary] = await Promise.all([
       Task.find({ assignedTo: req.user.id, createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(50),
       Report.find({ intern: req.user.id, date: { $gte: since } }).sort({ date: -1 }).limit(20),
       Diary.find({ intern: req.user.id, date: { $gte: since } }).sort({ date: -1 }).limit(20),
     ]);
+
+    // Fallback: if the time-window is too strict (no recent activity), use latest data so the report still works.
+    if (!tasks.length) {
+      tasks = await Task.find({ assignedTo: req.user.id }).sort({ createdAt: -1 }).limit(50);
+    }
+    if (!reports.length) {
+      reports = await Report.find({ intern: req.user.id }).sort({ date: -1 }).limit(20);
+    }
+    if (!diary.length) {
+      diary = await Diary.find({ intern: req.user.id }).sort({ date: -1 }).limit(20);
+    }
 
     const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
     const isCompleted = (status) => {
@@ -3737,6 +3884,16 @@ app.post('/api/intern/growth-analysis', verifyIntern, async (req, res) => {
         }, {}),
       },
     };
+
+    // If Gemini isn't configured, still return a useful metrics-only report
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        metrics,
+        analysis: {
+          summary: 'AI analysis is unavailable because GEMINI_API_KEY is not configured. Metrics are shown based on your latest tasks, diary entries, and reports.',
+        },
+      });
+    }
 
     const payload = {
       metrics,
