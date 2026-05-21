@@ -3589,6 +3589,43 @@ app.get('/api/reports', verifyIntern, async (req, res) => {
   }
 });
 
+// Create intern report (drives growth score in intern panel)
+app.post('/api/reports', verifyIntern, async (req, res) => {
+  try {
+    const skillsLearned = Array.isArray(req.body?.skillsLearned)
+      ? req.body.skillsLearned.map((s) => String(s).trim()).filter(Boolean).slice(0, 30)
+      : [];
+
+    const performanceScoreRaw = Number(req.body?.performanceScore);
+    const performanceScore = Number.isFinite(performanceScoreRaw)
+      ? Math.max(0, Math.min(100, Math.round(performanceScoreRaw)))
+      : undefined;
+
+    const tasksCompletedRaw = Number(req.body?.tasksCompleted);
+    const tasksCompleted = Number.isFinite(tasksCompletedRaw) ? Math.max(0, Math.floor(tasksCompletedRaw)) : 0;
+
+    const hoursWorkedRaw = Number(req.body?.hoursWorked);
+    const hoursWorked = Number.isFinite(hoursWorkedRaw) ? Math.max(0, Math.round(hoursWorkedRaw * 100) / 100) : 0;
+
+    const feedback = req.body?.feedback != null ? String(req.body.feedback).trim().slice(0, 1000) : '';
+
+    const report = await new Report({
+      intern: req.user.id,
+      date: new Date(),
+      skillsLearned,
+      performanceScore,
+      feedback,
+      tasksCompleted,
+      hoursWorked,
+    }).save();
+
+    res.status(201).json(report);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 const tryParseJsonObject = (text) => {
   if (!text) return null;
   const trimmed = String(text).trim();
@@ -3618,6 +3655,23 @@ const tryParseJsonObject = (text) => {
 // AI Growth analysis for intern dashboard
 app.post('/api/intern/growth-analysis', verifyIntern, async (req, res) => {
   try {
+    // Enforce 2-week cooldown per intern
+    const cooldownMs = 14 * 24 * 60 * 60 * 1000;
+    const internUser = await User.findById(req.user.id).select('internGrowthAnalysisLastAt');
+    const lastAt = internUser?.internGrowthAnalysisLastAt ? new Date(internUser.internGrowthAnalysisLastAt) : null;
+    if (lastAt && Number.isFinite(lastAt.getTime())) {
+      const nextAllowedAt = new Date(lastAt.getTime() + cooldownMs);
+      const now = new Date();
+      if (now < nextAllowedAt) {
+        const remainingMs = nextAllowedAt.getTime() - now.getTime();
+        const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+        return res.status(429).json({
+          message: `AI growth analysis can be generated once every 2 weeks. Try again in ~${remainingDays} day(s).`,
+          cooldown: { lastAt, nextAllowedAt, remainingDays },
+        });
+      }
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ message: 'GEMINI_API_KEY is not configured' });
     }
@@ -3734,6 +3788,8 @@ ${JSON.stringify(payload)}
     const response = await result.response;
     const text = response.text();
     const parsed = tryParseJsonObject(text);
+
+    await User.findByIdAndUpdate(req.user.id, { $set: { internGrowthAnalysisLastAt: new Date() } });
 
     return res.json({
       metrics,

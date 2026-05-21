@@ -60,6 +60,9 @@ const userSchema = new mongoose.Schema({
   },
   internPaymentPaidAt: { type: Date },
   internPaymentReference: { type: String },
+
+  // Intern AI usage limits
+  internGrowthAnalysisLastAt: { type: Date },
 }, {
   timestamps: true
 });

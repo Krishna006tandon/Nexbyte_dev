@@ -30,6 +30,7 @@ const InternPanel = () => {
   const [growthAnalysis, setGrowthAnalysis] = useState(null);
   const [growthAnalysisLoading, setGrowthAnalysisLoading] = useState(false);
   const [growthAnalysisError, setGrowthAnalysisError] = useState(null);
+  const [growthAnalysisNextAllowedAt, setGrowthAnalysisNextAllowedAt] = useState(null);
   
   // Form states
   const [offerLetter, setOfferLetter] = useState(null);
@@ -42,6 +43,13 @@ const InternPanel = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [updateStatus, setUpdateStatus] = useState('');
   const [diaryEntry, setDiaryEntry] = useState('');
+  const [reportForm, setReportForm] = useState({
+    skillsLearnedText: '',
+    performanceScore: '',
+    tasksCompleted: '',
+    hoursWorked: '',
+    feedback: '',
+  });
   const [profileForm, setProfileForm] = useState({});
   const [paperFiles, setPaperFiles] = useState({});
   const [submissionNotes, setSubmissionNotes] = useState({});
@@ -582,6 +590,7 @@ const InternPanel = () => {
     try {
       setGrowthAnalysisLoading(true);
       setGrowthAnalysisError(null);
+      setGrowthAnalysisNextAllowedAt(null);
 
       const token = localStorage.getItem('token');
       const response = await fetch('/api/intern/growth-analysis', {
@@ -595,6 +604,9 @@ const InternPanel = () => {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 429 && data?.cooldown?.nextAllowedAt) {
+          setGrowthAnalysisNextAllowedAt(data.cooldown.nextAllowedAt);
+        }
         throw new Error(data.message || 'Failed to generate growth analysis');
       }
 
@@ -605,6 +617,54 @@ const InternPanel = () => {
       toast.error(e.message);
     } finally {
       setGrowthAnalysisLoading(false);
+    }
+  };
+
+  const handleSubmitReport = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Login required');
+
+      const skillsLearned = String(reportForm.skillsLearnedText || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 30);
+
+      const payload = {
+        skillsLearned,
+        performanceScore: reportForm.performanceScore === '' ? undefined : Number(reportForm.performanceScore),
+        tasksCompleted: reportForm.tasksCompleted === '' ? 0 : Number(reportForm.tasksCompleted),
+        hoursWorked: reportForm.hoursWorked === '' ? 0 : Number(reportForm.hoursWorked),
+        feedback: reportForm.feedback,
+      };
+
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit report');
+      }
+
+      toast.success('Report submitted');
+      setReportForm({
+        skillsLearnedText: '',
+        performanceScore: '',
+        tasksCompleted: '',
+        hoursWorked: '',
+        feedback: '',
+      });
+      await fetchInternData();
+    } catch (err) {
+      toast.error(err.message);
     }
   };
 
@@ -1390,6 +1450,13 @@ const InternPanel = () => {
                     </button>
                   </div>
 
+                  {growthAnalysisNextAllowedAt && (
+                    <p style={{ marginTop: 10, opacity: 0.9 }}>
+                      Next available:{' '}
+                      <strong>{new Date(growthAnalysisNextAllowedAt).toLocaleString()}</strong>
+                    </p>
+                  )}
+
                   {growthAnalysisError && (
                     <p style={{ marginTop: 12, color: '#ff6b6b' }}>{growthAnalysisError}</p>
                   )}
@@ -1482,6 +1549,54 @@ const InternPanel = () => {
                 
                 <div className="report-card recent-reports">
                   <h3>Recent Reports</h3>
+                  <form onSubmit={handleSubmitReport} style={{ margin: '12px 0 14px' }}>
+                    <div style={{ display: 'grid', gap: 10 }}>
+                      <input
+                        className="form-control"
+                        placeholder="Skills learned (comma separated)"
+                        value={reportForm.skillsLearnedText}
+                        onChange={(e) => setReportForm((s) => ({ ...s, skillsLearnedText: e.target.value }))}
+                      />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+                        <input
+                          className="form-control"
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="Performance (0-100)"
+                          value={reportForm.performanceScore}
+                          onChange={(e) => setReportForm((s) => ({ ...s, performanceScore: e.target.value }))}
+                        />
+                        <input
+                          className="form-control"
+                          type="number"
+                          min="0"
+                          placeholder="Tasks completed"
+                          value={reportForm.tasksCompleted}
+                          onChange={(e) => setReportForm((s) => ({ ...s, tasksCompleted: e.target.value }))}
+                        />
+                        <input
+                          className="form-control"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          placeholder="Hours worked"
+                          value={reportForm.hoursWorked}
+                          onChange={(e) => setReportForm((s) => ({ ...s, hoursWorked: e.target.value }))}
+                        />
+                      </div>
+                      <textarea
+                        className="form-control"
+                        rows={3}
+                        placeholder="Feedback / Notes"
+                        value={reportForm.feedback}
+                        onChange={(e) => setReportForm((s) => ({ ...s, feedback: e.target.value }))}
+                      />
+                      <button className="btn btn-success" type="submit">
+                        Submit Report
+                      </button>
+                    </div>
+                  </form>
                   {reports.length > 0 ? (
                     <div className="report-list">
                       {reports.map((report, index) => (
