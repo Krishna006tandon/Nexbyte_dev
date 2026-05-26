@@ -69,6 +69,9 @@ const Admin = () => {
   const [paymentReminderSendingTo, setPaymentReminderSendingTo] = useState(null);
   const [paymentStatusUpdatingFor, setPaymentStatusUpdatingFor] = useState(null);
   const [paymentReferenceByInternId, setPaymentReferenceByInternId] = useState({});
+  const [internOfWeekCurrent, setInternOfWeekCurrent] = useState(null);
+  const [internOfWeekCountByInternId, setInternOfWeekCountByInternId] = useState({});
+  const [internOfWeekUpdatingFor, setInternOfWeekUpdatingFor] = useState(null);
   const activeTrackerMilestone = milestone || selectedClientForTracker?.milestone;
   const formatMeetingDate = (value) =>
     new Date(value).toLocaleDateString('en-IN', {
@@ -92,6 +95,49 @@ const Admin = () => {
     const res = await fetch('/api/users', { headers: { 'x-auth-token': token } });
     const data = await res.json();
     if (res.ok) setMembers(data);
+  };
+
+  const refreshInternOfWeek = async () => {
+    const token = localStorage.getItem('token');
+    const headers = { 'x-auth-token': token };
+
+    const [currentRes, statsRes] = await Promise.all([
+      fetch('/api/intern-of-week/current', { headers }),
+      fetch('/api/admin/intern-of-week/stats', { headers }),
+    ]);
+
+    const currentData = await currentRes.json().catch(() => ({}));
+    const statsData = await statsRes.json().catch(() => ({}));
+
+    if (currentRes.ok) setInternOfWeekCurrent(currentData?.internOfWeek || null);
+    if (statsRes.ok) {
+      const map = {};
+      (statsData?.stats || []).forEach((row) => {
+        const id = row?.intern?._id;
+        if (id) map[id] = row?.selections || 0;
+      });
+      setInternOfWeekCountByInternId(map);
+    }
+  };
+
+  const handleSetInternOfWeek = async (internId) => {
+    const token = localStorage.getItem('token');
+    setInternOfWeekUpdatingFor(internId);
+    try {
+      const res = await fetch('/api/admin/intern-of-week', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ internId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to set Intern of the Week');
+      setSuccessMessage('Intern of the Week updated');
+      await refreshInternOfWeek();
+    } catch (e) {
+      setErrorMessage(e.message);
+    } finally {
+      setInternOfWeekUpdatingFor(null);
+    }
   };
 
   const fetchAboutTeamMembers = async () => {
@@ -343,13 +389,14 @@ const Admin = () => {
             console.error(data.message);
           }
         } else if (location.pathname === '/admin/members') {
-          const res = await fetch('/api/users', { headers });
-          const data = await res.json();
-          if (res.ok) {
-            setMembers(data);
+          const [usersRes] = await Promise.all([fetch('/api/users', { headers })]);
+          const usersData = await usersRes.json();
+          if (usersRes.ok) {
+            setMembers(usersData);
           } else {
-            console.error(data.message);
+            console.error(usersData.message);
           }
+          await refreshInternOfWeek();
         } else if (location.pathname === '/admin/reports') {
           const res = await fetch('/api/users', { headers });
           const data = await res.json();
@@ -1635,6 +1682,10 @@ const Admin = () => {
               </div>
 
               <h3>All Members</h3>
+              <div style={{ marginBottom: '12px' }}>
+                <strong>Current Intern of the Week:</strong>{' '}
+                {internOfWeekCurrent?.intern?.email ? internOfWeekCurrent.intern.email : 'Not set'}
+              </div>
               {successMessage && <p className="resource-message success">{successMessage}</p>}
               {errorMessage && <p className="resource-message error">{errorMessage}</p>}
               <table>
@@ -1647,6 +1698,7 @@ const Admin = () => {
                     <th>End Date</th>
                     <th>Acceptance Date</th>
                     <th>Payment</th>
+                    <th>Intern of Week</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -1660,6 +1712,27 @@ const Admin = () => {
                       <td>{member.role === 'intern' ? formatDate(member.internshipEndDate) : 'N/A'}</td>
                       <td>{formatDate(member.acceptanceDate)}</td>
                       <td>{formatPaymentStatus(member)}</td>
+                      <td>
+                        {member.role === 'intern' ? (
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span>
+                              {internOfWeekCurrent?.intern?._id === member._id ? 'Current' : ''}
+                              {internOfWeekCountByInternId[member._id] != null
+                                ? ` (Total: ${internOfWeekCountByInternId[member._id]})`
+                                : ''}
+                            </span>
+                            <button
+                              onClick={() => handleSetInternOfWeek(member._id)}
+                              className="btn btn-primary"
+                              disabled={internOfWeekUpdatingFor === member._id}
+                            >
+                              {internOfWeekUpdatingFor === member._id ? 'Setting...' : 'Set'}
+                            </button>
+                          </div>
+                        ) : (
+                          'N/A'
+                        )}
+                      </td>
                       <td>
                         <button onClick={() => handleDeleteMember(member._id)} className="btn btn-danger">Delete</button>
                         {(member.role === 'intern' || member.role === 'user' || member.role === 'member') && (

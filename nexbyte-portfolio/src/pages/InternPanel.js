@@ -26,6 +26,7 @@ const InternPanel = () => {
   const [internshipInfo, setInternshipInfo] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
   const [internReport, setInternReport] = useState(null);
+  const [internOfWeek, setInternOfWeek] = useState(null);
 
   // AI Growth analysis (generated on demand)
   const [growthAnalysis, setGrowthAnalysis] = useState(null);
@@ -142,7 +143,7 @@ const InternPanel = () => {
       }
 
       // Fetch remaining data with fallbacks
-      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes, internReportRes] = await Promise.all([
+      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes, internReportRes, internOfWeekRes] = await Promise.all([
         fetchWithErrorHandling('/api/tasks', []), // Uses intern auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
@@ -152,7 +153,8 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/intern/group-meetings', []),
         fetchWithErrorHandling('/api/team', []),
         fetchWithErrorHandling('/api/internships/me', null),
-        fetchWithErrorHandling('/api/intern/my-report', null)
+        fetchWithErrorHandling('/api/intern/my-report', null),
+        fetchWithErrorHandling('/api/intern-of-week/current', null)
       ]);
 
       if (internshipRes) {
@@ -168,6 +170,7 @@ const InternPanel = () => {
       setGroupMeetings(groupMeetingsData);
       setTeamMembers(teamData);
       setInternReport(internReportRes);
+      setInternOfWeek(internOfWeekRes?.internOfWeek || null);
 
     } catch (err) {
       console.error('Error in fetchInternData:', err);
@@ -1057,6 +1060,21 @@ const InternPanel = () => {
               </div>
 
               <div className="dashboard-grid">
+                <div className="dashboard-card">
+                  <h3>Intern of the Week</h3>
+                  <div style={{ opacity: 0.9, lineHeight: 1.6 }}>
+                    <div>
+                      <strong>Intern:</strong>{' '}
+                      {internOfWeek?.intern?.email ? internOfWeek.intern.email : 'Not announced yet'}
+                    </div>
+                    {internOfWeek?.totalSelectionsForIntern != null && (
+                      <div>
+                        <strong>Total Wins:</strong> {internOfWeek.totalSelectionsForIntern}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="dashboard-card recent-tasks">
                   <h3>Recent Tasks</h3>
                   <div className="task-list-mini">

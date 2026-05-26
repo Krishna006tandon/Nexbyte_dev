@@ -33,6 +33,7 @@ const InternshipApplication = require('./models/InternshipApplication');
 const Certificate = require('./models/Certificate');
 const AutomationState = require('./models/AutomationState');
 const PresentationTopic = require('./models/PresentationTopic');
+const InternOfWeek = require('./models/InternOfWeek');
 const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
 const mailSender = require('./mailSender');
@@ -295,6 +296,117 @@ const client = (req, res, next) => {
   }
   next();
 };
+
+const getUtcWeekStartMonday = (value = new Date()) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const utcDay = date.getUTCDay(); // 0(Sun)..6(Sat)
+  const diffToMonday = (utcDay + 6) % 7; // Mon=>0, Sun=>6
+  const weekStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  weekStart.setUTCDate(weekStart.getUTCDate() - diffToMonday);
+  weekStart.setUTCHours(0, 0, 0, 0);
+  return weekStart;
+};
+
+const toWeekKey = (weekStart) => {
+  const d = new Date(weekStart);
+  const yyyy = String(d.getUTCFullYear()).padStart(4, '0');
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+app.get('/api/intern-of-week/current', auth, async (req, res) => {
+  try {
+    const weekStart = getUtcWeekStartMonday(new Date());
+    const weekKey = toWeekKey(weekStart);
+
+    const current = await InternOfWeek.findOne({ weekKey })
+      .populate('intern', 'email role')
+      .populate('setBy', 'email role')
+      .lean();
+
+    if (!current) {
+      return res.json({ weekKey, weekStart, internOfWeek: null });
+    }
+
+    const totalSelectionsForIntern = await InternOfWeek.countDocuments({ intern: current.intern?._id });
+
+    return res.json({
+      weekKey,
+      weekStart,
+      internOfWeek: {
+        ...current,
+        totalSelectionsForIntern,
+      },
+    });
+  } catch (err) {
+    console.error('intern-of-week/current error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/intern-of-week', auth, admin, async (req, res) => {
+  try {
+    const { internId, effectiveDate, note } = req.body || {};
+    if (!internId) return res.status(400).json({ message: 'internId is required' });
+
+    const internUser = await User.findById(internId).select('role email').lean();
+    if (!internUser) return res.status(404).json({ message: 'Intern not found' });
+    if (internUser.role !== 'intern') return res.status(400).json({ message: 'Selected user is not an intern' });
+
+    const weekStart = getUtcWeekStartMonday(effectiveDate ? new Date(effectiveDate) : new Date());
+    if (!weekStart) return res.status(400).json({ message: 'Invalid effectiveDate' });
+    const weekKey = toWeekKey(weekStart);
+
+    const updated = await InternOfWeek.findOneAndUpdate(
+      { weekKey },
+      {
+        $set: {
+          weekKey,
+          weekStart,
+          intern: internId,
+          setBy: req.user.id,
+          ...(typeof note === 'string' && note.trim() ? { note: note.trim() } : {}),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    )
+      .populate('intern', 'email role')
+      .populate('setBy', 'email role');
+
+    return res.json({ message: 'Intern of the week updated', weekKey, weekStart, internOfWeek: updated });
+  } catch (err) {
+    if (err && err.code === 11000) {
+      return res.status(409).json({ message: 'Intern of the week already set for this week. Try again.' });
+    }
+    console.error('admin/intern-of-week error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/intern-of-week/stats', auth, admin, async (req, res) => {
+  try {
+    const stats = await InternOfWeek.aggregate([
+      { $group: { _id: '$intern', selections: { $sum: 1 } } },
+      { $sort: { selections: -1 } },
+    ]);
+
+    const internIds = stats.map((s) => s._id).filter(Boolean);
+    const interns = await User.find({ _id: { $in: internIds } }).select('email role').lean();
+    const internById = new Map(interns.map((u) => [String(u._id), u]));
+
+    const enriched = stats.map((s) => ({
+      intern: internById.get(String(s._id)) || { _id: s._id },
+      selections: s.selections,
+    }));
+
+    return res.json({ stats: enriched });
+  } catch (err) {
+    console.error('admin/intern-of-week/stats error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
 
 app.post('/api/contact', [
     body('name').trim().escape(),
