@@ -1783,17 +1783,23 @@ const Admin = () => {
               </div>
 
               <h3>All Members</h3>
-              <div style={{ marginBottom: '12px' }}>
-                <strong>Current Intern of the Week:</strong>{' '}
-                {internOfWeekCurrent?.intern?.email ? internOfWeekCurrent.intern.email : 'Not set'}
-                <button
-                  onClick={handleClearInternOfWeek}
-                  className="btn btn-warning"
-                  style={{ marginLeft: '10px' }}
-                  disabled={internOfWeekUpdatingFor === 'CLEAR'}
-                >
-                  {internOfWeekUpdatingFor === 'CLEAR' ? 'Clearing...' : 'Clear This Week'}
-                </button>
+              <div className="iow-admin-card">
+                <div className="iow-admin-title">Intern of the Week</div>
+                <div className="iow-admin-row">
+                  <span className="iow-admin-label">Current</span>
+                  <span className="iow-admin-value">
+                    {internOfWeekCurrent?.intern?.email ? internOfWeekCurrent.intern.email : 'Not set'}
+                  </span>
+                </div>
+                <div className="iow-admin-actions">
+                  <button
+                    onClick={handleClearInternOfWeek}
+                    className="btn btn-warning"
+                    disabled={internOfWeekUpdatingFor === 'CLEAR'}
+                  >
+                    {internOfWeekUpdatingFor === 'CLEAR' ? 'Clearing...' : 'Clear This Week'}
+                  </button>
+                </div>
               </div>
               {successMessage && <p className="resource-message success">{successMessage}</p>}
               {errorMessage && <p className="resource-message error">{errorMessage}</p>}
@@ -1823,12 +1829,10 @@ const Admin = () => {
                       <td>{formatPaymentStatus(member)}</td>
                       <td>
                         {member.role === 'intern' ? (
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span>
-                              {internOfWeekCurrent?.intern?._id === member._id ? 'Current' : ''}
-                              {internOfWeekCountByInternId[member._id] != null
-                                ? ` (Total: ${internOfWeekCountByInternId[member._id]})`
-                                : ''}
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 600 }}>
+                              {internOfWeekCurrent?.intern?._id === member._id ? 'Current • ' : ''}
+                              Wins: {internOfWeekCountByInternId[member._id] ?? 0}
                             </span>
                             <button
                               onClick={() => handleSetInternOfWeek(member._id)}

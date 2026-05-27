@@ -347,6 +347,17 @@ app.get('/api/intern-of-week/current', auth, async (req, res) => {
   }
 });
 
+app.get('/api/intern-of-week/me', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'intern') return res.status(403).json({ message: 'Access denied' });
+    const totalSelectionsForMe = await InternOfWeek.countDocuments({ intern: req.user.id });
+    return res.json({ totalSelectionsForMe });
+  } catch (err) {
+    console.error('intern-of-week/me error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 app.post('/api/admin/intern-of-week', auth, admin, async (req, res) => {
   try {
     const { internId, effectiveDate, note } = req.body || {};

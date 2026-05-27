@@ -27,6 +27,7 @@ const InternPanel = () => {
   const [certificateData, setCertificateData] = useState(null);
   const [internReport, setInternReport] = useState(null);
   const [internOfWeek, setInternOfWeek] = useState(null);
+  const [myInternOfWeekWins, setMyInternOfWeekWins] = useState(0);
   const [microProjects, setMicroProjects] = useState([]);
 
   // AI Growth analysis (generated on demand)
@@ -144,7 +145,7 @@ const InternPanel = () => {
       }
 
       // Fetch remaining data with fallbacks
-      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes, internReportRes, internOfWeekRes, microProjectsRes] = await Promise.all([
+      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes, internReportRes, internOfWeekRes, myWinsRes, microProjectsRes] = await Promise.all([
         fetchWithErrorHandling('/api/tasks', []), // Uses intern auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
@@ -156,6 +157,7 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/internships/me', null),
         fetchWithErrorHandling('/api/intern/my-report', null),
         fetchWithErrorHandling('/api/intern-of-week/current', null),
+        fetchWithErrorHandling('/api/intern-of-week/me', { totalSelectionsForMe: 0 }),
         fetchWithErrorHandling('/api/intern/microprojects', [])
       ]);
 
@@ -173,6 +175,7 @@ const InternPanel = () => {
       setTeamMembers(teamData);
       setInternReport(internReportRes);
       setInternOfWeek(internOfWeekRes?.internOfWeek || null);
+      setMyInternOfWeekWins(Number(myWinsRes?.totalSelectionsForMe || 0));
       setMicroProjects(Array.isArray(microProjectsRes) ? microProjectsRes : []);
 
     } catch (err) {
@@ -1074,15 +1077,23 @@ const InternPanel = () => {
               <div className="dashboard-grid">
                 <div className="dashboard-card">
                   <h3>Intern of the Week</h3>
-                  <div style={{ opacity: 0.9, lineHeight: 1.6 }}>
-                    <div>
-                      <strong>Intern:</strong>{' '}
-                      {internOfWeek?.intern?.email ? internOfWeek.intern.email : 'Not announced yet'}
+                  <div className="iow-card">
+                    <div className="iow-row">
+                      <span className="iow-label">This week</span>
+                      <span className="iow-value">
+                        {internOfWeek?.intern?.email ? internOfWeek.intern.email : 'Not announced yet'}
+                      </span>
                     </div>
-                    {internOfWeek?.totalSelectionsForIntern != null && (
-                      <div>
-                        <strong>Total Wins:</strong> {internOfWeek.totalSelectionsForIntern}
-                      </div>
+                    <div className="iow-row">
+                      <span className="iow-label">Their total wins</span>
+                      <span className="iow-value">{internOfWeek?.totalSelectionsForIntern ?? '—'}</span>
+                    </div>
+                    <div className="iow-row">
+                      <span className="iow-label">Your total wins</span>
+                      <span className="iow-value">{myInternOfWeekWins}</span>
+                    </div>
+                    {internOfWeek?.intern?._id && user?.id && internOfWeek.intern._id === user.id && (
+                      <div className="iow-highlight">You are Intern of the Week.</div>
                     )}
                   </div>
                 </div>
