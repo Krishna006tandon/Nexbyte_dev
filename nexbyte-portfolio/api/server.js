@@ -34,6 +34,7 @@ const Certificate = require('./models/Certificate');
 const AutomationState = require('./models/AutomationState');
 const PresentationTopic = require('./models/PresentationTopic');
 const InternOfWeek = require('./models/InternOfWeek');
+const MicroProject = require('./models/MicroProject');
 const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
 const mailSender = require('./mailSender');
@@ -385,6 +386,25 @@ app.post('/api/admin/intern-of-week', auth, admin, async (req, res) => {
   }
 });
 
+app.delete('/api/admin/intern-of-week', auth, admin, async (req, res) => {
+  try {
+    const { weekKey, effectiveDate } = req.query || {};
+    let key = weekKey;
+    if (!key) {
+      const weekStart = getUtcWeekStartMonday(effectiveDate ? new Date(effectiveDate) : new Date());
+      if (!weekStart) return res.status(400).json({ message: 'Invalid effectiveDate' });
+      key = toWeekKey(weekStart);
+    }
+
+    const deleted = await InternOfWeek.findOneAndDelete({ weekKey: key });
+    if (!deleted) return res.status(404).json({ message: 'Intern of the week not set for this week' });
+    return res.json({ message: 'Intern of the week cleared', weekKey: key });
+  } catch (err) {
+    console.error('admin/intern-of-week delete error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 app.get('/api/admin/intern-of-week/stats', auth, admin, async (req, res) => {
   try {
     const stats = await InternOfWeek.aggregate([
@@ -404,6 +424,108 @@ app.get('/api/admin/intern-of-week/stats', auth, admin, async (req, res) => {
     return res.json({ stats: enriched });
   } catch (err) {
     console.error('admin/intern-of-week/stats error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/microprojects', auth, admin, async (req, res) => {
+  try {
+    const items = await MicroProject.find({})
+      .sort({ createdAt: -1 })
+      .populate('assignedInterns', 'email role')
+      .populate('createdBy', 'email role')
+      .lean();
+    return res.json(items);
+  } catch (err) {
+    console.error('admin/microprojects list error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/microprojects', auth, admin, async (req, res) => {
+  try {
+    const { title, details, assignedInternIds } = req.body || {};
+    if (!title || !String(title).trim()) return res.status(400).json({ message: 'title is required' });
+    if (!details || !String(details).trim()) return res.status(400).json({ message: 'details is required' });
+
+    const ids = Array.isArray(assignedInternIds) ? assignedInternIds.filter(Boolean) : [];
+    const uniqueIds = [...new Set(ids.map(String))];
+    if (uniqueIds.length === 0) return res.status(400).json({ message: 'assignedInternIds must include at least 1 intern' });
+
+    const internCount = await User.countDocuments({ _id: { $in: uniqueIds }, role: 'intern' });
+    if (internCount !== uniqueIds.length) return res.status(400).json({ message: 'assignedInternIds contains invalid intern(s)' });
+
+    const created = await MicroProject.create({
+      title: String(title).trim(),
+      details: String(details).trim(),
+      assignedInterns: uniqueIds,
+      createdBy: req.user.id,
+    });
+
+    const populated = await MicroProject.findById(created._id)
+      .populate('assignedInterns', 'email role')
+      .populate('createdBy', 'email role');
+
+    return res.status(201).json(populated);
+  } catch (err) {
+    console.error('admin/microprojects create error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/admin/microprojects/:id', auth, admin, async (req, res) => {
+  try {
+    const { title, details, assignedInternIds } = req.body || {};
+    const update = {};
+
+    if (title != null) update.title = String(title).trim();
+    if (details != null) update.details = String(details).trim();
+
+    if (assignedInternIds != null) {
+      const ids = Array.isArray(assignedInternIds) ? assignedInternIds.filter(Boolean) : [];
+      const uniqueIds = [...new Set(ids.map(String))];
+      if (uniqueIds.length === 0) return res.status(400).json({ message: 'assignedInternIds must include at least 1 intern' });
+
+      const internCount = await User.countDocuments({ _id: { $in: uniqueIds }, role: 'intern' });
+      if (internCount !== uniqueIds.length) return res.status(400).json({ message: 'assignedInternIds contains invalid intern(s)' });
+      update.assignedInterns = uniqueIds;
+    }
+
+    const updated = await MicroProject.findByIdAndUpdate(req.params.id, { $set: update }, { new: true })
+      .populate('assignedInterns', 'email role')
+      .populate('createdBy', 'email role');
+
+    if (!updated) return res.status(404).json({ message: 'Microproject not found' });
+    return res.json(updated);
+  } catch (err) {
+    console.error('admin/microprojects update error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/microprojects/:id', auth, admin, async (req, res) => {
+  try {
+    const deleted = await MicroProject.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Microproject not found' });
+    return res.json({ message: 'Microproject deleted' });
+  } catch (err) {
+    console.error('admin/microprojects delete error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/intern/microprojects', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'intern') return res.status(403).json({ message: 'Access denied' });
+
+    const items = await MicroProject.find({ assignedInterns: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('assignedInterns', 'email role')
+      .lean();
+
+    return res.json(items);
+  } catch (err) {
+    console.error('intern/microprojects list error:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 });

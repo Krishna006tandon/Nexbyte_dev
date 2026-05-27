@@ -27,6 +27,7 @@ const InternPanel = () => {
   const [certificateData, setCertificateData] = useState(null);
   const [internReport, setInternReport] = useState(null);
   const [internOfWeek, setInternOfWeek] = useState(null);
+  const [microProjects, setMicroProjects] = useState([]);
 
   // AI Growth analysis (generated on demand)
   const [growthAnalysis, setGrowthAnalysis] = useState(null);
@@ -143,7 +144,7 @@ const InternPanel = () => {
       }
 
       // Fetch remaining data with fallbacks
-      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes, internReportRes, internOfWeekRes] = await Promise.all([
+      const [tasksData, diaryData, reportsData, notificationsData, resourcesData, presentationTopicsData, groupMeetingsData, teamData, internshipRes, internReportRes, internOfWeekRes, microProjectsRes] = await Promise.all([
         fetchWithErrorHandling('/api/tasks', []), // Uses intern auth middleware
         fetchWithErrorHandling('/api/diary', []),
         fetchWithErrorHandling('/api/reports', []),
@@ -154,7 +155,8 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/team', []),
         fetchWithErrorHandling('/api/internships/me', null),
         fetchWithErrorHandling('/api/intern/my-report', null),
-        fetchWithErrorHandling('/api/intern-of-week/current', null)
+        fetchWithErrorHandling('/api/intern-of-week/current', null),
+        fetchWithErrorHandling('/api/intern/microprojects', [])
       ]);
 
       if (internshipRes) {
@@ -171,6 +173,7 @@ const InternPanel = () => {
       setTeamMembers(teamData);
       setInternReport(internReportRes);
       setInternOfWeek(internOfWeekRes?.internOfWeek || null);
+      setMicroProjects(Array.isArray(microProjectsRes) ? microProjectsRes : []);
 
     } catch (err) {
       console.error('Error in fetchInternData:', err);
@@ -902,6 +905,15 @@ const InternPanel = () => {
               </button>
             </li>
             <li>
+              <button
+                className={`nav-btn ${activeSection === 'microprojects' ? 'active' : ''}`}
+                onClick={() => setActiveSection('microprojects')}
+              >
+                <i className="fas fa-briefcase"></i>
+                Microprojects
+              </button>
+            </li>
+            <li>
               <button 
                 className={`nav-btn ${activeSection === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveSection('profile')}
@@ -1326,6 +1338,47 @@ const InternPanel = () => {
                   <i className="fas fa-tasks"></i>
                   <h3>No tasks assigned yet</h3>
                   <p>Check back later for new assignments.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Microprojects Section */}
+          {activeSection === 'microprojects' && (
+            <div className="tasks-section">
+              <div className="section-header">
+                <h2>Your Microprojects</h2>
+              </div>
+
+              {microProjects.length > 0 ? (
+                <div className="task-list">
+                  {microProjects.map((mp) => (
+                    <div key={mp._id} className="task-card">
+                      <div className="task-header">
+                        <div className="task-title">
+                          <h3>{mp.title}</h3>
+                        </div>
+                        <span className="status-badge">Assigned</span>
+                      </div>
+
+                      <p className="task-description" style={{ whiteSpace: 'pre-wrap' }}>
+                        {mp.details}
+                      </p>
+
+                      <div className="task-meta">
+                        <div className="assigned-by">
+                          <i className="fas fa-users"></i>
+                          Assigned to: {(mp.assignedInterns || []).map((u) => u.email).join(', ') || 'You'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <i className="fas fa-briefcase"></i>
+                  <h3>No microprojects assigned yet</h3>
+                  <p>Check back later for new microproject assignments.</p>
                 </div>
               )}
             </div>

@@ -72,6 +72,10 @@ const Admin = () => {
   const [internOfWeekCurrent, setInternOfWeekCurrent] = useState(null);
   const [internOfWeekCountByInternId, setInternOfWeekCountByInternId] = useState({});
   const [internOfWeekUpdatingFor, setInternOfWeekUpdatingFor] = useState(null);
+  const [microProjects, setMicroProjects] = useState([]);
+  const [microProjectForm, setMicroProjectForm] = useState({ title: '', details: '', assignedInternIds: [] });
+  const [microProjectLoading, setMicroProjectLoading] = useState(false);
+  const [microProjectSubmitting, setMicroProjectSubmitting] = useState(false);
   const activeTrackerMilestone = milestone || selectedClientForTracker?.milestone;
   const formatMeetingDate = (value) =>
     new Date(value).toLocaleDateString('en-IN', {
@@ -137,6 +141,84 @@ const Admin = () => {
       setErrorMessage(e.message);
     } finally {
       setInternOfWeekUpdatingFor(null);
+    }
+  };
+
+  const handleClearInternOfWeek = async () => {
+    const token = localStorage.getItem('token');
+    setInternOfWeekUpdatingFor('CLEAR');
+    try {
+      const res = await fetch('/api/admin/intern-of-week', {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to clear Intern of the Week');
+      setSuccessMessage('Intern of the Week cleared');
+      await refreshInternOfWeek();
+    } catch (e) {
+      setErrorMessage(e.message);
+    } finally {
+      setInternOfWeekUpdatingFor(null);
+    }
+  };
+
+  const refreshMicroProjects = async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/admin/microprojects', { headers: { 'x-auth-token': token } });
+    const data = await res.json().catch(() => []);
+    if (res.ok) setMicroProjects(Array.isArray(data) ? data : []);
+  };
+
+  const handleMicroProjectInternToggle = (internId) => {
+    setMicroProjectForm((prev) => {
+      const exists = prev.assignedInternIds.includes(internId);
+      return {
+        ...prev,
+        assignedInternIds: exists
+          ? prev.assignedInternIds.filter((id) => id !== internId)
+          : [...prev.assignedInternIds, internId],
+      };
+    });
+  };
+
+  const handleCreateMicroProject = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    setMicroProjectSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/microprojects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify(microProjectForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to create microproject');
+      setSuccessMessage('Microproject created');
+      setMicroProjectForm({ title: '', details: '', assignedInternIds: [] });
+      await refreshMicroProjects();
+    } catch (e2) {
+      setErrorMessage(e2.message);
+    } finally {
+      setMicroProjectSubmitting(false);
+    }
+  };
+
+  const handleDeleteMicroProject = async (id) => {
+    const ok = window.confirm('Delete this microproject?');
+    if (!ok) return;
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/admin/microprojects/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to delete microproject');
+      setSuccessMessage('Microproject deleted');
+      await refreshMicroProjects();
+    } catch (e2) {
+      setErrorMessage(e2.message);
     }
   };
 
@@ -464,6 +546,25 @@ const Admin = () => {
           } else {
             console.error(usersData.message);
           }
+        } else if (location.pathname === '/admin/microprojects') {
+          setMicroProjectLoading(true);
+          const [usersRes, microRes] = await Promise.all([
+            fetch('/api/users', { headers }),
+            fetch('/api/admin/microprojects', { headers }),
+          ]);
+          const usersData = await usersRes.json().catch(() => []);
+          const microData = await microRes.json().catch(() => []);
+          if (usersRes.ok) {
+            setResourceInterns((Array.isArray(usersData) ? usersData : []).filter((member) => member.role === 'intern'));
+          } else {
+            console.error(usersData.message);
+          }
+          if (microRes.ok) {
+            setMicroProjects(Array.isArray(microData) ? microData : []);
+          } else {
+            console.error(microData.message);
+          }
+          setMicroProjectLoading(false);
         }
 
         if (['/admin/projects', '/admin/task-management'].includes(location.pathname)) {
@@ -1685,6 +1786,14 @@ const Admin = () => {
               <div style={{ marginBottom: '12px' }}>
                 <strong>Current Intern of the Week:</strong>{' '}
                 {internOfWeekCurrent?.intern?.email ? internOfWeekCurrent.intern.email : 'Not set'}
+                <button
+                  onClick={handleClearInternOfWeek}
+                  className="btn btn-warning"
+                  style={{ marginLeft: '10px' }}
+                  disabled={internOfWeekUpdatingFor === 'CLEAR'}
+                >
+                  {internOfWeekUpdatingFor === 'CLEAR' ? 'Clearing...' : 'Clear This Week'}
+                </button>
               </div>
               {successMessage && <p className="resource-message success">{successMessage}</p>}
               {errorMessage && <p className="resource-message error">{errorMessage}</p>}
@@ -2520,6 +2629,87 @@ const Admin = () => {
                 onTasksSaved={handleTasksSaved}
               />
               <TaskList clientId={taskPageClientId} refreshTrigger={refreshTrigger} />
+            </div>
+          )}
+
+          {location.pathname === '/admin/microprojects' && (
+            <div>
+              <h2>Microprojects (Intern Assignment)</h2>
+              <div className="form-container">
+                <form onSubmit={handleCreateMicroProject}>
+                  <h3>Create Microproject</h3>
+                  <input
+                    type="text"
+                    placeholder="Title"
+                    value={microProjectForm.title}
+                    onChange={(e) => setMicroProjectForm((p) => ({ ...p, title: e.target.value }))}
+                    required
+                  />
+                  <textarea
+                    placeholder="Details"
+                    value={microProjectForm.details}
+                    onChange={(e) => setMicroProjectForm((p) => ({ ...p, details: e.target.value }))}
+                    rows={4}
+                    required
+                  />
+                  <div style={{ marginTop: 10 }}>
+                    <h4>Assign to Intern(s)</h4>
+                    {resourceInterns.length > 0 ? (
+                      <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflow: 'auto', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
+                        {resourceInterns.map((intern) => (
+                          <label key={intern._id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={microProjectForm.assignedInternIds.includes(intern._id)}
+                              onChange={() => handleMicroProjectInternToggle(intern._id)}
+                            />
+                            <span>{intern.email}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p>No interns found.</p>
+                    )}
+                  </div>
+                  <button type="submit" className="btn btn-primary" disabled={microProjectSubmitting}>
+                    {microProjectSubmitting ? 'Creating...' : 'Create Microproject'}
+                  </button>
+                </form>
+              </div>
+
+              <h3>Assigned Microprojects</h3>
+              {microProjectLoading ? (
+                <p>Loading...</p>
+              ) : microProjects.length > 0 ? (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Details</th>
+                      <th>Assigned To</th>
+                      <th>Created</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {microProjects.map((mp) => (
+                      <tr key={mp._id}>
+                        <td>{mp.title}</td>
+                        <td style={{ maxWidth: 480, whiteSpace: 'pre-wrap' }}>{mp.details}</td>
+                        <td>{(mp.assignedInterns || []).map((u) => u.email).join(', ') || '—'}</td>
+                        <td>{mp.createdAt ? new Date(mp.createdAt).toLocaleString() : '—'}</td>
+                        <td>
+                          <button onClick={() => handleDeleteMicroProject(mp._id)} className="btn btn-danger">
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No microprojects yet.</p>
+              )}
             </div>
           )}
 
