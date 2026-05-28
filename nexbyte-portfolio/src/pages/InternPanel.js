@@ -1356,40 +1356,90 @@ const InternPanel = () => {
 
           {/* Microprojects Section */}
           {activeSection === 'microprojects' && (
-            <div className="tasks-section">
-              <div className="section-header">
-                <h2>Your Microprojects</h2>
+            <div className="microprojects-section">
+              <div className="section-header microprojects-header">
+                <div>
+                  <h2>Your Microprojects</h2>
+                  <p>Focused assignments from the team, including individual and group work.</p>
+                </div>
+                <div className="microprojects-summary">
+                  <span className="microprojects-summary-count">{microProjects.length}</span>
+                  <span className="microprojects-summary-label">Assigned</span>
+                </div>
               </div>
 
               {microProjects.length > 0 ? (
-                <div className="task-list">
-                  {microProjects.map((mp) => (
-                    <div key={mp._id} className="task-card">
-                      <div className="task-header">
-                        <div className="task-title">
-                          <h3>{mp.title}</h3>
-                        </div>
-                        <span className="status-badge">Assigned</span>
-                      </div>
+                <div className="microprojects-grid">
+                  {microProjects.map((mp, index) => {
+                    const assignedInterns = Array.isArray(mp.assignedInterns) ? mp.assignedInterns : [];
+                    const assignmentType = assignedInterns.length > 1 ? 'Group' : 'Individual';
+                    const createdDate = mp.createdAt
+                      ? new Date(mp.createdAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : 'Recently assigned';
 
-                      <p className="task-description" style={{ whiteSpace: 'pre-wrap' }}>
-                        {mp.details}
-                      </p>
-
-                      <div className="task-meta">
-                        <div className="assigned-by">
-                          <i className="fas fa-users"></i>
-                          Assigned to: {(mp.assignedInterns || []).map((u) => u.email).join(', ') || 'You'}
+                    return (
+                      <article key={mp._id} className="microproject-card">
+                        <div className="microproject-card-top">
+                          <div className="microproject-icon">
+                            <i className="fas fa-layer-group"></i>
+                          </div>
+                          <div className="microproject-title-block">
+                            <span className="microproject-eyebrow">Microproject #{index + 1}</span>
+                            <h3>{mp.title}</h3>
+                          </div>
+                          <span className={`microproject-type ${assignmentType.toLowerCase()}`}>
+                            {assignmentType}
+                          </span>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+
+                        <div className="microproject-details">
+                          <h4>Project Details</h4>
+                          <p>{mp.details}</p>
+                        </div>
+
+                        <div className="microproject-meta-grid">
+                          <div className="microproject-meta-item">
+                            <span className="microproject-meta-label">Assigned On</span>
+                            <span className="microproject-meta-value">{createdDate}</span>
+                          </div>
+                          <div className="microproject-meta-item">
+                            <span className="microproject-meta-label">Team Size</span>
+                            <span className="microproject-meta-value">{Math.max(assignedInterns.length, 1)}</span>
+                          </div>
+                        </div>
+
+                        <div className="microproject-assignees">
+                          <div className="microproject-assignees-title">
+                            <i className="fas fa-users"></i>
+                            Assigned Interns
+                          </div>
+                          <div className="microproject-assignee-list">
+                            {assignedInterns.length > 0 ? (
+                              assignedInterns.map((intern) => (
+                                <span key={intern._id || intern.email} className="microproject-assignee-chip">
+                                  {intern.email || 'Intern'}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="microproject-assignee-chip">You</span>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="empty-state">
-                  <i className="fas fa-briefcase"></i>
+                <div className="microprojects-empty">
+                  <div className="microprojects-empty-icon">
+                    <i className="fas fa-briefcase"></i>
+                  </div>
                   <h3>No microprojects assigned yet</h3>
-                  <p>Check back later for new microproject assignments.</p>
+                  <p>New individual or group microprojects will appear here once the admin assigns them.</p>
                 </div>
               )}
             </div>
