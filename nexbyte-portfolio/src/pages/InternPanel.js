@@ -1863,10 +1863,17 @@ const InternPanel = () => {
                       </div>
                       <h4>{resource.title}</h4>
                       <p>{resource.description}</p>
-                      <button className="btn btn-primary btn-sm">
-                        <i className="fas fa-external-link-alt"></i>
-                        Access Resource
-                      </button>
+                      {resource.document ? (
+                        <a href={resource.document} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">
+                          <i className="fas fa-external-link-alt"></i>
+                          Open Document
+                        </a>
+                      ) : resource.url ? (
+                        <a href={resource.url} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">
+                          <i className="fas fa-external-link-alt"></i>
+                          Open Resource
+                        </a>
+                      ) : null}
                     </div>
                   ))
                 ) : (

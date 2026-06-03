@@ -2319,9 +2319,15 @@ const Admin = () => {
                       </div>
                       <h3>{resource.title}</h3>
                       <p>{resource.description}</p>
-                      <a href={resource.url} target="_blank" rel="noreferrer" className="btn btn-secondary">
-                        Open Resource
-                      </a>
+                      {resource.document ? (
+                        <a href={resource.document} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                          Open Document
+                        </a>
+                      ) : resource.url ? (
+                        <a href={resource.url} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                          Open Resource
+                        </a>
+                      ) : null}
                       {resource.assignmentMode === 'selected' && resource.assignedInterns && resource.assignedInterns.length > 0 && (
                         <p className="resource-tags">
                           Assigned to: {resource.assignedInterns.map((intern) => intern.email).join(', ')}
