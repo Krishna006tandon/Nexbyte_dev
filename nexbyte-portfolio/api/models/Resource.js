@@ -41,6 +41,10 @@ const ResourceSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User'
   }],
+  document: {
+    type: String,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -1,5 +1,6 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { put } = require('@vercel/blob');
 const path = require('path');
 const dotenv = require('dotenv');
 const crypto = require('crypto');
@@ -1169,6 +1170,42 @@ const uploadImage = multer({
     fileSize: 5 * 1024 * 1024,
   },
 });
+
+
+const uploadDocument = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain',
+    ];
+    const fileExt = typeof file.originalname === 'string' ? file.originalname.toLowerCase() : '';
+    const isAllowed = allowedTypes.includes(file.mimetype) || 
+                     fileExt.endsWith('.pdf') || 
+                     fileExt.endsWith('.doc') || 
+                     fileExt.endsWith('.docx') || 
+                     fileExt.endsWith('.ppt') || 
+                     fileExt.endsWith('.pptx') || 
+                     fileExt.endsWith('.xls') || 
+                     fileExt.endsWith('.xlsx') || 
+                     fileExt.endsWith('.txt');
+    if (isAllowed) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, and TXT files are allowed'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+});
+
 
 app.get('/api/automation/cron/in-progress-overdue/:secret', async (req, res) => {
   try {
@@ -4525,10 +4562,10 @@ app.get('/api/resources', auth, async (req, res) => {
 // Create resource
 app.post('/api/resources', auth, admin, async (req, res) => {
   try {
-    const { title, description, type, url, category, difficulty, tags, assignmentMode, assignedInterns } = req.body;
+    const { title, description, type, url, category, difficulty, tags, assignmentMode, assignedInterns, document } = req.body;
 
-    if (!title || !description || !url) {
-      return res.status(400).json({ message: 'Title, description and URL are required' });
+    if (!title || !description || (!url && !document)) {
+      return res.status(400).json({ message: 'Title, description and either URL or document are required' });
     }
 
     const normalizedTags = Array.isArray(tags)
@@ -4564,12 +4601,13 @@ app.post('/api/resources', auth, admin, async (req, res) => {
       title: String(title).trim(),
       description: String(description).trim(),
       type,
-      url: String(url).trim(),
+      url: String(url || '').trim(),
       category,
       difficulty,
       tags: normalizedTags,
       assignmentMode: assignmentMode === 'selected' ? 'selected' : 'all',
       assignedInterns: assignmentMode === 'selected' ? normalizedAssignedInterns : [],
+      document: document || '',
     });
 
     await resource.save();
@@ -4595,6 +4633,34 @@ app.delete('/api/resources/:id', auth, admin, async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 });
+
+
+// Upload document for resource
+app.post('/api/resources/upload-document', auth, admin, uploadDocument.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!blobToken) {
+      return res.status(500).json({ message: 'BLOB_READ_WRITE_TOKEN is not configured' });
+    }
+
+    const filename = `resource_document_${crypto.randomUUID()}_${req.file.originalname}`;
+    
+    const blob = await put(filename, req.file.buffer, {
+      access: 'public',
+      token: blobToken,
+    });
+
+    res.json({ url: blob.url });
+  } catch (err) {
+    console.error('Document upload error:', err);
+    res.status(500).json({ message: 'Failed to upload document', error: err.message });
+  }
+});
+
 
 // Get presentation topics (admin)
 app.get('/api/presentation-topics', auth, admin, async (req, res) => {
@@ -5375,3 +5441,12 @@ if (process.env.NODE_ENV !== 'production') {
   const port = process.env.PORT || 3001;
   app.listen(port, () => console.log(`Server listening on port ${port}`));
 }
+
+
+
+
+
+
+
+
+

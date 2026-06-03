@@ -420,7 +420,10 @@ const Admin = () => {
     tags: '',
     assignmentMode: 'all',
     assignedInterns: [],
+    document: '',
   });
+
+  const [resourceDocumentFile, setResourceDocumentFile] = useState(null);
 
   const [presentationTopicData, setPresentationTopicData] = useState({
     internId: '',
@@ -905,6 +908,11 @@ const Admin = () => {
     setResourceData({ ...resourceData, [e.target.name]: e.target.value });
   };
 
+  const handleResourceDocumentChange = (e) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    setResourceDocumentFile(file);
+  };
+
   const handleResourceInternToggle = (internId) => {
     setResourceData((current) => {
       const alreadySelected = current.assignedInterns.includes(internId);
@@ -1049,13 +1057,41 @@ const Admin = () => {
     setErrorMessage('');
 
     try {
+      let documentUrl = '';
+      
+      // Upload document if a file is selected
+      if (resourceDocumentFile) {
+        const formData = new FormData();
+        formData.append('document', resourceDocumentFile);
+        
+        const uploadRes = await fetch('/api/resources/upload-document', {
+          method: 'POST',
+          headers: {
+            'x-auth-token': token,
+          },
+          body: formData,
+        });
+        
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) {
+          setErrorMessage(uploadData.message || 'Failed to upload document');
+          return;
+        }
+        documentUrl = uploadData.url;
+      }
+
+      const resourcePayload = {
+        ...resourceData,
+        document: documentUrl,
+      };
+
       const res = await fetch('/api/resources', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify(resourceData),
+        body: JSON.stringify(resourcePayload),
       });
 
       const data = await res.json();
@@ -1075,7 +1111,9 @@ const Admin = () => {
         tags: '',
         assignmentMode: 'all',
         assignedInterns: [],
+        document: '',
       });
+      setResourceDocumentFile(null);
       setSuccessMessage('Resource added successfully.');
     } catch (err) {
       console.error(err);
@@ -2187,7 +2225,12 @@ const Admin = () => {
                     placeholder="https://example.com/resource"
                     value={resourceData.url}
                     onChange={handleResourceChange}
-                    required
+                  />
+                  <input
+                    type="file"
+                    name="document"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                    onChange={handleResourceDocumentChange}
                   />
                   <select name="type" value={resourceData.type} onChange={handleResourceChange}>
                     <option value="documentation">Documentation</option>
