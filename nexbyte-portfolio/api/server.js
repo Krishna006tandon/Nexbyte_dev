@@ -1202,7 +1202,7 @@ const uploadDocument = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: 4 * 1024 * 1024, // 4MB limit for Vercel
   },
 });
 

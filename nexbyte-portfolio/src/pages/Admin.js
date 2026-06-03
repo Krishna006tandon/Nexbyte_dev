@@ -910,6 +910,15 @@ const Admin = () => {
 
   const handleResourceDocumentChange = (e) => {
     const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    if (file) {
+      const maxSize = 4 * 1024 * 1024; // 4MB limit for Vercel
+      if (file.size > maxSize) {
+        alert('File size must be less than 4MB');
+        e.target.value = '';
+        setResourceDocumentFile(null);
+        return;
+      }
+    }
     setResourceDocumentFile(file);
   };
 
@@ -1072,11 +1081,19 @@ const Admin = () => {
           body: formData,
         });
         
-        const uploadData = await uploadRes.json();
         if (!uploadRes.ok) {
-          setErrorMessage(uploadData.message || 'Failed to upload document');
+          let errorMessage = 'Failed to upload document';
+          try {
+            const uploadData = await uploadRes.json();
+            errorMessage = uploadData.message || errorMessage;
+          } catch (e) {
+            errorMessage = uploadRes.statusText || errorMessage;
+          }
+          setErrorMessage(errorMessage);
           return;
         }
+        
+        const uploadData = await uploadRes.json();
         documentUrl = uploadData.url;
       }
 
