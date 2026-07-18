@@ -1525,6 +1525,8 @@ const Admin = () => {
     } catch (err) {
       console.error(err);
     }
+  };
+
   const handleDownloadSrs = (project) => {
     if (!project || !project.srsDocument) {
       alert('SRS document is not available for this project.');

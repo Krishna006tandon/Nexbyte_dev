@@ -644,14 +644,7 @@ const ClientPanel = () => {
         {activeView === 'srs' && renderSrs()}
         {activeView === 'billing' && renderBilling()}
         {activeView === 'profile' && renderProfile()}
-        {isSrsModalOpen && (
-          <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
-            <div className="srs-modal">
-              <h2>Software Requirement Specification</h2>
-              <pre>{data.clientData.srsDocument}</pre>
-            </div>
-          </Modal>
-        )}
+
         {isModalOpen && selectedBill && (
           <Modal isOpen={isModalOpen} onClose={closeModal}>
             <div className="manual-payment-modal">
