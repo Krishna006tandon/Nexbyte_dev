@@ -2937,14 +2937,7 @@ const Admin = () => {
           )}
         </div>
 
-        {isSrsModalOpen && selectedSrsClient && (
-          <Modal isOpen={isSrsModalOpen} onClose={closeSrsModal}>
-            <div className="srs-modal">
-              <h2>Software Requirement Specification for {selectedSrsClient.projectName}</h2>
-              <pre>{selectedSrsClient.srsDocument}</pre>
-            </div>
-          </Modal>
-        )}
+
 
         {isTrackerModalOpen && selectedClientForTracker && (
           <Modal isOpen={isTrackerModalOpen} onClose={() => setIsTrackerModalOpen(false)}>
