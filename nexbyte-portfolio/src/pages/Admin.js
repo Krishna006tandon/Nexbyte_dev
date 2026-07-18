@@ -61,9 +61,6 @@ const Admin = () => {
   const [internReport, setInternReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [expandedBill, setExpandedBill] = useState(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
-  const [selectedSrsClient, setSelectedSrsClient] = useState(null);
   const [showProjectTaskManagement, setShowProjectTaskManagement] = useState(false);
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState(null);
   const [paymentReminderSendingTo, setPaymentReminderSendingTo] = useState(null);
@@ -1535,19 +1532,7 @@ const Admin = () => {
     window.open(project.srsDocument, '_blank');
   };
 
-  const handleSeeSrs = (client) => {
-    if (!client || !client.srsDocument) {
-        alert('SRS data is not yet loaded. Please wait a moment and try again.');
-        return;
-    }
-    setSelectedSrsClient(client);
-    setIsSrsModalOpen(true);
-  }
 
-  const closeSrsModal = () => {
-    setIsSrsModalOpen(false);
-    setSelectedSrsClient(null);
-  }
 
   const handleShowInternReport = async (internId) => {
     setSelectedInternForReport(internId);
@@ -2141,12 +2126,9 @@ const Admin = () => {
                           <p>₹{totalBilled.toLocaleString()}</p>
                         </div>
                         <div className="summary-card">
-                          <button onClick={() => handleDownloadSrs(client)} className="btn btn-success" disabled={isDownloading}>
-                            {isDownloading ? 'Downloading...' : 'Download SRS'}
+                          <button onClick={() => handleDownloadSrs(client)} className="btn btn-success">
+                            Download SRS
                           </button>
-                        </div>
-                        <div className="summary-card">
-                          <button onClick={() => handleSeeSrs(client)} className="btn btn-primary">See SRS</button>
                         </div>
                       </div>
 

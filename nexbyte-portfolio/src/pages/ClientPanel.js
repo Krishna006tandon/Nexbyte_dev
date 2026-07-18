@@ -14,9 +14,6 @@ const ClientPanel = () => {
   const [selectedBill, setSelectedBill] = useState(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [projects, setProjects] = useState([]);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
-  const [selectedProjectSrs, setSelectedProjectSrs] = useState(null);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
