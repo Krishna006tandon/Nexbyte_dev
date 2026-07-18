@@ -40,6 +40,21 @@ const ProjectSchema = new mongoose.Schema({
     enum: ['pending', 'in-progress', 'completed', 'on-hold'],
     default: 'pending'
   },
+  projectRequirements: {
+    type: String,
+  },
+  milestone: {
+    type: String,
+    enum: ['Planning', 'Design', 'Development', 'Testing', 'Deployment', 'Completed'],
+    default: 'Planning'
+  },
+  milestoneHistory: [{
+    milestone: String,
+    date: { type: Date, default: Date.now }
+  }],
+  srsDocument: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now

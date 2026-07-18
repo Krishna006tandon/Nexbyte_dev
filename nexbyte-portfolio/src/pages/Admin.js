@@ -1525,97 +1525,13 @@ const Admin = () => {
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const handleDownloadSrs = (client) => {
-    if (!client || !client.srsDocument) {
-      alert('SRS data is not yet loaded. Please wait a moment and try again.');
+  const handleDownloadSrs = (project) => {
+    if (!project || !project.srsDocument) {
+      alert('SRS document is not available for this project.');
       return;
     }
-    setIsDownloading(true);
-    const srsContent = `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f9f9f9;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-          }
-          .srs-box {
-            max-width: 800px;
-            margin: auto;
-            padding: 50px;
-            background-color: #fff;
-            border: 1px solid #eee;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 50px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 20px;
-          }
-          .header img {
-            max-width: 150px;
-            margin-bottom: 20px;
-          }
-          .header h1 {
-            margin: 0;
-            color: #333;
-            font-size: 2.2em;
-            font-weight: 600;
-          }
-          pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            border: 1px solid #eee;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-            color: #999;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="srs-box">
-            <header class="header">
-                <img src="/logobill.jpg" alt="Nexbyte_Core Logo">
-                <h1>Software Requirement Specification</h1>
-            </header>
-            <pre>${client.srsDocument}</pre>
-            <footer class="footer">
-                <p>&copy; ${new Date().getFullYear()} Nexbyte_Core. All rights reserved.</p>
-            </footer>
-        </div>
-      </body>
-    </html>
-    `;
-
-    const element = document.createElement('div');
-    element.innerHTML = srsContent;
-
-    const opt = {
-      margin:       0,
-      filename:     `srs_${client.projectName}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-
-    window.html2pdf().from(element).set(opt).save().then(() => {
-        setIsDownloading(false);
-    });
-  }
+    window.open(project.srsDocument, '_blank');
+  };
 
   const handleSeeSrs = (client) => {
     if (!client || !client.srsDocument) {
@@ -1713,6 +1629,68 @@ const Admin = () => {
   };
 
   
+
+  const handleUpdateProjectMilestone = async (projectId, milestone) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/projects/${projectId}/milestone`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ milestone })
+      });
+      if (res.ok) {
+        setSuccessMessage('Milestone updated');
+        setTimeout(() => setSuccessMessage(''), 3000);
+        const fetchRes = await fetch('/api/projects', { headers: { 'x-auth-token': token } });
+        const updatedProjects = await fetchRes.json();
+        if (fetchRes.ok) setProjects(updatedProjects);
+      }
+    } catch(err) { console.error(err); }
+  };
+
+  const handleUploadSrs = async (projectId, file) => {
+    if (!file) return;
+    try {
+      setSuccessMessage('Uploading SRS...');
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('srsFile', file);
+      const res = await fetch(`/api/projects/${projectId}/srs`, {
+        method: 'POST',
+        headers: { 'x-auth-token': token },
+        body: formData
+      });
+      if (res.ok) {
+        setSuccessMessage('SRS Uploaded successfully');
+        setTimeout(() => setSuccessMessage(''), 3000);
+        const fetchRes = await fetch('/api/projects', { headers: { 'x-auth-token': token } });
+        const updatedProjects = await fetchRes.json();
+        if (fetchRes.ok) setProjects(updatedProjects);
+      }
+    } catch(err) { console.error(err); }
+  };
+
+  const handleUploadInvoice = async (billId, file) => {
+    if (!file) return;
+    try {
+      setSuccessMessage('Uploading Invoice...');
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('invoiceFile', file);
+      const res = await fetch(`/api/bills/${billId}/upload`, {
+        method: 'POST',
+        headers: { 'x-auth-token': token },
+        body: formData
+      });
+      if (res.ok) {
+        setSuccessMessage('Invoice Uploaded successfully');
+        setTimeout(() => setSuccessMessage(''), 3000);
+        const fetchRes = await fetch('/api/bills', { headers: { 'x-auth-token': token } });
+        const updatedBills = await fetchRes.json();
+        if (fetchRes.ok) setBills(updatedBills);
+      }
+    } catch(err) { console.error(err); }
+  };
 
   console.log('Bills:', bills);
   return (
@@ -2056,8 +2034,8 @@ const Admin = () => {
                     <th>Description</th>
                     <th>Total Budget</th>
                     <th>Deadline</th>
-                    <th>Client Type</th>
                     <th>Associated Client</th>
+                    <th>Status & SRS</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -2069,12 +2047,35 @@ const Admin = () => {
                       <td>{project.projectDescription}</td>
                       <td>{project.totalBudget}</td>
                       <td>{project.projectDeadline ? new Date(project.projectDeadline).toLocaleDateString() : 'N/A'}</td>
-                      <td>{project.clientType}</td>
                       <td>
                         {project.associatedClient ? 
                           (project.associatedClient.clientName || 'Client') : 
                           'N/A'
                         }
+                      </td>
+                      <td>
+                        <div>
+                          <select 
+                            value={project.milestone || 'Planning'} 
+                            onChange={(e) => handleUpdateProjectMilestone(project._id, e.target.value)}
+                            style={{ marginBottom: '5px' }}
+                          >
+                            <option value="Planning">Planning</option>
+                            <option value="Design">Design</option>
+                            <option value="Development">Development</option>
+                            <option value="Testing">Testing</option>
+                            <option value="Deployment">Deployment</option>
+                            <option value="Completed">Completed</option>
+                          </select>
+                        </div>
+                        <div>
+                          <input type="file" onChange={(e) => handleUploadSrs(project._id, e.target.files[0])} />
+                        </div>
+                        {project.srsDocument && (
+                          <div style={{ marginTop: '5px' }}>
+                            <a href={project.srsDocument} target="_blank" rel="noreferrer">View SRS</a>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <button onClick={() => handleDeleteProject(project._id)} className="btn btn-danger">Delete</button>
@@ -2154,7 +2155,7 @@ const Admin = () => {
                             <th>Description</th>
                             <th>Due Date</th>
                             <th>Status</th>
-                            <th>Action</th>
+                            <th>Action & Invoice</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2169,18 +2170,24 @@ const Admin = () => {
                                 <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
                                 <td>{bill.status}</td>
                                 <td>
-                                  {bill.status === 'Unpaid' && (
-                                    <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
-                                  )}
-                                  {bill.status === 'Verification Pending' && (
-                                    <button onClick={() => setExpandedBill(expandedBill === bill._id ? null : bill._id)} className="btn btn-primary">
-                                      {expandedBill === bill._id ? 'Hide' : 'Show'} Pending
-                                    </button>
-                                  )}
-                                  {bill.status === 'Paid' && (
-                                    <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark Unpaid</button>
-                                  )}
-                                  <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download</button>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    {bill.status === 'Unpaid' && (
+                                      <button onClick={() => handleMarkAsPaid(bill._id)} className="btn btn-success">Mark as Paid</button>
+                                    )}
+                                    {bill.status === 'Verification Pending' && (
+                                      <button onClick={() => setExpandedBill(expandedBill === bill._id ? null : bill._id)} className="btn btn-primary">
+                                        {expandedBill === bill._id ? 'Hide' : 'Show'} Pending
+                                      </button>
+                                    )}
+                                    {bill.status === 'Paid' && (
+                                      <button onClick={() => handlePaymentNotDone(bill._id)} className="btn btn-danger">Mark Unpaid</button>
+                                    )}
+                                    <button onClick={() => handleDownloadBill(bill)} className="btn btn-info">Download</button>
+                                    <input type="file" onChange={(e) => handleUploadInvoice(bill._id, e.target.files[0])} />
+                                    {bill.invoiceFile && (
+                                      <a href={bill.invoiceFile} target="_blank" rel="noreferrer">View Uploaded Invoice</a>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                               {expandedBill === bill._id && bill.pendingPayments && bill.pendingPayments.length > 0 && (

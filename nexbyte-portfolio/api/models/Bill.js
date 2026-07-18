@@ -70,6 +70,13 @@ const BillSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  invoiceFile: {
+    type: String, // URL to the uploaded invoice file in Vercel Blob
+  },
+  project: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project',
+  },
   billDate: {
     type: Date,
     default: Date.now,

@@ -5427,9 +5427,85 @@ app.get('/api/certificates/:certificateId', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+// --- New Projects & Bills Endpoints for Multiple Projects Feature ---
+app.get('/api/clients/:clientId/projects', auth, async (req, res) => {
+  try {
+    const projects = await Project.find({ associatedClient: req.params.clientId }).sort({ createdAt: -1 });
+    res.json(projects);
+  } catch (err) {
+    console.error('Error fetching client projects:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/projects', auth, admin, async (req, res) => {
+  try {
+    const newProject = new Project(req.body);
+    await newProject.save();
+    res.json(newProject);
+  } catch (err) {
+    console.error('Error creating project:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/projects/:id/milestone', auth, admin, async (req, res) => {
+  try {
+    const { milestone } = req.body;
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    
+    project.milestone = milestone;
+    project.milestoneHistory.push({ milestone });
+    await project.save();
+    res.json(project);
+  } catch (err) {
+    console.error('Error updating milestone:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+const uploadVercel = multer({ storage: multer.memoryStorage() });
+
+app.post('/api/projects/:id/srs', auth, admin, uploadVercel.single('srsFile'), async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const blob = await put(req.file.originalname, req.file.buffer, {
+      access: 'public',
+    });
+
+    project.srsDocument = blob.url;
+    await project.save();
+    res.json(project);
+  } catch (err) {
+    console.error('Error uploading SRS:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/bills/:id/upload', auth, admin, uploadVercel.single('invoiceFile'), async (req, res) => {
+  try {
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const blob = await put(req.file.originalname, req.file.buffer, {
+      access: 'public',
+    });
+
+    bill.invoiceFile = blob.url;
+    await bill.save();
+    res.json(bill);
+  } catch (err) {
+    console.error('Error uploading invoice:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = app;
-
 // Fallback error handler (keeps responses JSON for the frontend)
 app.use((err, req, res, next) => {
   console.error('Unhandled express error:', err);

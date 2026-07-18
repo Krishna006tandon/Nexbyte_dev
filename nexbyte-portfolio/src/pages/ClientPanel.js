@@ -13,9 +13,10 @@ const ClientPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [milestone, setMilestone] = useState(null); // Add state for milestone
+  const [projects, setProjects] = useState([]);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSrsModalOpen, setIsSrsModalOpen] = useState(false);
+  const [selectedProjectSrs, setSelectedProjectSrs] = useState(null);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -103,31 +104,31 @@ const ClientPanel = () => {
 
   const resolvedClientId = data?.clientData?._id || data?.clientData?.id;
 
-  // Fetch milestone data
+  // Fetch projects data
   useEffect(() => {
-    const fetchMilestone = async () => {
+    const fetchProjects = async () => {
       if (resolvedClientId) {
         try {
           const token = localStorage.getItem('token');
-          const res = await fetch(`/api/clients/${resolvedClientId}/milestone`, {
+          const res = await fetch(`/api/clients/${resolvedClientId}/projects`, {
             headers: {
               'x-auth-token': token,
             },
           });
 
           if (!res.ok) {
-            throw new Error('Failed to fetch milestone');
+            throw new Error('Failed to fetch projects');
           }
 
-          const clientWithMilestone = await res.json();
-          setMilestone(clientWithMilestone.milestone);
+          const projectsData = await res.json();
+          setProjects(projectsData);
         } catch (err) {
-          // Don't block the UI for this, just log the error
+          console.error('Failed to fetch projects:', err);
         }
       }
     };
 
-    fetchMilestone();
+    fetchProjects();
   }, [resolvedClientId]);
 
   useEffect(() => {
@@ -288,6 +289,10 @@ const ClientPanel = () => {
   };
 
   const handleDownloadBill = (bill) => {
+    if (bill.invoiceFile) {
+      window.open(bill.invoiceFile, '_blank');
+      return;
+    }
     if (!data || !data.clientData) {
       alert('Client data is not yet loaded. Please wait a moment and try again.');
       return;
@@ -466,15 +471,20 @@ const ClientPanel = () => {
     return <div className="client-panel-loading">Loading...</div>;
   }
 
-  const resolvedClientMilestone = milestone || data?.clientData?.milestone;
-
   const renderDashboard = () => (
     <div className="client-data">
-      <ProjectTracker currentMilestone={resolvedClientMilestone} />
-      <h2>Project Details</h2>
-      <p><strong>Project:</strong> {data.clientData.project}</p>
-      <p><strong>Status:</strong> {data.clientData.status}</p>
-      <p><strong>Due Date:</strong> {data.clientData.dueDate}</p>
+      {projects.length > 0 ? projects.map(project => (
+        <div key={project._id} style={{ marginBottom: '40px', padding: '20px', border: '1px solid #30363d', borderRadius: '8px', backgroundColor: '#161b22' }}>
+          <h2>Project: {project.projectName}</h2>
+          <ProjectTracker currentMilestone={project.milestone} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '20px' }}>
+            <p><strong>Type:</strong> {project.projectType}</p>
+            <p><strong>Status:</strong> {project.status}</p>
+            <p><strong>Requirements:</strong> {project.projectRequirements}</p>
+            <p><strong>Due Date:</strong> {new Date(project.projectDeadline).toLocaleDateString()}</p>
+          </div>
+        </div>
+      )) : <p>No projects found.</p>}
     </div>
   );
 
@@ -567,138 +577,45 @@ const ClientPanel = () => {
     </div>
   );
 
-  const handleDownloadSrs = () => {
-    if (!data || !data.clientData || !data.clientData.srsDocument) {
-      alert('SRS data is not yet loaded. Please wait a moment and try again.');
+  const handleDownloadSrs = (project) => {
+    if (!project || !project.srsDocument) {
+      alert('SRS document is not available for this project.');
       return;
     }
-    setIsDownloading(true);
-    const srsContent = `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f9f9f9;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-          }
-          .srs-box {
-            max-width: 800px;
-            margin: auto;
-            padding: 50px;
-            background-color: #fff;
-            border: 1px solid #eee;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 50px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 20px;
-          }
-          .header img {
-            max-width: 150px;
-            margin-bottom: 20px;
-          }
-          .header h1 {
-            margin: 0;
-            color: #333;
-            font-size: 2.2em;
-            font-weight: 600;
-          }
-          pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            border: 1px solid #eee;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-            color: #999;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="srs-box">
-            <header class="header">
-                <img src="/logobill.jpg" alt="Nexbyte_Core Logo">
-                <h1>Software Requirement Specification</h1>
-            </header>
-            <pre>${data.clientData.srsDocument}</pre>
-            <footer class="footer">
-                <p>&copy; ${new Date().getFullYear()} Nexbyte_Core. All rights reserved.</p>
-            </footer>
-        </div>
-      </body>
-    </html>
-    `;
-
-    const element = document.createElement('div');
-    element.innerHTML = srsContent;
-
-    const opt = {
-      margin:       0,
-      filename:     `srs_${data.clientData.project}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-
-    window.html2pdf().from(element).set(opt).save().then(() => {
-        setIsDownloading(false);
-    });
+    window.open(project.srsDocument, '_blank');
   };
-
-  const handleSeeSrs = () => {
-    if (!data || !data.clientData || !data.clientData.srsDocument) {
-      alert('SRS data is not yet loaded. Please wait a moment and try again.');
-      return;
-    }
-    setIsSrsModalOpen(true);
-  }
-
-  const closeSrsModal = () => {
-    setIsSrsModalOpen(false);
-  }
 
   const renderSrs = () => (
     <div className="srs-view">
-      <h2>Software Requirement Specification</h2>
-      {data.clientData.srsDocument ? (
-        <>
-          <div className="srs-actions">
-            <button className="download-btn" onClick={handleDownloadSrs} disabled={isDownloading}>
-              {isDownloading ? 'Downloading...' : 'Download SRS'}
-            </button>
-            <button className="see-btn" onClick={handleSeeSrs}>See SRS</button>
-          </div>
-          <pre className="srs-content">{data.clientData.srsDocument}</pre>
-          <div className="message-section">
-            <h3>Request Changes or Send a Message</h3>
-            <form onSubmit={handleSendMessage}>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Enter your message here..."
-                rows="5"
-                required
-              ></textarea>
-              <button type="submit">Send Message</button>
-            </form>
-            {messageStatus && <p>{messageStatus}</p>}
-          </div>
-        </>
-      ) : (
-        <p>The SRS document is not yet available.</p>
-      )}
+      <h2>Software Requirement Specifications</h2>
+      {projects.length > 0 ? projects.map(project => (
+        <div key={project._id} style={{ marginBottom: '20px', padding: '15px', border: '1px solid #30363d', borderRadius: '8px' }}>
+          <h3>{project.projectName}</h3>
+          {project.srsDocument ? (
+            <div className="srs-actions">
+              <button className="download-btn" onClick={() => handleDownloadSrs(project)}>
+                Download / View SRS
+              </button>
+            </div>
+          ) : (
+            <p>No SRS document uploaded for this project yet.</p>
+          )}
+        </div>
+      )) : <p>No projects found.</p>}
+      <div className="message-section" style={{ marginTop: '40px' }}>
+        <h3>Request Changes or Send a Message</h3>
+        <form onSubmit={handleSendMessage}>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Enter your message here..."
+            rows="5"
+            required
+          ></textarea>
+          <button type="submit">Send Message</button>
+        </form>
+        {messageStatus && <p>{messageStatus}</p>}
+      </div>
     </div>
   );
 

@@ -8,23 +8,7 @@ const ClientSchema = new mongoose.Schema({
   phone: { type: String },
   companyAddress: { type: String },
 
-  // Project Details
-  projectName: { type: String, required: true },
-  projectType: { type: String },
-  projectRequirements: { type: String },
-  projectDeadline: { type: Date },
-  totalBudget: { type: Number },
 
-  // Project Tracking
-  milestone: {
-    type: String,
-    enum: ['Planning', 'Design', 'Development', 'Testing', 'Deployment', 'Completed'],
-    default: 'Planning'
-  },
-  milestoneHistory: [{
-    milestone: String,
-    date: { type: Date, default: Date.now }
-  }],
 
   // Billing and Payment Information
   billingAddress: { type: String },
@@ -38,8 +22,7 @@ const ClientSchema = new mongoose.Schema({
   logoAndBrandingFiles: { type: String }, // Storing as a URL or path
   content: { type: String }, // Storing as a URL or path
 
-  // SRS Document
-  srsDocument: { type: String },
+
 
   password: { type: String, required: true },
 
