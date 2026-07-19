@@ -2028,13 +2028,28 @@ app.delete('/api/projects/:id', auth, admin, async (req, res) => {
 // @route   POST api/bills
 // @desc    Create a new bill
 // @access  Private (admin)
-app.post('/api/bills', auth, admin, async (req, res) => {
+app.post('/api/bills', auth, admin, uploadDocument.single('invoiceFile'), async (req, res) => {
   const { client, amount, dueDate, status, description, project } = req.body;
 
   try {
     const clientData = await Client.findById(client).select('clientName email projectName');
     if (!clientData) {
       return res.status(404).json({ message: 'Client not found' });
+    }
+
+    let invoiceFileUrl = '';
+    if (req.file) {
+      const { put } = require('@vercel/blob');
+      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+      if (!blobToken) {
+        return res.status(500).json({ message: 'BLOB_READ_WRITE_TOKEN is not configured' });
+      }
+      const filename = `bill_invoice_${crypto.randomUUID()}_${req.file.originalname}`;
+      const blob = await put(filename, req.file.buffer, {
+        access: 'public',
+        token: blobToken,
+      });
+      invoiceFileUrl = blob.url;
     }
 
     const newBill = new Bill({
@@ -2044,6 +2059,8 @@ app.post('/api/bills', auth, admin, async (req, res) => {
       dueDate,
       status,
       description,
+      ...(invoiceFileUrl && { invoiceFile: invoiceFileUrl }),
+      ...(status === 'Paid' && { paidAmount: amount }),
     });
 
     await newBill.save();

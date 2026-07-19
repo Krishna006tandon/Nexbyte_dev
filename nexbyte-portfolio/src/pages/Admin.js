@@ -396,7 +396,9 @@ const Admin = () => {
     amount: '',
     dueDate: '',
     description: '',
+    status: 'Unpaid',
   });
+  const [billInvoiceFile, setBillInvoiceFile] = useState(null);
 
   const [projectData, setProjectData] = useState({
     projectName: '',
@@ -1026,13 +1028,23 @@ const Admin = () => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
+      const formData = new FormData();
+      formData.append('client', billData.client);
+      if (billData.project) formData.append('project', billData.project);
+      formData.append('amount', billData.amount);
+      formData.append('dueDate', billData.dueDate);
+      if (billData.description) formData.append('description', billData.description);
+      formData.append('status', billData.status);
+      if (billInvoiceFile) {
+        formData.append('invoiceFile', billInvoiceFile);
+      }
+
       const res = await fetch('/api/bills', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'x-auth-token': token,
         },
-        body: JSON.stringify(billData),
+        body: formData,
       });
       const data = await res.json();
       if (res.ok) {
@@ -1043,7 +1055,9 @@ const Admin = () => {
           amount: '',
           dueDate: '',
           description: '',
+          status: 'Unpaid',
         });
+        setBillInvoiceFile(null);
         const fetchRes = await fetch('/api/bills', {
           headers: { 'x-auth-token': token },
         });
@@ -2114,6 +2128,11 @@ const Admin = () => {
                     <input type="date" name="dueDate" placeholder="Due Date" value={billData.dueDate} onChange={handleBillChange} required />
                     <textarea name="description" placeholder="Description" value={billData.description} onChange={handleBillChange}></textarea>
                     <button type="button" onClick={handleGenerateBillDescription} className="btn btn-secondary">Generate with AI</button>
+                    <select name="status" onChange={handleBillChange} value={billData.status || 'Unpaid'}>
+                      <option value="Unpaid">Unpaid</option>
+                      <option value="Paid">Paid</option>
+                    </select>
+                    <input type="file" onChange={(e) => setBillInvoiceFile(e.target.files[0])} accept=".pdf,.doc,.docx,.jpg,.png" />
                     <button type="submit" className="btn btn-primary">Add Bill</button>
                   </form>
                 </div>
