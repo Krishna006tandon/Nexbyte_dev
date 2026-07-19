@@ -568,7 +568,7 @@ const Admin = () => {
           setMicroProjectLoading(false);
         }
 
-        if (['/admin/projects', '/admin/task-management'].includes(location.pathname)) {
+        if (['/admin/projects', '/admin/task-management', '/admin/billing'].includes(location.pathname)) {
           const res = await fetch('/api/projects', { headers });
           const data = await res.json();
           if (res.ok) {
