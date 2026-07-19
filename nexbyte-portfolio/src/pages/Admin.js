@@ -392,6 +392,7 @@ const Admin = () => {
 
   const [billData, setBillData] = useState({
     client: '',
+    project: '',
     amount: '',
     dueDate: '',
     description: '',
@@ -1038,8 +1039,10 @@ const Admin = () => {
         setBills([...bills, data]);
         setBillData({
           client: '',
+          project: '',
           amount: '',
           dueDate: '',
+          description: '',
         });
         const fetchRes = await fetch('/api/bills', {
           headers: { 'x-auth-token': token },
@@ -2099,6 +2102,12 @@ const Admin = () => {
                       <option value="">Select a Client</option>
                       {clients.map(client => (
                         <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                      ))}
+                    </select>
+                    <select name="project" onChange={handleBillChange} value={billData.project || ''}>
+                      <option value="">Select a Project (Optional)</option>
+                      {projects.map(project => (
+                        <option key={project._id} value={project._id}>{project.projectName}</option>
                       ))}
                     </select>
                     <input type="number" name="amount" placeholder="Amount" value={billData.amount} onChange={handleBillChange} required />

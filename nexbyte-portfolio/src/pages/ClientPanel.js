@@ -470,9 +470,28 @@ const ClientPanel = () => {
 
   const renderDashboard = () => (
     <div className="client-data">
-      {projects.length > 0 ? projects.map(project => (
+      {projects.length > 0 ? projects.map(project => {
+        const projectBills = bills.filter(b => b.project === project._id || (b.project && b.project._id === project._id) || (projects.length === 1 && !b.project));
+        const totalPaid = projectBills.reduce((acc, bill) => acc + (bill.paidAmount || 0), 0);
+        const totalRemaining = (project.totalBudget || 0) - totalPaid;
+
+        return (
         <div key={project._id} style={{ marginBottom: '40px', padding: '20px', border: '1px solid #30363d', borderRadius: '8px', backgroundColor: '#161b22' }}>
           <h2>Project: {project.projectName}</h2>
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+             <div style={{ background: '#21262d', padding: '15px', borderRadius: '8px', flex: 1, border: '1px solid #30363d' }}>
+               <h4 style={{ margin: '0 0 10px 0', color: '#8b949e' }}>Total Budget</h4>
+               <p style={{ margin: 0, fontSize: '1.5em', color: '#58a6ff' }}>₹{(project.totalBudget || 0).toLocaleString()}</p>
+             </div>
+             <div style={{ background: '#21262d', padding: '15px', borderRadius: '8px', flex: 1, border: '1px solid #30363d' }}>
+               <h4 style={{ margin: '0 0 10px 0', color: '#8b949e' }}>Total Paid</h4>
+               <p style={{ margin: 0, fontSize: '1.5em', color: '#3fb950' }}>₹{totalPaid.toLocaleString()}</p>
+             </div>
+             <div style={{ background: '#21262d', padding: '15px', borderRadius: '8px', flex: 1, border: '1px solid #30363d' }}>
+               <h4 style={{ margin: '0 0 10px 0', color: '#8b949e' }}>Remaining</h4>
+               <p style={{ margin: 0, fontSize: '1.5em', color: '#f85149' }}>₹{totalRemaining.toLocaleString()}</p>
+             </div>
+          </div>
           <ProjectTracker currentMilestone={project.milestone} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '20px' }}>
             <p><strong>Type:</strong> {project.projectType}</p>
@@ -481,7 +500,7 @@ const ClientPanel = () => {
             <p><strong>Due Date:</strong> {new Date(project.projectDeadline).toLocaleDateString()}</p>
           </div>
         </div>
-      )) : <p>No projects found.</p>}
+      )}) : <p>No projects found.</p>}
     </div>
   );
 

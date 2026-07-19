@@ -2029,7 +2029,7 @@ app.delete('/api/projects/:id', auth, admin, async (req, res) => {
 // @desc    Create a new bill
 // @access  Private (admin)
 app.post('/api/bills', auth, admin, async (req, res) => {
-  const { client, amount, dueDate, status, description } = req.body;
+  const { client, amount, dueDate, status, description, project } = req.body;
 
   try {
     const clientData = await Client.findById(client).select('clientName email projectName');
@@ -2039,6 +2039,7 @@ app.post('/api/bills', auth, admin, async (req, res) => {
 
     const newBill = new Bill({
       client,
+      project,
       amount,
       dueDate,
       status,
@@ -2165,6 +2166,9 @@ app.put('/api/bills/:billId', auth, admin, async (req, res) => {
 
     if (status) {
         bill.status = status;
+        if (status === 'Paid' && paidAmount === undefined) {
+            bill.paidAmount = bill.amount;
+        }
     }
     if (paidAmount !== undefined) {
         bill.paidAmount = paidAmount;
