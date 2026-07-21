@@ -1,4 +1,5 @@
 const NexbyteCertificate = require('../models/NexbyteCertificate');
+const { put } = require('@vercel/blob');
 
 // Generate unique ID based on category and year
 const generateCertificateId = async (category) => {
@@ -22,7 +23,17 @@ const generateCertificateId = async (category) => {
 // 1. POST /certificate - Admin only
 exports.createCertificate = async (req, res) => {
   try {
-    const { category, studentName, email, programName, awardName, issueDate, internshipDuration } = req.body;
+    const { category, studentName, email, programName, awardName, issueDate, internshipDuration, revealDate } = req.body;
+    
+    let certificateFileUrl = null;
+    if (req.file) {
+      const extension = req.file.originalname.split('.').pop();
+      const filename = `certificates/${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+      const blob = await put(filename, req.file.buffer, {
+        access: 'public',
+      });
+      certificateFileUrl = blob.url;
+    }
     
     const certificateId = await generateCertificateId(category || 'INT');
     
@@ -41,7 +52,9 @@ exports.createCertificate = async (req, res) => {
       issueDate,
       internshipDuration,
       status: 'Valid',
-      qrCodeUrl
+      qrCodeUrl,
+      certificateFileUrl,
+      revealDate: revealDate ? new Date(revealDate) : null
     });
 
     await newCertificate.save();

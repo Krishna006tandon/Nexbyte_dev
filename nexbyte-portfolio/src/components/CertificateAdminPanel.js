@@ -3,6 +3,7 @@ import axios from 'axios';
 
 const CertificateAdminPanel = () => {
   const [certificates, setCertificates] = useState([]);
+  const [interns, setInterns] = useState([]);
   const [stats, setStats] = useState({ total: 0, verified: 0 });
   const [loading, setLoading] = useState(true);
   
@@ -15,8 +16,10 @@ const CertificateAdminPanel = () => {
     programName: '',
     awardName: '',
     issueDate: '',
-    internshipDuration: ''
+    internshipDuration: '',
+    revealDate: ''
   });
+  const [certificateFile, setCertificateFile] = useState(null);
 
   // Get token helper
   const getToken = () => localStorage.getItem('token') || '';
@@ -24,15 +27,22 @@ const CertificateAdminPanel = () => {
   const fetchCertificates = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/certificates/all', {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      if (res.data.success) {
-        setCertificates(res.data.certificates);
-        setStats({ total: res.data.total, verified: res.data.verified });
+      const [certsRes, usersRes] = await Promise.all([
+        axios.get('/api/certificates/all', { headers: { 'x-auth-token': getToken() } }),
+        axios.get('/api/users', { headers: { 'x-auth-token': getToken() } })
+      ]);
+      
+      if (certsRes.data.success) {
+        setCertificates(certsRes.data.certificates);
+        setStats({ total: certsRes.data.total, verified: certsRes.data.verified });
+      }
+      
+      if (usersRes.data) {
+        const internsOnly = usersRes.data.filter(u => u.role === 'intern');
+        setInterns(internsOnly);
       }
     } catch (err) {
-      console.error('Error fetching certificates', err);
+      console.error('Error fetching data', err);
     } finally {
       setLoading(false);
     }
@@ -43,14 +53,52 @@ const CertificateAdminPanel = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleAutofill = (e) => {
+    const internEmail = e.target.value;
+    if (!internEmail) return;
+    
+    const intern = interns.find(i => i.email === internEmail);
+    if (intern) {
+      const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      };
+      
+      const start = formatDate(intern.internshipStartDate);
+      const end = formatDate(intern.internshipEndDate);
+      const duration = start && end ? `${start} - ${end}` : '';
+      
+      setFormData({
+        ...formData,
+        email: intern.email,
+        studentName: intern.name || intern.email.split('@')[0], // fallback name
+        internshipDuration: duration,
+        issueDate: new Date().toISOString().split('T')[0] // today's date
+      });
+    }
+  };
+
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('/api/certificate', formData, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+      const formPayload = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (formData[key]) formPayload.append(key, formData[key]);
+      });
+      if (certificateFile) {
+        formPayload.append('certificateFile', certificateFile);
+      }
+
+      const res = await axios.post('/api/certificate', formPayload, {
+        headers: { 
+          'x-auth-token': getToken(),
+          'Content-Type': 'multipart/form-data'
+        }
       });
       if (res.data.success) {
         setShowAddForm(false);
+        setCertificateFile(null);
         fetchCertificates();
       }
     } catch (err) {
@@ -108,20 +156,42 @@ const CertificateAdminPanel = () => {
       {showAddForm && (
         <form onSubmit={handleAddSubmit} style={{ padding: '20px', backgroundColor: '#f1f5f9', marginBottom: '20px', borderRadius: '8px' }}>
           <h3>Issue Certificate</h3>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Autofill from existing Intern (Optional)</label>
+            <select onChange={handleAutofill} style={{ padding: '8px', width: '100%', borderRadius: '4px', border: '1px solid #ccc' }}>
+              <option value="">-- Select an Intern --</option>
+              {interns.map(intern => (
+                <option key={intern._id} value={intern.email}>{intern.email}</option>
+              ))}
+            </select>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-            <input placeholder="Student Name" required onChange={e => setFormData({...formData, studentName: e.target.value})} />
-            <input placeholder="Email" type="email" required onChange={e => setFormData({...formData, email: e.target.value})} />
-            <input placeholder="Program Name (e.g. Software Development Internship)" required onChange={e => setFormData({...formData, programName: e.target.value})} />
-            <input placeholder="Award Name (Optional)" onChange={e => setFormData({...formData, awardName: e.target.value})} />
-            <input placeholder="Issue Date" type="date" required onChange={e => setFormData({...formData, issueDate: e.target.value})} />
-            <input placeholder="Duration (e.g. 15 June 2026 - 20 July 2026)" required onChange={e => setFormData({...formData, internshipDuration: e.target.value})} />
-            <select onChange={e => setFormData({...formData, category: e.target.value})}>
+            <input placeholder="Student Name" value={formData.studentName} required onChange={e => setFormData({...formData, studentName: e.target.value})} />
+            <input placeholder="Email" type="email" value={formData.email} required onChange={e => setFormData({...formData, email: e.target.value})} />
+            <input placeholder="Program Name (e.g. Software Development Internship)" value={formData.programName} required onChange={e => setFormData({...formData, programName: e.target.value})} />
+            <input placeholder="Award Name (Optional)" value={formData.awardName} onChange={e => setFormData({...formData, awardName: e.target.value})} />
+            <input placeholder="Issue Date" type="date" value={formData.issueDate} required onChange={e => setFormData({...formData, issueDate: e.target.value})} />
+            <input placeholder="Duration (e.g. 15 June 2026 - 20 July 2026)" value={formData.internshipDuration} required onChange={e => setFormData({...formData, internshipDuration: e.target.value})} />
+            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
               <option value="INT">Internship (INT)</option>
               <option value="HCK">Hackathon (HCK)</option>
               <option value="WKS">Workshop (WKS)</option>
               <option value="TRN">Training (TRN)</option>
             </select>
-            <button type="submit" style={{ backgroundColor: '#16A34A', color: 'white', border: 'none', padding: '10px' }}>Generate Certificate</button>
+            
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Reveal Date (Optional)</label>
+              <input type="datetime-local" value={formData.revealDate} onChange={e => setFormData({...formData, revealDate: e.target.value})} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Certificate File (PDF/Image)</label>
+              <input type="file" accept="image/*,application/pdf" onChange={e => setCertificateFile(e.target.files[0])} />
+            </div>
+
+            <button type="submit" style={{ backgroundColor: '#16A34A', color: 'white', border: 'none', padding: '10px', gridColumn: 'span 2' }}>Generate & Upload Certificate</button>
           </div>
         </form>
       )}

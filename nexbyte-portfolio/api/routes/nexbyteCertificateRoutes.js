@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const certificateController = require('../controllers/nexbyteCertificateController');
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 // Simple middleware to mock admin check (you should replace this with your actual JWT middleware)
 const adminAuthMiddleware = (req, res, next) => {
@@ -19,7 +26,7 @@ const verifyLimiter = rateLimit({
 });
 
 // Admin Routes (Protect these with JWT Auth)
-router.post('/certificate', adminAuthMiddleware, certificateController.createCertificate);
+router.post('/certificate', adminAuthMiddleware, upload.single('certificateFile'), certificateController.createCertificate);
 router.put('/certificate/:certificateId', adminAuthMiddleware, certificateController.updateCertificate);
 router.delete('/certificate/:certificateId', adminAuthMiddleware, certificateController.deleteCertificate);
 router.get('/certificates/all', adminAuthMiddleware, certificateController.getAllCertificates);

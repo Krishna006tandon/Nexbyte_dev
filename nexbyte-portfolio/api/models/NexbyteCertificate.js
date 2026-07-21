@@ -34,7 +34,15 @@ const NexbyteCertificateSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Valid', 'Revoked', 'Expired'],
-    default: 'Valid',
+    default: 'Valid'
+  },
+  certificateFileUrl: {
+    type: String, // URL from Vercel Blob or other storage
+    default: null
+  },
+  revealDate: {
+    type: Date, // If set, certificate is hidden until this date
+    default: null
   },
   qrCodeUrl: {
     type: String,

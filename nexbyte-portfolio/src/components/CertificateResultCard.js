@@ -12,12 +12,20 @@ const CertificateResultCard = ({ certificate }) => {
     issueDate,
     internshipDuration,
     status,
-    qrCodeUrl
+    qrCodeUrl,
+    certificateFileUrl,
+    revealDate
   } = certificate;
 
-  const formatDate = (dateString) => {
+  const isRevealed = !revealDate || new Date() >= new Date(revealDate);
+
+  const formatDate = (dateString, includeTime = false) => {
     const options = { day: 'numeric', month: 'long', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-GB', options);
+    if (includeTime) {
+      options.hour = '2-digit';
+      options.minute = '2-digit';
+    }
+    return new Date(dateString).toLocaleString('en-GB', options);
   };
 
   const getStatusBadge = () => {
@@ -59,7 +67,19 @@ const CertificateResultCard = ({ certificate }) => {
       {/* Body */}
       <div style={{ padding: '32px' }}>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+        {!isRevealed ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px dashed #94a3b8' }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#334155', fontSize: '20px' }}>⏳ Certificate Pending Reveal</h3>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>
+              Your certificate details will be automatically revealed on:
+            </p>
+            <p style={{ margin: '15px 0 0 0', fontWeight: 'bold', fontSize: '18px', color: '#1E3A8A' }}>
+              {formatDate(revealDate, true)}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
           
           <div>
             <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Name</p>
@@ -110,6 +130,29 @@ const CertificateResultCard = ({ certificate }) => {
           alignItems: 'center',
           border: '1px dashed #cbd5e1'
         }}>
+          {certificateFileUrl && (
+            <a 
+              href={certificateFileUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-block',
+                backgroundColor: '#1E3A8A',
+                color: 'white',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                marginBottom: '24px',
+                width: '100%',
+                textAlign: 'center',
+                boxSizing: 'border-box'
+              }}
+            >
+              📥 Download / View Original Certificate
+            </a>
+          )}
+          
           <QRCodeSVG 
             value={qrCodeUrl || `https://nexbytecore.com/certificate/${certificateId}`} 
             size={120} 
@@ -120,6 +163,8 @@ const CertificateResultCard = ({ certificate }) => {
             Scan to verify authenticity
           </p>
         </div>
+        </>
+        )}
 
       </div>
     </div>
