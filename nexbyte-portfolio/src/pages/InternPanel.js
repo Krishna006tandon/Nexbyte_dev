@@ -4,7 +4,6 @@ import './InternPanel.css';
 import { useAuth } from '../context/AuthContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import CertificatePreview from '../components/CertificatePreview';
 import CertificateResultCard from '../components/CertificateResultCard';
 
 const InternPanel = () => {
@@ -24,7 +23,6 @@ const InternPanel = () => {
   const [presentationTopics, setPresentationTopics] = useState([]);
   const [groupMeetings, setGroupMeetings] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
-  const [internshipInfo, setInternshipInfo] = useState(null);
   const [certificateData, setCertificateData] = useState(null);
   const [internReport, setInternReport] = useState(null);
   const [internOfWeek, setInternOfWeek] = useState(null);
@@ -76,7 +74,6 @@ const InternPanel = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
-  const certificateRef = useRef(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -163,10 +160,6 @@ const InternPanel = () => {
         fetchWithErrorHandling('/api/intern/my-certificate', null)
       ]);
 
-      if (internshipRes) {
-        setInternshipInfo(internshipRes.internship || null);
-      }
-      
       // Use new NexbyteCertificate if available, otherwise fallback to old certificate data
       if (newCertRes && newCertRes.success && newCertRes.certificate) {
         setCertificateData(newCertRes.certificate);
