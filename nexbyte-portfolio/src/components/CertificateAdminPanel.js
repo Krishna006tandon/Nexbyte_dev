@@ -40,6 +40,7 @@ const CertificateAdminPanel = () => {
 
   useEffect(() => {
     fetchCertificates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAddSubmit = async (e) => {
