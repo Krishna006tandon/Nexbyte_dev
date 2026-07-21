@@ -39,7 +39,7 @@ const MicroProject = require('./models/MicroProject');
 const { encryptCertificateData, decryptCertificateData } = require('./utils/certificateCrypto');
 const internshipRoutes = require('./internship');
 const mailSender = require('./mailSender');
-
+const nexbyteCertificateRoutes = require('./routes/nexbyteCertificateRoutes');
 
 const app = express();
 
@@ -62,6 +62,9 @@ app.use(helmet({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Mount API routes
+app.use('/api', nexbyteCertificateRoutes);
 
 // Configure rate limiting
 const limiter = rateLimit({
