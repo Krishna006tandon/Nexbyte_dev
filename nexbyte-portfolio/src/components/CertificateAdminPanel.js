@@ -84,7 +84,13 @@ const CertificateAdminPanel = () => {
     try {
       const formPayload = new FormData();
       Object.keys(formData).forEach(key => {
-        if (formData[key]) formPayload.append(key, formData[key]);
+        if (formData[key]) {
+          if (key === 'revealDate') {
+            formPayload.append(key, new Date(formData[key]).toISOString());
+          } else {
+            formPayload.append(key, formData[key]);
+          }
+        }
       });
       if (certificateFile) {
         formPayload.append('certificateFile', certificateFile);
