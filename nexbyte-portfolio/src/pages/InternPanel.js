@@ -137,7 +137,6 @@ const InternPanel = () => {
         setPresentationTopics([]);
         setGroupMeetings([]);
         setTeamMembers([]);
-        setInternshipInfo(null);
         setCertificateData(null);
         return;
       }
