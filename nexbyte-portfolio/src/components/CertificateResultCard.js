@@ -131,6 +131,20 @@ const CertificateResultCard = ({ certificate }) => {
           border: '1px dashed #cbd5e1'
         }}>
           {certificateFileUrl && (
+            <div style={{ width: '100%', marginBottom: '24px', textAlign: 'center' }}>
+              {certificateFileUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe 
+                  src={`${certificateFileUrl}#toolbar=0`} 
+                  style={{ width: '100%', height: '500px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px' }}
+                  title="Certificate PDF"
+                />
+              ) : (
+                <img 
+                  src={certificateFileUrl} 
+                  alt="Certificate" 
+                  style={{ maxWidth: '100%', maxHeight: '600px', objectFit: 'contain', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} 
+                />
+              )}
             <a 
               href={certificateFileUrl} 
               target="_blank" 
@@ -151,6 +165,7 @@ const CertificateResultCard = ({ certificate }) => {
             >
               📥 Download / View Original Certificate
             </a>
+            </div>
           )}
           
           <QRCodeSVG 
