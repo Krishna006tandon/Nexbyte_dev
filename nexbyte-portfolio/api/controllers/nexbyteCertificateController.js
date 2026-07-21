@@ -46,10 +46,9 @@ exports.createCertificate = async (req, res) => {
       }
     }
     
-    // Base URL could be environment based. Let's use request host or env var
-    // For React/Next apps often they run on port 3000 locally. We can default to request origin
-    // But since it's a direct URL to frontend, it's better to pass origin from frontend or use a static env var
-    const frontendUrl = process.env.FRONTEND_URL || 'https://nexbytecore.com';
+    // Use the actual origin where the request came from, or fallback to the host
+    const origin = req.headers.origin || (req.get('host') ? `https://${req.get('host')}` : null);
+    const frontendUrl = origin || process.env.FRONTEND_URL || 'https://nexbyte-dev.vercel.app';
     const qrCodeUrl = `${frontendUrl}/certificate/${certificateId}`;
 
     const newCertificate = new NexbyteCertificate({
