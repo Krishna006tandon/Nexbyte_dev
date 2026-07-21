@@ -28,8 +28,7 @@ const Sidebar = () => {
     { to: "/admin/email-automation", text: "Email Automation" },
     { to: "/admin/about-us", text: "About Us" },
     { to: "/admin/role-management", text: "Role Management" },
-    
-    
+    { to: "/admin/certificates", text: "Certificates" },
     ];
 
   

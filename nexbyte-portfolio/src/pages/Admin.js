@@ -14,6 +14,7 @@ import ApplicationDetail from './ApplicationDetail';
 import EmailAutomation from './EmailAutomation';
 import RoleManagement from './RoleManagement';
 import Modal from '../components/Modal';
+import CertificateAdminPanel from '../components/CertificateAdminPanel';
 
 const Admin = () => {
   const [contacts, setContacts] = useState([]);
@@ -2827,6 +2828,10 @@ const Admin = () => {
 
           {location.pathname === '/admin/role-management' && (
             <RoleManagement />
+          )}
+
+          {location.pathname === '/admin/certificates' && (
+            <CertificateAdminPanel />
           )}
 
           {location.pathname === '/admin/about-us' && (
