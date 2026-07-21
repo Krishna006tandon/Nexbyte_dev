@@ -17,7 +17,8 @@ const CertificateAdminPanel = () => {
     awardName: '',
     issueDate: '',
     internshipDuration: '',
-    revealDate: ''
+    revealDate: '',
+    customId: ''
   });
   const [certificateFile, setCertificateFile] = useState(null);
 
@@ -180,6 +181,7 @@ const CertificateAdminPanel = () => {
             <input placeholder="Award Name (Optional)" value={formData.awardName} onChange={e => setFormData({...formData, awardName: e.target.value})} />
             <input placeholder="Issue Date" type="date" value={formData.issueDate} required onChange={e => setFormData({...formData, issueDate: e.target.value})} />
             <input placeholder="Duration (e.g. 15 June 2026 - 20 July 2026)" value={formData.internshipDuration} required onChange={e => setFormData({...formData, internshipDuration: e.target.value})} />
+            <input placeholder="Custom Certificate ID (Leave blank to auto-generate)" value={formData.customId} onChange={e => setFormData({...formData, customId: e.target.value})} />
             <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
               <option value="INT">Internship (INT)</option>
               <option value="HCK">Hackathon (HCK)</option>

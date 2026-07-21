@@ -23,7 +23,7 @@ const generateCertificateId = async (category) => {
 // 1. POST /certificate - Admin only
 exports.createCertificate = async (req, res) => {
   try {
-    const { category, studentName, email, programName, awardName, issueDate, internshipDuration, revealDate } = req.body;
+    const { category, studentName, email, programName, awardName, issueDate, internshipDuration, revealDate, customId } = req.body;
     
     let certificateFileUrl = null;
     if (req.file) {
@@ -35,7 +35,16 @@ exports.createCertificate = async (req, res) => {
       certificateFileUrl = blob.url;
     }
     
-    const certificateId = await generateCertificateId(category || 'INT');
+    let certificateId = customId;
+    if (!certificateId || certificateId.trim() === '') {
+      certificateId = await generateCertificateId(category || 'INT');
+    } else {
+      // Ensure custom ID is unique
+      const existing = await NexbyteCertificate.findOne({ certificateId });
+      if (existing) {
+        return res.status(400).json({ success: false, message: 'This Certificate ID is already in use.' });
+      }
+    }
     
     // Base URL could be environment based. Let's use request host or env var
     // For React/Next apps often they run on port 3000 locally. We can default to request origin
