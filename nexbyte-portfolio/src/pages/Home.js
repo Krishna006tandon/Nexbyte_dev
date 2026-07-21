@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Card from '../components/Card';
 import { FaCode, FaMobileAlt, FaPaintBrush } from 'react-icons/fa';
@@ -12,6 +12,16 @@ export const metadata = {
 };
 
 const Home = () => {
+  const navigate = useNavigate();
+  const [verifyId, setVerifyId] = useState('');
+
+  const handleVerifySubmit = (e) => {
+    e.preventDefault();
+    if (verifyId.trim()) {
+      navigate(`/certificate/${verifyId.trim()}`);
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -49,6 +59,33 @@ const Home = () => {
                 <p>We design beautiful and intuitive user interfaces that your users will love.</p>
               </Card>
             </div>
+          </section>
+
+          {/* Certificate Verification Section */}
+          <section className="certificate-verification-section" style={{ padding: '60px 20px', backgroundColor: '#F8FAFC', textAlign: 'center', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+            <h2 className="section-title" style={{ color: '#1E3A8A' }}>Verify Certificate Authenticity</h2>
+            <p className="internship-subtitle" style={{ maxWidth: '600px', margin: '0 auto 30px' }}>Enter the unique NexByte Core Certificate ID to verify its authenticity and view the original credential.</p>
+            
+            <form onSubmit={handleVerifySubmit} style={{ display: 'flex', justifyContent: 'center', gap: '10px', maxWidth: '500px', margin: '0 auto' }}>
+              <input 
+                type="text" 
+                placeholder="e.g. NBC-INT-26001" 
+                value={verifyId}
+                onChange={(e) => setVerifyId(e.target.value)}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  flex: 1,
+                  fontSize: '16px',
+                  outline: 'none'
+                }}
+                required
+              />
+              <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', whiteSpace: 'nowrap' }}>
+                <i className="fas fa-search"></i> Verify
+              </button>
+            </form>
           </section>
 
           {/* Internship Section */}

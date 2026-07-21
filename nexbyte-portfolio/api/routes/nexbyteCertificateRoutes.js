@@ -3,6 +3,8 @@ const router = express.Router();
 const certificateController = require('../controllers/nexbyteCertificateController');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 // Configure multer for file uploads
 const upload = multer({
@@ -34,6 +36,29 @@ router.get('/certificates/all', adminAuthMiddleware, certificateController.getAl
 // Public Routes
 router.get('/certificate/:certificateId', verifyLimiter, certificateController.getCertificate);
 router.post('/verify', verifyLimiter, certificateController.verifyCertificate);
+
+// Intern Route: Fetch own certificate
+const internAuthMiddleware = async (req, res, next) => {
+  const token = req.header('x-auth-token');
+  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    
+    // Quick check if they are intern
+    const user = await User.findById(req.user.id);
+    if (!user || user.role !== 'intern') {
+      return res.status(403).json({ message: 'Access denied, not an intern' });
+    }
+    
+    req.user.email = user.email; // attach email so controller can find cert
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+router.get('/intern/my-certificate', internAuthMiddleware, certificateController.getInternCertificate);
 
 // Dynamic Sitemap Route for Google SEO
 router.get('/sitemap.xml', async (req, res) => {

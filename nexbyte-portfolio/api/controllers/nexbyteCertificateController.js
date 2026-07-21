@@ -166,3 +166,25 @@ exports.getAllCertificates = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
+
+// 7. GET /intern/my-certificate - Intern only
+exports.getInternCertificate = async (req, res) => {
+  try {
+    const email = req.user.email;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email not found in token' });
+    }
+    
+    // Find valid certificate by email
+    const certificate = await NexbyteCertificate.findOne({ email, status: 'Valid' }).sort({ createdAt: -1 });
+    
+    if (!certificate) {
+      return res.status(404).json({ success: false, message: 'No certificate found' });
+    }
+    
+    res.status(200).json({ success: true, certificate });
+  } catch (error) {
+    console.error('Error fetching intern certificate:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
