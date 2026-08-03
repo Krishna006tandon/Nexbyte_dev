@@ -372,9 +372,80 @@ const sendUserCredentials = async (userEmail, details) => {
     }
 };
 
+const sendAlternateEmailWelcome = async (clientEmail, details) => {
+    try {
+        const { clientName, contactPerson, projectName, projectType, projectDeadline, totalBudget } = details;
+        const transporter = createTransporter();
+
+        const mailOptions = {
+            from: getFromAddress('NexByte'),
+            to: clientEmail,
+            subject: `🎉 Welcome to Nexbyte - You've been added to "${projectName}"!`,
+            html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 650px; margin: 0 auto; padding: 0; background-color: #f9fafb;">
+          <div style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); padding: 40px 30px; text-align: center; border-radius: 15px 15px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 32px; font-weight: 700;">Welcome to Nexbyte!</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 16px;">You have been added as an alternate contact</p>
+          </div>
+          <div style="background: #ffffff; padding: 40px 30px; border-radius: 0 0 15px 15px; border: 1px solid #e5e7eb;">
+            <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 24px; text-align: center;">Hello ${contactPerson || clientName}! 👋</h2>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center;">
+              You have been successfully added as an alternate contact for the project <strong>${projectName}</strong>.
+            </p>
+            <div style="margin: 30px 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+              <div style="background-color: #f3f4f6; padding: 12px 20px; border-bottom: 1px solid #e5e7eb;">
+                <h3 style="margin: 0; font-size: 16px; color: #374151;">📋 Project Overview</h3>
+              </div>
+              <div style="padding: 20px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; width: 40%;">Project Name:</td>
+                    <td style="padding: 8px 0; color: #111827; font-weight: 600;">${projectName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Project Type:</td>
+                    <td style="padding: 8px 0; color: #111827;">${projectType || 'N/A'}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Deadline:</td>
+                    <td style="padding: 8px 0; color: #111827;">${projectDeadline ? new Date(projectDeadline).toLocaleDateString() : 'TBD'}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+            <div style="background: #f8fafc; border: 2px solid #4F46E5; padding: 25px; border-radius: 12px; margin: 30px 0; text-align: center;">
+              <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #1e40af;">🔐 Account Access</h3>
+              <p style="color: #4b5563; font-size: 15px; margin: 0;">
+                You can log in to the client dashboard using this email. If you do not have the password, you can use the "Forgot Password" feature on the login page or ask the primary account holder.
+              </p>
+            </div>
+            <div style="text-align: center; margin: 35px 0;">
+              <a href="https://nexbyte-dev.vercel.app/" style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 30px; font-weight: 700; font-size: 16px;">🚀 Access Your Dashboard</a>
+            </div>
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 25px; text-align: center;">
+              <p style="color: #9ca3af; margin: 0; font-size: 13px;">Warm regards,<br><strong style="color: #4F46E5;">The Nexbyte Team</strong></p>
+            </div>
+          </div>
+        </div>
+      `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        const previewUrl = getPreviewUrl(info);
+        if (previewUrl) console.log('Email preview URL:', previewUrl);
+        console.log('Alternate email welcome sent successfully:', info.messageId);
+        return { success: true, messageId: info.messageId, previewUrl };
+    } catch (error) {
+        const friendly = formatEmailSendError(error);
+        console.error('Error sending alternate email welcome:', friendly);
+        return { success: false, error: friendly };
+    }
+};
+
 module.exports = {
     sendClientCredentials,
     sendPasswordChangeNotification,
     sendPasswordReset,
-    sendUserCredentials
+    sendUserCredentials,
+    sendAlternateEmailWelcome
 };

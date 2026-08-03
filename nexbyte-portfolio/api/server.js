@@ -1716,9 +1716,29 @@ app.post('/api/clients', auth, admin, async (req, res) => {
         totalBudget
       });
       if (emailResult.success) {
-        console.log('Client credentials email sent successfully');
+        console.log('Client credentials email sent successfully to primary email');
       } else {
-        console.error('Failed to send client credentials email:', emailResult.error);
+        console.error('Failed to send client credentials email to primary email:', emailResult.error);
+      }
+
+      // If alternateEmail is provided during creation, send them the credentials too
+      if (req.body.alternateEmail) {
+        const altEmailResult = await mailSender.sendClientCredentials(req.body.alternateEmail, {
+          clientName,
+          contactPerson,
+          password,
+          projectName,
+          phone,
+          companyAddress,
+          projectType,
+          projectDeadline,
+          totalBudget
+        });
+        if (altEmailResult.success) {
+          console.log('Client credentials email sent successfully to alternate email');
+        } else {
+          console.error('Failed to send client credentials email to alternate email:', altEmailResult.error);
+        }
       }
     } catch (error) {
       console.error('Error in sendClientCredentials:', error);
@@ -1782,6 +1802,13 @@ app.delete('/api/clients/:id', auth, admin, async (req, res) => {
 app.put('/api/clients/:id', auth, admin, async (req, res) => {
   try {
     const { email, alternateEmail } = req.body;
+    
+    // Get existing client to check if alternate email is newly added
+    const existingClientById = await Client.findById(req.params.id);
+    if (!existingClientById) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
     if (email) {
       // Check if another client already has this email
       const existingClient = await Client.findOne({ email });
@@ -1790,9 +1817,24 @@ app.put('/api/clients/:id', auth, admin, async (req, res) => {
       }
     }
     const client = await Client.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
-    if (!client) {
-      return res.status(404).json({ message: 'Client not found' });
+    
+    // Check if alternate email was just added
+    if (alternateEmail && alternateEmail !== existingClientById.alternateEmail) {
+      try {
+        console.log('Attempting to send alternate email welcome...');
+        await mailSender.sendAlternateEmailWelcome(alternateEmail, {
+          clientName: client.clientName,
+          contactPerson: client.contactPerson,
+          projectName: client.projectName,
+          projectType: client.projectType,
+          projectDeadline: client.projectDeadline,
+          totalBudget: client.totalBudget
+        });
+      } catch (error) {
+        console.error('Error sending alternate email welcome:', error);
+      }
     }
+    
     res.json(client);
   } catch (err) {
     console.error(err.message);
