@@ -74,6 +74,7 @@ const Admin = () => {
   const [microProjectForm, setMicroProjectForm] = useState({ title: '', details: '', assignedInternIds: [] });
   const [microProjectLoading, setMicroProjectLoading] = useState(false);
   const [microProjectSubmitting, setMicroProjectSubmitting] = useState(false);
+  const [editingClientId, setEditingClientId] = useState(null);
   const activeTrackerMilestone = milestone || selectedClientForTracker?.milestone;
   const formatMeetingDate = (value) =>
     new Date(value).toLocaleDateString('en-IN', {
@@ -374,6 +375,7 @@ const Admin = () => {
     clientName: '',
     contactPerson: '',
     email: '',
+    alternateEmail: '',
     phone: '',
     companyAddress: '',
     projectName: '',
@@ -745,8 +747,12 @@ const Admin = () => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch('/api/clients', {
-        method: 'POST',
+      const isEdit = !!editingClientId;
+      const url = isEdit ? `/api/clients/${editingClientId}` : '/api/clients';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
@@ -755,11 +761,19 @@ const Admin = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setClients([...clients, data]);
+        if (isEdit) {
+          setClients(clients.map(c => c._id === editingClientId ? data : c));
+          setSuccessMessage('Client updated successfully');
+        } else {
+          setClients([...clients, data]);
+          setSuccessMessage('Client added successfully');
+        }
+        setEditingClientId(null);
         setClientData({
           clientName: '',
           contactPerson: '',
           email: '',
+          alternateEmail: '',
           phone: '',
           companyAddress: '',
           projectName: '',
@@ -783,13 +797,46 @@ const Admin = () => {
         if (fetchRes.ok) {
           setClients(updatedClients);
         }
+        setTimeout(() => setSuccessMessage(''), 5000);
       } else {
+        setErrorMessage(data.message || 'Failed to save client');
+        setTimeout(() => setErrorMessage(''), 5000);
         console.error(data.message);
       }
     } catch (err) {
       console.error(err);
+      setErrorMessage('Server error');
+      setTimeout(() => setErrorMessage(''), 5000);
     }
   };
+
+  const handleEditClientClick = (client) => {
+    setEditingClientId(client._id);
+    setClientData({
+      clientName: client.clientName || '',
+      contactPerson: client.contactPerson || '',
+      email: client.email || '',
+      alternateEmail: client.alternateEmail || '',
+      phone: client.phone || '',
+      companyAddress: client.companyAddress || '',
+      projectName: client.projectName || '',
+      projectType: client.projectType || '',
+      projectRequirements: client.projectRequirements || '',
+      projectDeadline: client.projectDeadline ? client.projectDeadline.split('T')[0] : '',
+      totalBudget: client.totalBudget || '',
+      billingAddress: client.billingAddress || '',
+      gstNumber: client.gstNumber || '',
+      paymentTerms: client.paymentTerms || '',
+      paymentMethod: client.paymentMethod || '',
+      domainRegistrarLogin: client.domainRegistrarLogin || '',
+      webHostingLogin: client.webHostingLogin || '',
+      logoAndBrandingFiles: client.logoAndBrandingFiles || '',
+      content: client.content || '',
+    });
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
 
   const handleDeleteClient = async (id) => {
     const token = localStorage.getItem('token');
@@ -1943,10 +1990,11 @@ const Admin = () => {
               <h2>Manage Clients</h2>
               <div className="form-container">
                 <form onSubmit={handleAddClient}>
-                  <h3>Add New Client</h3>
+                  <h3>{editingClientId ? 'Edit Client' : 'Add New Client'}</h3>
                   <input type="text" name="clientName" placeholder="Client/Company Name" value={clientData.clientName} onChange={handleClientChange} required />
                   <input type="text" name="contactPerson" placeholder="Contact Person's Name" value={clientData.contactPerson} onChange={handleClientChange} required />
-                  <input type="email" name="email" placeholder="Email Address" value={clientData.email} onChange={handleClientChange} required />
+                  <input type="email" name="email" placeholder="Primary Email Address" value={clientData.email} onChange={handleClientChange} required />
+                  <input type="email" name="alternateEmail" placeholder="Alternate Email Address (Optional)" value={clientData.alternateEmail} onChange={handleClientChange} />
                   <input type="text" name="phone" placeholder="Phone Number" value={clientData.phone} onChange={handleClientChange} />
                   <input type="text" name="companyAddress" placeholder="Company Address" value={clientData.companyAddress} onChange={handleClientChange} />
                   <input type="text" name="projectName" placeholder="Project Name" value={clientData.projectName} onChange={handleClientChange} required />
@@ -1962,7 +2010,21 @@ const Admin = () => {
                   <input type="text" name="webHostingLogin" placeholder="Web Hosting Login" value={clientData.webHostingLogin} onChange={handleClientChange} />
                   <input type="text" name="logoAndBrandingFiles" placeholder="Logo and Branding Files (URL)" value={clientData.logoAndBrandingFiles} onChange={handleClientChange} />
                   <input type="text" name="content" placeholder="Content (URL)" value={clientData.content} onChange={handleClientChange} />
-                  <button type="submit" className="btn btn-primary">Add Client</button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="submit" className="btn btn-primary">{editingClientId ? 'Update Client' : 'Add Client'}</button>
+                    {editingClientId && (
+                      <button type="button" className="btn btn-secondary" onClick={() => {
+                        setEditingClientId(null);
+                        setClientData({
+                          clientName: '', contactPerson: '', email: '', alternateEmail: '', phone: '',
+                          companyAddress: '', projectName: '', projectType: '', projectRequirements: '',
+                          projectDeadline: '', totalBudget: '', billingAddress: '', gstNumber: '',
+                          paymentTerms: '', paymentMethod: '', domainRegistrarLogin: '', webHostingLogin: '',
+                          logoAndBrandingFiles: '', content: ''
+                        });
+                      }}>Cancel Edit</button>
+                    )}
+                  </div>
                 </form>
               </div>
 
@@ -1972,7 +2034,7 @@ const Admin = () => {
                   <tr>
                     <th>Client Name</th>
                     <th>Contact Person</th>
-                    <th>Email</th>
+                    <th>Emails</th>
                     <th>Project Name</th>
                     <th>Password</th>
                     <th>Action</th>
@@ -1983,7 +2045,10 @@ const Admin = () => {
                     <tr key={client._id}>
                       <td>{client.clientName}</td>
                       <td>{client.contactPerson}</td>
-                      <td>{client.email}</td>
+                      <td>
+                        {client.email}
+                        {client.alternateEmail ? <><br/><small>{client.alternateEmail}</small></> : null}
+                      </td>
                       <td>{client.projectName}</td>
                       <td>
                         {clientPasswords[client._id] ? (
@@ -1993,7 +2058,8 @@ const Admin = () => {
                         )}
                       </td>
                       <td>
-                        <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger">Delete</button>
+                        <button onClick={() => handleEditClientClick(client)} className="btn btn-warning" style={{ marginRight: '5px' }}>Edit</button>
+                        <button onClick={() => handleDeleteClient(client._id)} className="btn btn-danger" style={{ marginRight: '5px' }}>Delete</button>
                         <button onClick={() => handleShowTracker(client)} className="btn btn-info">Show Tracker</button>
                       </td>
                     </tr>

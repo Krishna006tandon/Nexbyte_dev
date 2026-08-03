@@ -1653,6 +1653,7 @@ app.post('/api/clients', auth, admin, async (req, res) => {
     clientName,
     contactPerson,
     email,
+    alternateEmail,
     phone,
     companyAddress,
     projectName,
@@ -1679,6 +1680,7 @@ app.post('/api/clients', auth, admin, async (req, res) => {
       clientName,
       contactPerson,
       email,
+      alternateEmail,
       phone,
       companyAddress,
       projectName,
@@ -1768,6 +1770,30 @@ app.delete('/api/clients/:id', auth, admin, async (req, res) => {
       return res.status(404).json({ message: 'Client not found' });
     }
     res.json({ message: 'Client removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/clients/:id
+// @desc    Update a client
+// @access  Private (admin)
+app.put('/api/clients/:id', auth, admin, async (req, res) => {
+  try {
+    const { email, alternateEmail } = req.body;
+    if (email) {
+      // Check if another client already has this email
+      const existingClient = await Client.findOne({ email });
+      if (existingClient && existingClient._id.toString() !== req.params.id) {
+        return res.status(400).json({ message: 'Email already exists for another client' });
+      }
+    }
+    const client = await Client.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    res.json(client);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
