@@ -41,6 +41,9 @@ const internshipRoutes = require('./internship');
 const mailSender = require('./mailSender');
 const nexbyteCertificateRoutes = require('./routes/nexbyteCertificateRoutes');
 
+// Utility to generate a random 8-character password
+const generatePassword = () => Math.random().toString(36).slice(-8);
+
 const app = express();
 
 // Trust proxy for rate limiting behind load balancers/proxies
