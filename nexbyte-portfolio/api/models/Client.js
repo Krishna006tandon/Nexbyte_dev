@@ -8,8 +8,12 @@ const ClientSchema = new mongoose.Schema({
   alternateEmail: { type: String },
   phone: { type: String },
   companyAddress: { type: String },
-
-
+  projectName: { type: String },
+  projectType: { type: String },
+  projectRequirements: { type: String },
+  projectDeadline: { type: Date },
+  totalBudget: { type: Number },
+  monthlyMaintenanceCharge: { type: Number, default: 0 },
 
   // Billing and Payment Information
   billingAddress: { type: String },

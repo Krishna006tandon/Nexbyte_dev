@@ -383,6 +383,7 @@ const Admin = () => {
     projectRequirements: '',
     projectDeadline: '',
     totalBudget: '',
+    monthlyMaintenanceCharge: '',
     billingAddress: '',
     gstNumber: '',
     paymentTerms: '',
@@ -411,7 +412,9 @@ const Admin = () => {
     projectDeadline: '',
     clientType: 'non-client',
     associatedClient: '',
+    monthlyMaintenanceCharge: '',
   });
+  const [editingProjectId, setEditingProjectId] = useState(null);
 
   const [resourceData, setResourceData] = useState({
     title: '',
@@ -454,6 +457,15 @@ const Admin = () => {
     nonFunctionalRequirements: '',
   });
 
+  const [invoiceGenData, setInvoiceGenData] = useState({
+    client: '',
+    project: '',
+    dueDate: '',
+    status: 'Unpaid',
+    paidAmount: 0,
+    items: [{ id: Date.now(), description: '', amount: 0 }],
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
@@ -493,7 +505,7 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects', '/admin/task-management'].includes(location.pathname)) {
+        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects', '/admin/task-management', '/admin/invoice-generator'].includes(location.pathname)) {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -573,7 +585,7 @@ const Admin = () => {
           setMicroProjectLoading(false);
         }
 
-        if (['/admin/projects', '/admin/task-management', '/admin/billing'].includes(location.pathname)) {
+        if (['/admin/projects', '/admin/task-management', '/admin/billing', '/admin/invoice-generator'].includes(location.pathname)) {
           const res = await fetch('/api/projects', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -891,8 +903,10 @@ const Admin = () => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
+      const url = editingProjectId ? `/api/projects/${editingProjectId}` : '/api/projects';
+      const method = editingProjectId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
@@ -901,7 +915,14 @@ const Admin = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setProjects([...projects, data]);
+        if (editingProjectId) {
+          setProjects(projects.map(p => p._id === editingProjectId ? data : p));
+          setEditingProjectId(null);
+          setSuccessMessage('Project updated successfully!');
+        } else {
+          setProjects([...projects, data]);
+          setSuccessMessage('Project added successfully!');
+        }
         setProjectData({
           projectName: '',
           projectType: '',
@@ -910,22 +931,30 @@ const Admin = () => {
           projectDeadline: '',
           clientType: 'non-client',
           associatedClient: '',
+          monthlyMaintenanceCharge: '',
         });
-        const fetchRes = await fetch('/api/projects', {
-          headers: { 'x-auth-token': token },
-        });
-        const updatedProjects = await fetchRes.json();
-        if (fetchRes.ok) {
-          setProjects(updatedProjects);
-          setSuccessMessage('Project added successfully!');
-          setTimeout(() => setSuccessMessage(''), 5000);
-        }
+        setTimeout(() => setSuccessMessage(''), 5000);
       } else {
         console.error(data.message);
       }
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleEditProjectClick = (project) => {
+    setEditingProjectId(project._id);
+    setProjectData({
+      projectName: project.projectName || '',
+      projectType: project.projectType || '',
+      projectDescription: project.projectDescription || '',
+      totalBudget: project.totalBudget || '',
+      projectDeadline: project.projectDeadline ? project.projectDeadline.split('T')[0] : '',
+      clientType: project.clientType || 'non-client',
+      associatedClient: project.associatedClient?._id || project.associatedClient || '',
+      monthlyMaintenanceCharge: project.monthlyMaintenanceCharge || '',
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteProject = async (id) => {
@@ -1744,6 +1773,187 @@ const Admin = () => {
     } catch(err) { console.error(err); }
   };
 
+  const handleInvoiceGenChange = (e) => {
+    setInvoiceGenData({ ...invoiceGenData, [e.target.name]: e.target.value });
+  };
+
+  const handleInvoiceItemChange = (id, field, value) => {
+    setInvoiceGenData({
+      ...invoiceGenData,
+      items: invoiceGenData.items.map(item => item.id === id ? { ...item, [field]: value } : item)
+    });
+  };
+
+  const handleAddInvoiceItem = () => {
+    setInvoiceGenData({
+      ...invoiceGenData,
+      items: [...invoiceGenData.items, { id: Date.now(), description: '', amount: 0 }]
+    });
+  };
+
+  const handleRemoveInvoiceItem = (id) => {
+    if (invoiceGenData.items.length === 1) return;
+    setInvoiceGenData({
+      ...invoiceGenData,
+      items: invoiceGenData.items.filter(item => item.id !== id)
+    });
+  };
+
+  const handleGenerateAndSaveInvoice = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    
+    const totalAmount = invoiceGenData.items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const combinedDescription = invoiceGenData.items.map(i => i.description).join(', ');
+
+    try {
+      const payload = {
+        client: invoiceGenData.client,
+        project: invoiceGenData.project,
+        amount: totalAmount,
+        paidAmount: invoiceGenData.paidAmount,
+        dueDate: invoiceGenData.dueDate,
+        status: invoiceGenData.status,
+        description: combinedDescription
+      };
+
+      const res = await fetch('/api/bills', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const savedBill = await res.json();
+      if (!res.ok) {
+        throw new Error(savedBill.message || 'Failed to save bill');
+      }
+
+      setSuccessMessage('Invoice saved to database. Generating PDF...');
+      
+      const clientDetails = clients.find(c => c._id === invoiceGenData.client);
+      const projectDetails = projects.find(p => p._id === invoiceGenData.project);
+
+      const itemsHtml = invoiceGenData.items.map((item, index) => `
+        <tr>
+            <td style="text-align: center; font-weight: 600; color: #334155;">${String(index + 1).padStart(2, '0')}</td>
+            <td><strong>${item.description}</strong></td>
+            <td style="text-align: right; font-weight: 600; color: #334155;">₹${Number(item.amount).toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      const invoiceContent = `
+      <style>
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+          body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #334155; line-height: 1.55; font-size: 10pt; margin: 0; max-width: 820px; padding: 20px; background-color: #ffffff; }
+          .invoice-header { background-color: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #ffffff !important; padding: 40px; border-radius: 8px 8px 0 0; border-bottom: 6px solid #2563eb !important; display: flex; justify-content: space-between; align-items: flex-start; }
+          .company-brand h1 { font-size: 22pt; line-height: 1.1; margin: 0 0 5px 0; font-weight: 700; letter-spacing: -0.5px; color: #ffffff !important; }
+          .company-brand p { margin: 0; font-size: 9.5pt; color: #94a3b8 !important; }
+          .invoice-title-block { text-align: right; }
+          .invoice-title-block h2 { font-size: 22pt; font-weight: 700; margin: 0 0 8px 0; letter-spacing: 0.5px; color: #ffffff !important; }
+          .status-badge { display: inline-block; background-color: ${invoiceGenData.status === 'Paid' ? '#059669' : '#dc2626'} !important; color: #ffffff !important; font-weight: 700; font-size: 9pt; text-transform: uppercase; letter-spacing: 1.5px; padding: 6px 16px; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .details-container { display: flex; justify-content: space-between; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 30px 40px; background-color: #f8fafc; }
+          .billing-block { width: 48%; }
+          .billing-block h3 { font-size: 9pt; text-transform: uppercase; letter-spacing: 1px; color: #2563eb; margin: 0 0 10px 0; font-weight: 700; }
+          .billing-block p { margin: 0 0 4px 0; color: #334155; font-size: 9.5pt; }
+          table.invoice-table { width: 100%; border-collapse: collapse; margin: 0; page-break-inside: avoid; }
+          table.invoice-table th { background-color: #1e293b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #ffffff !important; font-weight: 600; text-align: left; padding: 12px; font-size: 8.5pt; border: 1px solid #1e293b; text-transform: uppercase; letter-spacing: 0.5px; }
+          table.invoice-table td { padding: 12px; font-size: 9.5pt; border: 1px solid #e2e8f0; color: #334155; }
+          .summary-wrapper { display: flex; justify-content: flex-end; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 20px 40px; background-color: #ffffff; }
+          .summary-table { width: 400px; font-size: 9.5pt; }
+          .summary-row { display: flex; justify-content: space-between; padding: 6px 0; }
+          .summary-total { border-top: 2px solid #0f172a; padding-top: 10px; margin-top: 6px; font-weight: 700; font-size: 11pt; color: #dc2626; }
+      </style>
+      <div class="invoice-box">
+          <div class="invoice-header">
+              <div class="company-brand">
+                  <h1>Nexbyte Core</h1>
+                  <p>Web Application &amp; Platform Engineering</p>
+              </div>
+              <div class="invoice-title-block">
+                  <h2>INVOICE</h2>
+                  <div class="status-badge">${invoiceGenData.status}</div>
+              </div>
+          </div>
+          <div class="details-container">
+              <div class="billing-block">
+                  <h3>Billed To (Client)</h3>
+                  <p><strong>Name:</strong> ${clientDetails?.contactPerson || 'N/A'}</p>
+                  <p><strong>Company:</strong> ${clientDetails?.clientName || 'N/A'}</p>
+                  <p><strong>Project:</strong> ${projectDetails?.projectName || clientDetails?.projectName || 'N/A'}</p>
+                  <p><strong>Email:</strong> ${clientDetails?.email || 'N/A'}</p>
+                  ${clientDetails?.billingAddress ? `<p><strong>Address:</strong> ${clientDetails.billingAddress}</p>` : ''}
+              </div>
+              <div class="billing-block" style="text-align: right;">
+                  <h3>Invoice Logistics</h3>
+                  <p><strong>Invoice No:</strong> ${savedBill._id}</p>
+                  <p><strong>Date of Issue:</strong> ${new Date().toLocaleDateString()}</p>
+                  <p><strong>Due Date:</strong> ${new Date(invoiceGenData.dueDate).toLocaleDateString()}</p>
+              </div>
+          </div>
+          <table class="invoice-table">
+              <thead>
+                  <tr>
+                      <th style="width: 10%;">Item</th>
+                      <th style="width: 70%;">Description</th>
+                      <th style="width: 20%; text-align: right;">Amount</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  ${itemsHtml}
+              </tbody>
+          </table>
+          <div class="summary-wrapper">
+              <div class="summary-table">
+                  <div class="summary-row">
+                      <span style="color: #64748b;">Total Bill Amount:</span>
+                      <span style="font-weight: 600; color: #0f172a;">₹${totalAmount.toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row">
+                      <span style="color: #64748b;">Amount Paid:</span>
+                      <span style="font-weight: 600; color: #059669;">₹${Number(invoiceGenData.paidAmount).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row summary-total">
+                      <span>Amount Due:</span>
+                      <span>₹${Math.max(totalAmount - Number(invoiceGenData.paidAmount), 0).toFixed(2)}</span>
+                  </div>
+              </div>
+          </div>
+          <p style="text-align: center; margin-top: 40px; font-size: 8.5pt; color: #94a3b8; font-style: italic;">
+              Thank you for choosing Nexbyte Core!
+          </p>
+      </div>
+      `;
+
+      const element = document.createElement('div');
+      element.innerHTML = invoiceContent;
+
+      const opt = {
+        margin:       0,
+        filename:     `invoice_${savedBill._id}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, backgroundColor: '#ffffff' },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      window.html2pdf().from(element).set(opt).save();
+
+      setTimeout(() => setSuccessMessage(''), 5000);
+      
+      setInvoiceGenData({
+        client: '', project: '', dueDate: '', status: 'Unpaid', paidAmount: 0,
+        items: [{ id: Date.now(), description: '', amount: 0 }],
+      });
+
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err.message);
+      setTimeout(() => setErrorMessage(''), 5000);
+    }
+  };
+
   console.log('Bills:', bills);
   return (
     <div className="admin-container">
@@ -2002,6 +2212,7 @@ const Admin = () => {
                   <textarea name="projectRequirements" placeholder="Project Requirements" value={clientData.projectRequirements} onChange={handleClientChange}></textarea>
                   <input type="date" name="projectDeadline" placeholder="Project Deadline" value={clientData.projectDeadline} onChange={handleClientChange} />
                   <input type="number" name="totalBudget" placeholder="Total Budget" value={clientData.totalBudget} onChange={handleClientChange} />
+                  <input type="number" name="monthlyMaintenanceCharge" placeholder="Monthly Maintenance Charge" value={clientData.monthlyMaintenanceCharge} onChange={handleClientChange} />
                   <input type="text" name="billingAddress" placeholder="Billing Address" value={clientData.billingAddress} onChange={handleClientChange} />
                   <input type="text" name="gstNumber" placeholder="GST Number" value={clientData.gstNumber} onChange={handleClientChange} />
                   <input type="text" name="paymentTerms" placeholder="Payment Terms" value={clientData.paymentTerms} onChange={handleClientChange} />
@@ -2018,7 +2229,7 @@ const Admin = () => {
                         setClientData({
                           clientName: '', contactPerson: '', email: '', alternateEmail: '', phone: '',
                           companyAddress: '', projectName: '', projectType: '', projectRequirements: '',
-                          projectDeadline: '', totalBudget: '', billingAddress: '', gstNumber: '',
+                          projectDeadline: '', totalBudget: '', monthlyMaintenanceCharge: '', billingAddress: '', gstNumber: '',
                           paymentTerms: '', paymentMethod: '', domainRegistrarLogin: '', webHostingLogin: '',
                           logoAndBrandingFiles: '', content: ''
                         });
@@ -2074,7 +2285,7 @@ const Admin = () => {
               <h2>Manage Projects</h2>
               <div className="form-container">
                 <form onSubmit={handleAddProject}>
-                  <h3>Add New Project</h3>
+                  <h3>{editingProjectId ? 'Edit Project' : 'Add New Project'}</h3>
                   <input type="text" name="projectName" placeholder="Project Name" value={projectData.projectName} onChange={handleProjectChange} required />
                   <input type="text" name="projectType" placeholder="Project Type" value={projectData.projectType} onChange={handleProjectChange} />
                   <textarea name="projectDescription" placeholder="Project Description" value={projectData.projectDescription} onChange={handleProjectChange}></textarea>
@@ -2085,14 +2296,28 @@ const Admin = () => {
                     <option value="client">Client Project</option>
                   </select>
                   {projectData.clientType === 'client' && (
-                    <select name="associatedClient" value={projectData.associatedClient} onChange={handleProjectChange} required>
-                      <option value="">Select a Client</option>
-                      {clients.map(client => (
-                        <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
-                      ))}
-                    </select>
+                    <>
+                      <select name="associatedClient" value={projectData.associatedClient} onChange={handleProjectChange} required>
+                        <option value="">Select a Client</option>
+                        {clients.map(client => (
+                          <option key={client._id} value={client._id}>{client.clientName} - {client.projectName}</option>
+                        ))}
+                      </select>
+                      <input type="number" name="monthlyMaintenanceCharge" placeholder="Monthly Maintenance Charge" value={projectData.monthlyMaintenanceCharge} onChange={handleProjectChange} />
+                    </>
                   )}
-                  <button type="submit" className="btn btn-primary">Add Project</button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="submit" className="btn btn-primary">{editingProjectId ? 'Update Project' : 'Add Project'}</button>
+                    {editingProjectId && (
+                      <button type="button" className="btn btn-secondary" onClick={() => {
+                        setEditingProjectId(null);
+                        setProjectData({
+                          projectName: '', projectType: '', projectDescription: '', totalBudget: '',
+                          projectDeadline: '', clientType: 'non-client', associatedClient: '', monthlyMaintenanceCharge: ''
+                        });
+                      }}>Cancel Edit</button>
+                    )}
+                  </div>
                 </form>
               </div>
 
@@ -2104,6 +2329,7 @@ const Admin = () => {
                     <th>Project Type</th>
                     <th>Description</th>
                     <th>Total Budget</th>
+                    <th>Maint. Charge</th>
                     <th>Deadline</th>
                     <th>Associated Client</th>
                     <th>Status & SRS</th>
@@ -2117,6 +2343,7 @@ const Admin = () => {
                       <td>{project.projectType}</td>
                       <td>{project.projectDescription}</td>
                       <td>{project.totalBudget}</td>
+                      <td>{project.monthlyMaintenanceCharge || 0}</td>
                       <td>{project.projectDeadline ? new Date(project.projectDeadline).toLocaleDateString() : 'N/A'}</td>
                       <td>
                         {project.associatedClient ? 
@@ -2149,6 +2376,7 @@ const Admin = () => {
                         )}
                       </td>
                       <td>
+                        <button onClick={() => handleEditProjectClick(project)} className="btn btn-warning" style={{ marginRight: '5px' }}>Edit</button>
                         <button onClick={() => handleDeleteProject(project._id)} className="btn btn-danger">Delete</button>
                       </td>
                     </tr>
@@ -2773,6 +3001,78 @@ const Admin = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {location.pathname === '/admin/invoice-generator' && (
+            <div>
+              <h2>Invoice Generator</h2>
+              <div className="form-container">
+                <form onSubmit={handleGenerateAndSaveInvoice}>
+                  <h3>Invoice Details</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div>
+                      <label>Select Client *</label>
+                      <select name="client" value={invoiceGenData.client} onChange={handleInvoiceGenChange} required>
+                        <option value="">Select a Client</option>
+                        {clients.map(c => <option key={c._id} value={c._id}>{c.projectName || c.clientName || c.email}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label>Select Project (Optional)</label>
+                      <select name="project" value={invoiceGenData.project} onChange={handleInvoiceGenChange}>
+                        <option value="">None</option>
+                        {projects.map(p => <option key={p._id} value={p._id}>{p.projectName}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label>Due Date *</label>
+                      <input type="date" name="dueDate" value={invoiceGenData.dueDate} onChange={handleInvoiceGenChange} required />
+                    </div>
+                    <div>
+                      <label>Status</label>
+                      <select name="status" value={invoiceGenData.status} onChange={handleInvoiceGenChange}>
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Overdue">Overdue</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>Paid Amount</label>
+                      <input type="number" name="paidAmount" value={invoiceGenData.paidAmount} onChange={handleInvoiceGenChange} />
+                    </div>
+                  </div>
+
+                  <h3 style={{ marginTop: '30px' }}>Line Items</h3>
+                  {invoiceGenData.items.map((item, index) => (
+                    <div key={item.id} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+                      <span style={{ fontWeight: 'bold' }}>{index + 1}.</span>
+                      <input 
+                        style={{ flex: 2 }}
+                        type="text" 
+                        placeholder="Description (e.g. Phase 1)" 
+                        value={item.description} 
+                        onChange={(e) => handleInvoiceItemChange(item.id, 'description', e.target.value)} 
+                        required 
+                      />
+                      <input 
+                        style={{ flex: 1 }}
+                        type="number" 
+                        placeholder="Amount (₹)" 
+                        value={item.amount} 
+                        onChange={(e) => handleInvoiceItemChange(item.id, 'amount', e.target.value)} 
+                        required 
+                      />
+                      <button type="button" className="btn btn-danger" onClick={() => handleRemoveInvoiceItem(item.id)}>X</button>
+                    </div>
+                  ))}
+                  <button type="button" className="btn btn-secondary" onClick={handleAddInvoiceItem} style={{ marginBottom: '20px' }}>+ Add Item</button>
+                  
+                  <div style={{ marginTop: '20px', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '15px', fontSize: '16px' }}>Generate & Save PDF Invoice</button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

@@ -62,6 +62,10 @@ const ProjectSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  monthlyMaintenanceCharge: {
+    type: Number,
+    default: 0
   }
 });
 

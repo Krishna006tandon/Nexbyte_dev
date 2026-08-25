@@ -296,142 +296,262 @@ const ClientPanel = () => {
     }
     const invoiceContent = `
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        /* Global Reset & Base Typography */
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #0d1117;
-            color: #c9d1d9;
+            font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+            color: #334155;
+            line-height: 1.55;
+            font-size: 10pt;
             margin: 0;
+            max-width: 820px;
             padding: 20px;
+            background-color: #ffffff;
         }
-        .invoice-box {
-            max-width: 800px;
-            margin: auto;
-            padding: 50px;
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        .header {
+
+        /* Executive Premium Invoice Header */
+        .invoice-header {
+            background-color: #0f172a !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color: #ffffff !important;
+            padding: 40px;
+            border-radius: 8px 8px 0 0;
+            border-bottom: 6px solid #2563eb !important;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 50px;
         }
-        .header .logo {
-            max-width: 150px;
+        
+        .company-brand h1 {
+            font-size: 22pt;
+            line-height: 1.1;
+            margin: 0 0 5px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #ffffff !important;
         }
-        .company-details h1 {
+        
+        .company-brand p {
             margin: 0;
-            color: #58a6ff;
-            font-size: 2.2em;
-            font-weight: 600;
+            font-size: 9.5pt;
+            color: #94a3b8 !important;
         }
-        .details {
+        
+        .invoice-title-block {
+            text-align: right;
+        }
+        
+        .invoice-title-block h2 {
+            font-size: 22pt;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: 0.5px;
+            color: #ffffff !important;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        /* Unpaid Status Badge */
+        .status-badge {
+            display: inline-block;
+            background-color: ${bill.status === 'Paid' ? '#059669' : '#dc2626'} !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 6px 16px;
+            border-radius: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Details Information Container */
+        .details-container {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 50px;
+            border-left: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            padding: 30px 40px;
+            background-color: #f8fafc;
         }
-        .client-details, .invoice-details {
+        
+        .billing-block {
             width: 48%;
         }
-        .client-details strong, .invoice-details strong {
-            color: #58a6ff;
-            display: block;
-            margin-bottom: 10px;
-            font-weight: 500;
+        
+        .billing-block h3 {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #2563eb;
+            margin: 0 0 10px 0;
+            font-weight: 700;
         }
-        .items-table {
+        
+        .billing-block p {
+            margin: 0 0 4px 0;
+            color: #334155;
+            font-size: 9.5pt;
+        }
+
+        /* Invoice Data Table */
+        table.invoice-table {
             width: 100%;
             border-collapse: collapse;
+            margin: 0;
+            page-break-inside: avoid;
         }
-        .items-table thead th {
-            background-color: #21262d;
-            color: #f0f6fc;
-            padding: 15px;
-            text-align: left;
-            font-weight: 500;
-            text-transform: uppercase;
-            font-size: 0.85em;
-            border-bottom: 1px solid #30363d;
-        }
-        .items-table tbody tr {
-            border-bottom: 1px solid #30363d;
-        }
-        .items-table tbody tr:last-child {
-            border-bottom: none;
-        }
-        .items-table td {
-            padding: 20px 15px;
-        }
-        .items-table .description {
-            font-weight: 500;
-        }
-        .items-table .qty, .items-table .rate, .items-table .amount {
-            text-align: right;
-        }
-        .total-section {
-            margin-top: 30px;
-            text-align: right;
-        }
-        .total-section .grand-total {
-            font-size: 1.6em;
+        
+        table.invoice-table th {
+            background-color: #1e293b !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color: #ffffff !important;
             font-weight: 600;
-            color: #58a6ff;
-            margin-bottom: 10px;
+            text-align: left;
+            padding: 12px;
+            font-size: 8.5pt;
+            border: 1px solid #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        table.invoice-table td {
+            padding: 12px;
+            font-size: 9.5pt;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        /* Summary Wrapper */
+        .summary-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            border-left: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 20px 40px;
+            background-color: #ffffff;
+        }
+        
+        .summary-table {
+            width: 400px;
+            font-size: 9.5pt;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+        }
+        
+        .summary-total {
+            border-top: 2px solid #0f172a;
+            padding-top: 10px;
+            margin-top: 6px;
+            font-weight: 700;
+            font-size: 11pt;
+            color: #dc2626;
+        }
+
+        /* Print Settings */
+        @media print {
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                background: #ffffff;
+            }
+            html, body {
+                height: auto;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
         }
     </style>
+
     <div class="invoice-box">
-        <header class="header">
-            <div class="logo">
-                <img src="/logobill.jpg" alt="Nexbyte_Core Logo" style="max-width: 180px;">
+        <!-- Executive Invoice Header -->
+        <div class="invoice-header">
+            <div class="company-brand">
+                <h1>Nexbyte Core</h1>
+                <p>Web Application &amp; Platform Engineering</p>
             </div>
-            <div class="company-details">
-                <h1>INVOICE</h1>
+            <div class="invoice-title-block">
+                <h2>INVOICE</h2>
+                <div class="status-badge">${bill.status || 'Unpaid'}</div>
             </div>
-        </header>
-        <section class="details">
-            <div class="client-details">
-                <strong>BILL TO:</strong>
-                <div>${data.clientData.contactPerson}</div>
-                <div>${data.clientData.name}</div>
-                <div>${data.clientData.billingAddress || 'N/A'}</div>
-                <div>${data.clientData.email}</div>
+        </div>
+
+        <!-- Details Container -->
+        <div class="details-container">
+            <div class="billing-block">
+                <h3>Billed To (Client)</h3>
+                <p><strong>Name:</strong> ${data.clientData.contactPerson}</p>
+                <p><strong>Company:</strong> ${data.clientData.name}</p>
+                <p><strong>Project:</strong> ${data.clientData.project}</p>
+                <p><strong>Email:</strong> ${data.clientData.email}</p>
+                ${data.clientData.billingAddress ? `<p><strong>Address:</strong> ${data.clientData.billingAddress}</p>` : ''}
             </div>
-            <div class="invoice-details">
-                <div><strong>Invoice #:</strong> ${bill._id}</div>
-                <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
-                <div><strong>Due Date:</strong> ${new Date(bill.dueDate).toLocaleDateString()}</div>
+            <div class="billing-block" style="text-align: right;">
+                <h3>Invoice Logistics</h3>
+                <p><strong>Invoice No:</strong> ${bill._id}</p>
+                <p><strong>Date of Issue:</strong> ${new Date().toLocaleDateString()}</p>
+                <p><strong>Due Date:</strong> ${new Date(bill.dueDate).toLocaleDateString()}</p>
             </div>
-        </section>
-        <table class="items-table">
+        </div>
+
+        <!-- Itemized Breakdown Table -->
+        <table class="invoice-table">
             <thead>
                 <tr>
-                    <th>Description</th>
-                    <th class="qty">Qty</th>
-                    <th class="rate">Rate</th>
-                    <th class="amount">Amount</th>
+                    <th style="width: 10%;">Item</th>
+                    <th style="width: 70%;">Description</th>
+                    <th style="width: 20%; text-align: right;">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="description">
+                    <td style="text-align: center; font-weight: 600; color: #334155;">01</td>
+                    <td>
                         <strong>${bill.description}</strong>
                     </td>
-                    <td class="qty">1</td>
-                    <td class="rate">₹${bill.amount.toFixed(2)}</td>
-                    <td class="amount">₹${bill.amount.toFixed(2)}</td>
+                    <td style="text-align: right; font-weight: 600; color: #334155;">₹${bill.amount.toFixed(2)}</td>
                 </tr>
             </tbody>
         </table>
-        <section class="total-section">
-            <div class="grand-total">
-                <strong>TOTAL DUE:</strong> ₹${bill.amount.toFixed(2)}
+
+        <!-- Financial Summary -->
+        <div class="summary-wrapper">
+            <div class="summary-table">
+                <div class="summary-row">
+                    <span style="color: #64748b;">Total Bill Amount:</span>
+                    <span style="font-weight: 600; color: #0f172a;">₹${bill.amount.toFixed(2)}</span>
+                </div>
+                <div class="summary-row">
+                    <span style="color: #64748b;">Amount Paid:</span>
+                    <span style="font-weight: 600; color: #059669;">₹${(bill.paidAmount || 0).toFixed(2)}</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Amount Due:</span>
+                    <span>₹${Math.max((bill.amount || 0) - (bill.paidAmount || 0), 0).toFixed(2)}</span>
+                </div>
             </div>
-        </section>
-        <footer class="footer">
-            <div>Thank you for choosing Nexbyte_Core!</div>
-        </footer>
+        </div>
+        
+        <!-- Footnote -->
+        <p style="text-align: center; margin-top: 40px; font-size: 8.5pt; color: #94a3b8; font-style: italic;">
+            Thank you for choosing Nexbyte Core!
+        </p>
     </div>
     `;
 
@@ -442,7 +562,7 @@ const ClientPanel = () => {
       margin:       0,
       filename:     `invoice_${bill._id}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, backgroundColor: '#161b22' },
+      html2canvas:  { scale: 2, backgroundColor: '#ffffff' },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
@@ -498,6 +618,7 @@ const ClientPanel = () => {
             <p><strong>Status:</strong> {project.status}</p>
             <p><strong>Requirements:</strong> {project.projectRequirements}</p>
             <p><strong>Due Date:</strong> {new Date(project.projectDeadline).toLocaleDateString()}</p>
+            <p><strong>Maint. Charge:</strong> ₹{(project.monthlyMaintenanceCharge || 0).toLocaleString()}</p>
           </div>
         </div>
       )}) : <p>No projects found.</p>}

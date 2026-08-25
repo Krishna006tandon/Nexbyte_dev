@@ -1669,6 +1669,7 @@ app.post('/api/clients', auth, admin, async (req, res) => {
     webHostingLogin,
     logoAndBrandingFiles,
     content,
+    monthlyMaintenanceCharge,
   } = req.body;
 
   try {
@@ -1696,6 +1697,7 @@ app.post('/api/clients', auth, admin, async (req, res) => {
       webHostingLogin,
       logoAndBrandingFiles,
       content,
+      monthlyMaintenanceCharge: monthlyMaintenanceCharge || 0,
       password: hashedPassword,
     });
 
@@ -1980,7 +1982,8 @@ app.post('/api/projects', auth, admin, async (req, res) => {
     totalBudget,
     projectDeadline,
     clientType,
-    associatedClient
+    associatedClient,
+    monthlyMaintenanceCharge
   } = req.body;
 
   try {
@@ -1991,7 +1994,8 @@ app.post('/api/projects', auth, admin, async (req, res) => {
       totalBudget,
       projectDeadline,
       clientType: clientType || 'non-client',
-      associatedClient: clientType === 'client' ? associatedClient : null
+      associatedClient: clientType === 'client' ? associatedClient : null,
+      monthlyMaintenanceCharge: monthlyMaintenanceCharge || 0
     });
 
     await newProject.save();
@@ -2073,6 +2077,50 @@ app.get('/api/projects/:id', auth, admin, async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
+    res.json(project);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT api/projects/:id
+// @desc    Update a project
+// @access  Private (admin)
+app.put('/api/projects/:id', auth, admin, async (req, res) => {
+  try {
+    const {
+      projectName,
+      projectType,
+      projectDescription,
+      totalBudget,
+      projectDeadline,
+      clientType,
+      associatedClient,
+      monthlyMaintenanceCharge
+    } = req.body;
+
+    const projectFields = {
+      projectName,
+      projectType,
+      projectDescription,
+      totalBudget,
+      projectDeadline,
+      clientType: clientType || 'non-client',
+      associatedClient: clientType === 'client' ? associatedClient : null,
+      monthlyMaintenanceCharge: monthlyMaintenanceCharge || 0
+    };
+
+    const project = await Project.findByIdAndUpdate(
+      req.params.id,
+      { $set: projectFields },
+      { new: true }
+    ).populate('associatedClient', 'clientName projectName email');
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
     res.json(project);
   } catch (err) {
     console.error(err.message);
