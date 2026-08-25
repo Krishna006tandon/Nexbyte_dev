@@ -70,6 +70,9 @@ const BillSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  otherDetails: {
+    type: String,
+  },
   invoiceFile: {
     type: String, // URL to the uploaded invoice file in Vercel Blob
   },

@@ -2148,9 +2148,18 @@ app.delete('/api/projects/:id', auth, admin, async (req, res) => {
 // @desc    Create a new bill
 // @access  Private (admin)
 app.post('/api/bills', auth, admin, uploadDocument.single('invoiceFile'), async (req, res) => {
-  const { client, amount, dueDate, status, description, project } = req.body;
+  const { client, amount, dueDate, status, description, project, otherDetails } = req.body;
 
   try {
+    const newBill = new Bill({
+      client,
+      amount,
+      dueDate,
+      status,
+      description,
+      otherDetails,
+      project
+    });
     const clientData = await Client.findById(client).select('clientName email projectName');
     if (!clientData) {
       return res.status(404).json({ message: 'Client not found' });

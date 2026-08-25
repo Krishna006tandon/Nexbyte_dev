@@ -548,6 +548,13 @@ const ClientPanel = () => {
             </div>
         </div>
         
+        ${bill.otherDetails ? `
+        <div style="margin-top: 20px; padding: 15px; background-color: #f8fafc; border-radius: 6px; font-size: 9pt;">
+            <h4 style="margin: 0 0 5px 0; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">Other Details</h4>
+            <p style="margin: 0; color: #475569; white-space: pre-wrap;">${bill.otherDetails}</p>
+        </div>
+        ` : ''}
+        
         <!-- Footnote -->
         <p style="text-align: center; margin-top: 40px; font-size: 8.5pt; color: #94a3b8; font-style: italic;">
             Thank you for choosing Nexbyte Core!

@@ -463,7 +463,8 @@ const Admin = () => {
     dueDate: '',
     status: 'Unpaid',
     paidAmount: 0,
-    items: [{ id: Date.now(), description: '', amount: 0 }],
+    otherDetails: '',
+    items: [{ id: Date.now(), description: '', amount: '' }],
   });
 
   useEffect(() => {
@@ -1809,12 +1810,13 @@ const Admin = () => {
     try {
       const payload = {
         client: invoiceGenData.client,
-        project: invoiceGenData.project,
+        project: invoiceGenData.project || null,
         amount: totalAmount,
         paidAmount: invoiceGenData.paidAmount,
         dueDate: invoiceGenData.dueDate,
         status: invoiceGenData.status,
-        description: combinedDescription
+        description: combinedDescription,
+        otherDetails: invoiceGenData.otherDetails
       };
 
       const res = await fetch('/api/bills', {
@@ -1921,6 +1923,12 @@ const Admin = () => {
                   </div>
               </div>
           </div>
+          ${invoiceGenData.otherDetails ? `
+          <div style="margin-top: 20px; padding: 15px; background-color: #f8fafc; border-radius: 6px; font-size: 9pt;">
+              <h4 style="margin: 0 0 5px 0; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">Other Details</h4>
+              <p style="margin: 0; color: #475569; white-space: pre-wrap;">${invoiceGenData.otherDetails}</p>
+          </div>
+          ` : ''}
           <p style="text-align: center; margin-top: 40px; font-size: 8.5pt; color: #94a3b8; font-style: italic;">
               Thank you for choosing Nexbyte Core!
           </p>
@@ -3041,6 +3049,17 @@ const Admin = () => {
                       <label>Paid Amount</label>
                       <input type="number" name="paidAmount" value={invoiceGenData.paidAmount} onChange={handleInvoiceGenChange} />
                     </div>
+                  </div>
+
+                  <div style={{ marginTop: '15px' }}>
+                    <label>Other Details (Optional)</label>
+                    <textarea 
+                      name="otherDetails" 
+                      value={invoiceGenData.otherDetails} 
+                      onChange={handleInvoiceGenChange} 
+                      placeholder="Any additional information..."
+                      style={{ width: '100%', padding: '10px', minHeight: '60px', marginTop: '5px' }}
+                    />
                   </div>
 
                   <h3 style={{ marginTop: '30px' }}>Line Items</h3>
