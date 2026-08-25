@@ -2151,15 +2151,6 @@ app.post('/api/bills', auth, admin, uploadDocument.single('invoiceFile'), async 
   const { client, amount, dueDate, status, description, project, otherDetails } = req.body;
 
   try {
-    const newBill = new Bill({
-      client,
-      amount,
-      dueDate,
-      status,
-      description,
-      otherDetails,
-      project
-    });
     const clientData = await Client.findById(client).select('clientName email projectName');
     if (!clientData) {
       return res.status(404).json({ message: 'Client not found' });
@@ -2187,6 +2178,7 @@ app.post('/api/bills', auth, admin, uploadDocument.single('invoiceFile'), async 
       dueDate,
       status,
       description,
+      otherDetails,
       ...(invoiceFileUrl && { invoiceFile: invoiceFileUrl }),
       ...(status === 'Paid' && { paidAmount: amount }),
     });
