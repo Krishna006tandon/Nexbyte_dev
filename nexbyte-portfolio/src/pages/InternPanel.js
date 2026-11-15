@@ -54,6 +54,8 @@ const InternPanel = () => {
     feedback: '',
   });
   const [profileForm, setProfileForm] = useState({});
+  const [skillsInput, setSkillsInput] = useState('');
+  const [taskFilter, setTaskFilter] = useState('all');
   const [paperFiles, setPaperFiles] = useState({});
   const [submissionNotes, setSubmissionNotes] = useState({});
   const [submittingTopicId, setSubmittingTopicId] = useState(null);
@@ -119,13 +121,18 @@ const InternPanel = () => {
       if (profileData) {
         setProfile(profileData);
         setOfferLetter(profileData.offerLetter);
+        const loadedSkills = Array.isArray(profileData.skills) ? profileData.skills : [];
         setProfileForm({
           firstName: profileData.firstName || '',
           lastName: profileData.lastName || '',
           phone: profileData.phone || '',
           bio: profileData.bio || '',
-          skills: profileData.skills || []
+          skills: loadedSkills
         });
+        setSkillsInput(loadedSkills.join(', '));
+        if (profileData.settings) {
+          setSettings(prev => ({ ...prev, ...profileData.settings }));
+        }
       }
 
       if (profileData && profileData.offerStatus !== 'accepted' && profileData.internFeeStatus !== 'paid') {
@@ -526,25 +533,20 @@ const InternPanel = () => {
       }
       
       if (response.ok) {
+        const updatedTask = await response.json().catch(() => null);
+        setTasks(prevTasks => prevTasks.map(task =>
+          task._id === selectedTask._id
+            ? { ...task, ...(updatedTask && updatedTask._id ? updatedTask : {}), status: updatedTask?.status || updateStatus }
+            : task
+        ));
         toast.success('Task status saved to backend successfully!');
         setShowUpdateModal(false);
         setSelectedTask(null);
         setUpdateStatus('');
-        // Don't call fetchInternData - let local state update work
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('All update attempts failed:', response.status, errorData);
-        
-        // If all API endpoints fail, update locally and show appropriate message
-        if (response.status === 403 || response.status === 404) {
-          toast.success('Backend save failed - updated locally only');
-          setShowUpdateModal(false);
-          setSelectedTask(null);
-          setUpdateStatus('');
-          fetchInternData(); // Refresh tasks
-        } else {
-          toast.error(`Failed to update task: ${errorData.msg || 'Permission denied'}`);
-        }
+        toast.error(`Failed to update task: ${errorData.message || errorData.msg || 'Permission denied'}`);
       }
     } catch (err) {
       console.error('Error updating task:', err);
@@ -685,13 +687,18 @@ const InternPanel = () => {
   const handleProfileUpdate = async () => {
     try {
       const token = localStorage.getItem('token');
+      const parsedSkills = String(skillsInput || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const payload = { ...profileForm, skills: parsedSkills };
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token
         },
-        body: JSON.stringify(profileForm)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -781,26 +788,33 @@ const InternPanel = () => {
     }
   };
 
-  const getTaskStats = () => {
-    const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
-    const isCompleted = (status) => {
-      const st = normalizeStatus(status);
-      return st === 'completed' || st === 'done' || st === 'approved';
-    };
-    const isPending = (status) => {
-      const st = normalizeStatus(status);
-      return st === 'pending' || st === 'to do' || st === 'todo' || st === 'backlog';
-    };
-    const isInProgress = (status) => {
-      const st = normalizeStatus(status);
-      return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing';
-    };
+  const normalizeTaskStatus = (s) => String(s || '').trim().toLowerCase();
+  const isCompletedTask = (status) => {
+    const st = normalizeTaskStatus(status);
+    return st === 'completed' || st === 'done' || st === 'approved';
+  };
+  const isPendingTask = (status) => {
+    const st = normalizeTaskStatus(status);
+    return st === 'pending' || st === 'to do' || st === 'todo' || st === 'backlog';
+  };
+  const isInProgressTask = (status) => {
+    const st = normalizeTaskStatus(status);
+    return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'needs review';
+  };
 
+  const filteredTasks = tasks.filter(task => {
+    if (taskFilter === 'pending') return isPendingTask(task.status);
+    if (taskFilter === 'in-progress') return isInProgressTask(task.status);
+    if (taskFilter === 'completed') return isCompletedTask(task.status);
+    return true;
+  });
+
+  const getTaskStats = () => {
     const total = tasks.length;
-    const completed = tasks.filter(t => isCompleted(t.status)).length;
-    const pending = tasks.filter(t => isPending(t.status)).length;
-    const inProgress = tasks.filter(t => isInProgress(t.status)).length;
-    
+    const completed = tasks.filter(t => isCompletedTask(t.status)).length;
+    const pending = tasks.filter(t => isPendingTask(t.status)).length;
+    const inProgress = tasks.filter(t => isInProgressTask(t.status)).length;
+
     return { total, completed, pending, inProgress };
   };
 
@@ -1094,7 +1108,7 @@ const InternPanel = () => {
                       <span className="iow-label">Your total wins</span>
                       <span className="iow-value">{myInternOfWeekWins}</span>
                     </div>
-                    {internOfWeek?.intern?._id && user?.id && internOfWeek.intern._id === user.id && (
+                    {internOfWeek?.intern?._id && (user?._id || user?.id) && internOfWeek.intern._id === (user._id || user.id) && (
                       <div className="iow-highlight">You are Intern of the Week.</div>
                     )}
                   </div>
@@ -1274,16 +1288,36 @@ const InternPanel = () => {
               <div className="section-header">
                 <h2>Your Tasks</h2>
                 <div className="task-filters">
-                  <button className="filter-btn active">All</button>
-                  <button className="filter-btn">Pending</button>
-                  <button className="filter-btn">In Progress</button>
-                  <button className="filter-btn">Completed</button>
+                  <button
+                    className={`filter-btn ${taskFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setTaskFilter('all')}
+                  >
+                    All
+                  </button>
+                  <button
+                    className={`filter-btn ${taskFilter === 'pending' ? 'active' : ''}`}
+                    onClick={() => setTaskFilter('pending')}
+                  >
+                    Pending
+                  </button>
+                  <button
+                    className={`filter-btn ${taskFilter === 'in-progress' ? 'active' : ''}`}
+                    onClick={() => setTaskFilter('in-progress')}
+                  >
+                    In Progress
+                  </button>
+                  <button
+                    className={`filter-btn ${taskFilter === 'completed' ? 'active' : ''}`}
+                    onClick={() => setTaskFilter('completed')}
+                  >
+                    Completed
+                  </button>
                 </div>
               </div>
               
-              {tasks.length > 0 ? (
+              {filteredTasks.length > 0 ? (
                 <div className="task-list">
-                  {tasks.map(task => (
+                  {filteredTasks.map(task => (
                     <div key={task._id} className={`task-card ${task.status}`}>
                       <div className="task-header">
                         <div className="task-title">
@@ -1504,8 +1538,15 @@ const InternPanel = () => {
                     <label>Skills</label>
                     <input
                       type="text"
-                      value={profileForm.skills?.join(', ') || ''}
-                      onChange={(e) => setProfileForm({...profileForm, skills: e.target.value.split(', ').filter(s => s.trim())})}
+                      value={skillsInput}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setSkillsInput(raw);
+                        setProfileForm({
+                          ...profileForm,
+                          skills: raw.split(',').map(s => s.trim()).filter(Boolean)
+                        });
+                      }}
                       placeholder="JavaScript, React, Node.js..."
                     />
                   </div>

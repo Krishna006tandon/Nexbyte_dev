@@ -10,23 +10,37 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const resetAuthState = () => {
+    setUser(null);
+    setIsAdmin(false);
+    setIsClient(false);
+    setIsIntern(false);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    resetAuthState();
+  };
+
   const fetchUser = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (token) {
-        const res = await axios.get('/api/profile', { 
-          headers: { 'x-auth-token': token } 
-        });
-        const userData = res.data;
-        setUser(userData);
-        setIsAdmin(userData.role === 'admin');
-        setIsClient(userData.role === 'client');
-        setIsIntern(userData.role === 'intern');
-        console.log('User role set to:', userData.role);
+      if (!token) {
+        resetAuthState();
+        return;
       }
+      const res = await axios.get('/api/profile', {
+        headers: { 'x-auth-token': token }
+      });
+      const userData = res.data;
+      setUser(userData);
+      setIsAdmin(userData.role === 'admin');
+      setIsClient(userData.role === 'client');
+      setIsIntern(userData.role === 'intern');
     } catch (error) {
       console.error('Error fetching user:', error);
       localStorage.removeItem('token');
+      resetAuthState();
     } finally {
       setLoading(false);
     }
@@ -34,18 +48,21 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      isAdmin, 
-      isClient, 
+    <AuthContext.Provider value={{
+      isAdmin,
+      isClient,
       isIntern,
-      setIsAdmin, 
-      setIsClient, 
+      setIsAdmin,
+      setIsClient,
       setIsIntern,
-      user, 
+      user,
+      setUser,
       fetchUser,
+      logout,
       loading
     }}>
       {children}

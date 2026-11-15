@@ -13,7 +13,7 @@ const Dashboard = () => {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
 
-  const totalBudget = 0;
+  const totalBudget = Number(selectedProject?.totalBudget) || 0;
   const spentBudget = 0;
   const remainingBudget = 0;
 
@@ -122,7 +122,7 @@ const Dashboard = () => {
       <div className="table-section">
         <h2>User Credits</h2>
         <DataTable 
-          columns={['Email', 'Credits']} 
+          columns={[{ header: 'Email', accessor: 'Email' }, { header: 'Credits', accessor: 'Credits' }]} 
           data={users.map(user => ({ Email: user.email, Credits: user.credits || 0 }))} 
         />
       </div>

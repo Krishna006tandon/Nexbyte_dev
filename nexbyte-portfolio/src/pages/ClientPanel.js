@@ -10,6 +10,8 @@ const ClientPanel = () => {
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'srs'
   const [message, setMessage] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordMessageStatus, setPasswordMessageStatus] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -33,8 +35,8 @@ const ClientPanel = () => {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setMessage('New passwords do not match');
-      setMessageStatus('error');
+      setPasswordMessage('New passwords do not match');
+      setPasswordMessageStatus('error');
       return;
     }
 
@@ -54,19 +56,19 @@ const ClientPanel = () => {
 
       const data = await res.json();
       if (res.ok) {
-        setMessage('Password changed successfully');
-        setMessageStatus('success');
+        setPasswordMessage('Password changed successfully');
+        setPasswordMessageStatus('success');
         setShowPasswordChange(false);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setMessage(data.message || 'Failed to change password');
-        setMessageStatus('error');
+        setPasswordMessage(data.message || 'Failed to change password');
+        setPasswordMessageStatus('error');
       }
     } catch (err) {
-      setMessage('Server error. Please try again.');
-      setMessageStatus('error');
+      setPasswordMessage('Server error. Please try again.');
+      setPasswordMessageStatus('error');
     }
   };
 
@@ -130,10 +132,10 @@ const ClientPanel = () => {
 
   useEffect(() => {
     const fetchBills = async () => {
-      if (activeView === 'billing' && data) {
+      if (resolvedClientId) {
         try {
           const token = localStorage.getItem('token');
-          const res = await fetch(`/api/bills/client/${data.clientData.id}`, {
+          const res = await fetch(`/api/bills/client/${resolvedClientId}`, {
             headers: {
               'x-auth-token': token,
             },
@@ -152,7 +154,7 @@ const ClientPanel = () => {
     };
 
     fetchBills();
-  }, [activeView, data]);
+  }, [resolvedClientId]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -623,7 +625,7 @@ const ClientPanel = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '20px' }}>
             <p><strong>Type:</strong> {project.projectType}</p>
             <p><strong>Status:</strong> {project.status}</p>
-            <p><strong>Requirements:</strong> {project.projectRequirements}</p>
+            <p><strong>Requirements:</strong> {project.projectDescription || project.projectRequirements}</p>
             <p><strong>Due Date:</strong> {new Date(project.projectDeadline).toLocaleDateString()}</p>
             <p><strong>Maint. Charge:</strong> ₹{(project.monthlyMaintenanceCharge || 0).toLocaleString()}</p>
           </div>
@@ -713,9 +715,9 @@ const ClientPanel = () => {
           Change Password
         </button>
       </div>
-      {message && (
-        <div className={`message ${messageStatus}`}>
-          {message}
+      {passwordMessage && (
+        <div className={`message ${passwordMessageStatus}`}>
+          {passwordMessage}
         </div>
       )}
     </div>
@@ -732,6 +734,16 @@ const ClientPanel = () => {
   const renderSrs = () => (
     <div className="srs-view">
       <h2>Software Requirement Specifications</h2>
+      {data?.clientData?.srsDocument && (
+        <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #30363d', borderRadius: '8px' }}>
+          <h3>{data.clientData.project || 'Main Project SRS'}</h3>
+          <div className="srs-actions">
+            <button className="download-btn" onClick={() => handleDownloadSrs({ srsDocument: data.clientData.srsDocument })}>
+              Download / View SRS
+            </button>
+          </div>
+        </div>
+      )}
       {projects.length > 0 ? projects.map(project => (
         <div key={project._id} style={{ marginBottom: '20px', padding: '15px', border: '1px solid #30363d', borderRadius: '8px' }}>
           <h3>{project.projectName}</h3>
@@ -745,7 +757,7 @@ const ClientPanel = () => {
             <p>No SRS document uploaded for this project yet.</p>
           )}
         </div>
-      )) : <p>No projects found.</p>}
+      )) : (!data?.clientData?.srsDocument && <p>No projects found.</p>)}
       <div className="message-section" style={{ marginTop: '40px' }}>
         <h3>Request Changes or Send a Message</h3>
         <form onSubmit={handleSendMessage}>

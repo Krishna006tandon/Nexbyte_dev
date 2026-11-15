@@ -138,7 +138,7 @@
     border-radius: 18px;
   }
 
-  .nav-menu.collapse.show {
+  .nav-menu.show {
     display: flex;
   }
 

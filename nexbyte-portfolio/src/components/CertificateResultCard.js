@@ -54,13 +54,15 @@ const CertificateResultCard = ({ certificate }) => {
     }}>
       {/* Header */}
       <div style={{
-        backgroundColor: '#1E3A8A',
+        backgroundColor: status === 'Revoked' ? '#991B1B' : status === 'Expired' ? '#475569' : '#1E3A8A',
         color: '#ffffff',
         padding: '24px',
         textAlign: 'center',
-        borderBottom: '4px solid #2563EB'
+        borderBottom: status === 'Revoked' ? '4px solid #DC2626' : status === 'Expired' ? '4px solid #64748b' : '4px solid #2563EB'
       }}>
-        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>✅ Certificate Verified</h2>
+        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>
+          {status === 'Revoked' ? '❌ Certificate Revoked' : status === 'Expired' ? '⚠️ Certificate Expired' : '✅ Certificate Verified'}
+        </h2>
         <p style={{ margin: '8px 0 0 0', opacity: 0.9 }}>NexByte Core Official Record</p>
       </div>
 

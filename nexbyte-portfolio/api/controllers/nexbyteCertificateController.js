@@ -3,28 +3,54 @@ const { put } = require('@vercel/blob');
 
 // Generate unique ID based on category and year
 const generateCertificateId = async (category) => {
+  const safeCategory = String(category || 'INT').replace(/[^A-Z0-9]/gi, '').toUpperCase() || 'INT';
   const year = new Date().getFullYear().toString().slice(-2);
-  const prefix = `NBC-${category.toUpperCase()}-${year}`;
-  
-  // Find the last certificate with this prefix
-  const lastCert = await NexbyteCertificate.findOne({ certificateId: new RegExp(`^${prefix}`) })
-    .sort({ certificateId: -1 });
+  const prefix = `NBC-${safeCategory}-${year}`;
 
-  let nextNumber = 1;
-  if (lastCert) {
-    const lastNumberStr = lastCert.certificateId.split('-').pop();
-    nextNumber = parseInt(lastNumberStr, 10) + 1;
+  const matches = await NexbyteCertificate.find({
+    certificateId: new RegExp(`^${prefix}(\\d+)$`),
+  })
+    .select('certificateId')
+    .lean();
+
+  let maxNumber = 0;
+  for (const cert of matches) {
+    const suffix = cert.certificateId.slice(prefix.length);
+    const parsed = parseInt(suffix, 10);
+    if (Number.isFinite(parsed) && parsed > maxNumber) {
+      maxNumber = parsed;
+    }
   }
 
+  const nextNumber = maxNumber + 1;
   const paddedNumber = nextNumber.toString().padStart(3, '0');
   return `${prefix}${paddedNumber}`;
+};
+
+const resolveSafeOrigin = (req) => {
+  const rawOrigin = req.headers.origin;
+  if (typeof rawOrigin === 'string' && rawOrigin.trim()) {
+    try {
+      const parsed = new URL(rawOrigin);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.origin;
+      }
+    } catch {
+      // ignore invalid origin
+    }
+  }
+  const host = req.get('host');
+  if (host) {
+    return `${req.protocol || 'https'}://${host}`;
+  }
+  return null;
 };
 
 // 1. POST /certificate - Admin only
 exports.createCertificate = async (req, res) => {
   try {
     const { category, studentName, email, programName, awardName, issueDate, internshipDuration, revealDate, customId } = req.body;
-    
+
     let certificateFileUrl = null;
     if (req.file) {
       const extension = req.file.originalname.split('.').pop();
@@ -34,9 +60,9 @@ exports.createCertificate = async (req, res) => {
       });
       certificateFileUrl = blob.url;
     }
-    
-    let certificateId = customId;
-    if (!certificateId || certificateId.trim() === '') {
+
+    let certificateId = customId ? String(customId).trim() : '';
+    if (!certificateId) {
       certificateId = await generateCertificateId(category || 'INT');
     } else {
       // Ensure custom ID is unique
@@ -45,11 +71,10 @@ exports.createCertificate = async (req, res) => {
         return res.status(400).json({ success: false, message: 'This Certificate ID is already in use.' });
       }
     }
-    
-    // Use the actual origin where the request came from, or fallback to the host
-    const origin = req.headers.origin || (req.get('host') ? `https://${req.get('host')}` : null);
-    const frontendUrl = origin || process.env.FRONTEND_URL || 'https://nexbyte-dev.vercel.app';
-    const qrCodeUrl = `${frontendUrl}/certificate/${certificateId}`;
+
+    const origin = resolveSafeOrigin(req);
+    const frontendUrl = process.env.FRONTEND_URL || process.env.PUBLIC_APP_URL || origin || 'https://nexbyte-dev.vercel.app';
+    const qrCodeUrl = `${frontendUrl.replace(/\/$/, '')}/certificate/${certificateId}`;
 
     const newCertificate = new NexbyteCertificate({
       certificateId,
@@ -78,11 +103,11 @@ exports.getCertificate = async (req, res) => {
   try {
     const { certificateId } = req.params;
     const certificate = await NexbyteCertificate.findOne({ certificateId });
-    
+
     if (!certificate) {
       return res.status(404).json({ success: false, message: 'Certificate Not Found' });
     }
-    
+
     res.status(200).json({ success: true, certificate });
   } catch (error) {
     console.error('Error fetching certificate:', error);
@@ -94,18 +119,34 @@ exports.getCertificate = async (req, res) => {
 exports.updateCertificate = async (req, res) => {
   try {
     const { certificateId } = req.params;
-    const updates = req.body;
-    
+    const allowedFields = [
+      'studentName',
+      'email',
+      'programName',
+      'awardName',
+      'issueDate',
+      'internshipDuration',
+      'status',
+      'revealDate',
+      'certificateFileUrl',
+    ];
+    const updates = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
+        updates[field] = req.body[field];
+      }
+    }
+
     const certificate = await NexbyteCertificate.findOneAndUpdate(
       { certificateId },
       { $set: updates },
-      { new: true }
+      { new: true, runValidators: true }
     );
-    
+
     if (!certificate) {
       return res.status(404).json({ success: false, message: 'Certificate Not Found' });
     }
-    
+
     res.status(200).json({ success: true, certificate });
   } catch (error) {
     console.error('Error updating certificate:', error);
@@ -118,11 +159,11 @@ exports.deleteCertificate = async (req, res) => {
   try {
     const { certificateId } = req.params;
     const certificate = await NexbyteCertificate.findOneAndDelete({ certificateId });
-    
+
     if (!certificate) {
       return res.status(404).json({ success: false, message: 'Certificate Not Found' });
     }
-    
+
     res.status(200).json({ success: true, message: 'Certificate deleted successfully' });
   } catch (error) {
     console.error('Error deleting certificate:', error);
@@ -135,11 +176,11 @@ exports.verifyCertificate = async (req, res) => {
   try {
     const { certificateId } = req.body;
     const certificate = await NexbyteCertificate.findOne({ certificateId });
-    
+
     if (!certificate) {
       return res.status(404).json({ success: false, message: 'This Certificate ID does not exist in our records.' });
     }
-    
+
     res.status(200).json({ success: true, certificate });
   } catch (error) {
     console.error('Error verifying certificate:', error);
@@ -153,12 +194,12 @@ exports.getAllCertificates = async (req, res) => {
     const certificates = await NexbyteCertificate.find().sort({ createdAt: -1 });
     const total = certificates.length;
     const verified = certificates.filter(c => c.status === 'Valid').length;
-    
-    res.status(200).json({ 
-      success: true, 
-      total, 
-      verified, 
-      certificates 
+
+    res.status(200).json({
+      success: true,
+      total,
+      verified,
+      certificates
     });
   } catch (error) {
     console.error('Error fetching all certificates:', error);
@@ -173,14 +214,14 @@ exports.getInternCertificate = async (req, res) => {
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email not found in token' });
     }
-    
+
     // Find valid certificate by email
     const certificate = await NexbyteCertificate.findOne({ email, status: 'Valid' }).sort({ createdAt: -1 });
-    
+
     if (!certificate) {
       return res.status(404).json({ success: false, message: 'No certificate found' });
     }
-    
+
     res.status(200).json({ success: true, certificate });
   } catch (error) {
     console.error('Error fetching intern certificate:', error);

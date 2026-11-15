@@ -27,7 +27,7 @@ const CertificatePreview = ({
               <div className="nb-certificate-logo-title">
                 <div className="nb-certificate-logo-circle">
                   <img
-                    src="/NexByte_Core%20Logo%20.png"
+                    src="/nexbyte-logo.png"
                     alt="Nexbyte Core Logo"
                     className="nb-certificate-logo-img"
                   />

@@ -93,8 +93,8 @@ const TaskMonitoringDashboard = () => {
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(task =>
-        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (task.title || task.task_title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (task.description || task.task_description || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -311,7 +311,7 @@ const TaskMonitoringDashboard = () => {
                   <td>
                     <button 
                       className="action-btn"
-                      onClick={() => window.open(`/task/${task._id}`, '_blank')}
+                      onClick={() => window.open(`/admin/task/${task._id}`, '_blank')}
                     >
                       View
                     </button>

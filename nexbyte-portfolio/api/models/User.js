@@ -4,14 +4,22 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, default: 'member', enum: ['admin', 'member', 'client', 'intern', 'user'] },
+  name: { type: String, trim: true },
+  firstName: { type: String, trim: true },
+  lastName: { type: String, trim: true },
+  phone: { type: String, trim: true },
+  bio: { type: String, trim: true },
+  skills: [{ type: String }],
   credits: { type: Number, default: 0 },
+  settings: {
+    emailNotifications: { type: Boolean, default: true },
+    pushNotifications: { type: Boolean, default: false },
+    theme: { type: String, default: 'dark' },
+    language: { type: String, default: 'en' },
+  },
 
   // Internship & offer management
   offerLetter: { type: String },
-  offerStatus: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
-  offerAcceptedDate: { type: Date },
-  offerRejectedDate: { type: Date },
-  rejectionReason: { type: String },
   offerStatus: { type: String, enum: ['pending', 'accepted', 'rejected', 'expired'], default: 'pending' },
   offerAcceptedDate: { type: Date },
   offerRejectedDate: { type: Date },
@@ -22,13 +30,6 @@ const userSchema = new mongoose.Schema({
   internshipEndDate: { type: Date },
   acceptanceDate: { type: Date },
   internType: { type: String, enum: ['free', 'stipend'], default: 'free' },
-  internFeeAmountInINR: { type: Number, default: 600 },
-  internFeeStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
-  internFeeTransactionId: { type: String },
-  internFeePaidAt: { type: Date },
-  internFeeRazorpayOrderId: { type: String },
-  internFeeRazorpayPaymentId: { type: String },
-  internFeeRazorpaySignature: { type: String },
 
   // Track current internship & certificate status
   internshipStatus: { 
@@ -41,11 +42,12 @@ const userSchema = new mongoose.Schema({
   // Internship fee payment (paid internship)
   internFeeStatus: {
     type: String,
-    enum: ['unpaid', 'paid'],
+    enum: ['unpaid', 'pending', 'paid'],
     default: 'unpaid',
     index: true,
   },
   internFeeAmountInINR: { type: Number, default: 600 },
+  internFeeTransactionId: { type: String },
   internFeePaidAt: { type: Date },
   internFeeRazorpayOrderId: { type: String },
   internFeeRazorpayPaymentId: { type: String },

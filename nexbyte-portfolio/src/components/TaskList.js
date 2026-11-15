@@ -74,8 +74,15 @@ const TaskList = ({ clientId, refreshTrigger }) => {
             const updatedTask = await response.json();
             setTasks(tasks.map(task => {
                 if (task._id === taskId) {
-                    const assignedIntern = interns.find(intern => intern._id === updatedTask.assignedTo);
-                    return { ...task, assignedTo: assignedIntern ? assignedIntern.email : null, assignedToId: updatedTask.assignedTo };
+                    const assignedId = updatedTask.assignedTo?._id || updatedTask.assignedTo || null;
+                    const assignedIntern = interns.find(intern => intern._id === assignedId);
+                    return {
+                        ...task,
+                        assignedTo: updatedTask.assignedTo?._id
+                            ? updatedTask.assignedTo
+                            : (assignedIntern ? { _id: assignedIntern._id, email: assignedIntern.email } : assignedId),
+                        assignedToId: assignedId
+                    };
                 }
                 return task;
             }));
@@ -132,15 +139,15 @@ const TaskList = ({ clientId, refreshTrigger }) => {
     const filteredTasks = tasks.filter(task => {
         const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
         const matchesSearch = searchTerm === '' || 
-            task.task_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            task.task_description?.toLowerCase().includes(searchTerm.toLowerCase());
+            (task.title || task.task_title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (task.description || task.task_description || '').toLowerCase().includes(searchTerm.toLowerCase());
         return matchesStatus && matchesSearch;
     });
 
     const sortedTasks = [...filteredTasks].sort((a, b) => {
         switch (sortBy) {
             case 'title':
-                return (a.task_title || '').localeCompare(b.task_title || '');
+                return (a.title || a.task_title || '').localeCompare(b.title || b.task_title || '');
             case 'status':
                 return (a.status || '').localeCompare(b.status || '');
             case 'priority':
@@ -159,7 +166,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
     const renderTaskCard = (task) => (
         <div key={task._id} className="task-card" onClick={() => handleTaskClick(task._id)}>
             <div className="task-card-header">
-                <h4 className="task-title">{task.task_title}</h4>
+                <h4 className="task-title">{task.title || task.task_title}</h4>
                 <div className="task-badges">
                     {task.priority && (
                         <span className="priority-badge" style={{ backgroundColor: getPriorityColor(task.priority) }}>
@@ -171,14 +178,14 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                     </span>
                 </div>
             </div>
-            <p className="task-description">{task.task_description}</p>
+            <p className="task-description">{task.description || task.task_description}</p>
             <div className="task-meta">
                 <span className="effort">⏱️ {task.estimated_effort_hours || 0}h</span>
                 <span className="reward">💰 ₹{task.reward_amount_in_INR || 0}</span>
             </div>
             <div className="task-assign-section" onClick={(e) => e.stopPropagation()}>
                 <select
-                    value={task.assignedToId || ''}
+                    value={task.assignedTo?._id || task.assignedToId || (typeof task.assignedTo === 'string' ? task.assignedTo : '') || ''}
                     onChange={(e) => handleQuickAssign(task._id, e.target.value)}
                     className="quick-assign-select"
                 >
@@ -224,7 +231,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                     <tr key={task._id} className="clickable-row">
                         <td onClick={() => handleTaskClick(task._id)}>
                             <div className="task-title-cell">
-                                {task.task_title}
+                                {task.title || task.task_title}
                                 {task.priority && (
                                     <span className="priority-badge" style={{ backgroundColor: getPriorityColor(task.priority) }}>
                                         {task.priority}
@@ -232,7 +239,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                                 )}
                             </div>
                         </td>
-                        <td onClick={() => handleTaskClick(task._id)}>{task.task_description}</td>
+                        <td onClick={() => handleTaskClick(task._id)}>{task.description || task.task_description}</td>
                         <td onClick={() => handleTaskClick(task._id)}>
                             <span className="priority-indicator" style={{ backgroundColor: getPriorityColor(task.priority) }}>
                                 {task.priority || 'N/A'}
@@ -247,7 +254,7 @@ const TaskList = ({ clientId, refreshTrigger }) => {
                         </td>
                         <td>
                             <select
-                                value={task.assignedToId || ''}
+                                value={task.assignedTo?._id || task.assignedToId || (typeof task.assignedTo === 'string' ? task.assignedTo : '') || ''}
                                 onChange={(e) => handleQuickAssign(task._id, e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
                                 className="assign-select"

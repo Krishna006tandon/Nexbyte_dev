@@ -106,7 +106,7 @@ const ApplicationList = () => {
     const fetchApplications = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/internship/applications');
+        const response = await axios.get('/api/internship/applications', { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
         const applicationsData = response.data;
         setApplications(applicationsData);
         setFilteredApplications(applicationsData);
@@ -201,7 +201,7 @@ const ApplicationList = () => {
 
       const response = await axios.put(`/api/internship/applications/${appId}/status`, {
         status: newStatus
-      });
+      }, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
 
       const updated = response.data;
       setApplications(prev => prev.map(app => (app._id === appId ? updated : app)));
@@ -248,7 +248,7 @@ const ApplicationList = () => {
         status: 'interview',
         interviewDate: isoDate,
         interviewMeetLink: interviewMeetLink.trim(),
-      });
+      }, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
       const updated = response.data;
       setApplications(prev => prev.map(app => (app._id === interviewTarget._id ? updated : app)));
       setFilteredApplications(prev => prev.map(app => (app._id === interviewTarget._id ? updated : app)));

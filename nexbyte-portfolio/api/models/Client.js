@@ -27,7 +27,17 @@ const ClientSchema = new mongoose.Schema({
   logoAndBrandingFiles: { type: String }, // Storing as a URL or path
   content: { type: String }, // Storing as a URL or path
 
-
+  // Project SRS & Milestones
+  srsDocument: { type: String },
+  milestone: {
+    type: String,
+    enum: ['Planning', 'Design', 'Development', 'Testing', 'Deployment', 'Completed'],
+    default: 'Planning',
+  },
+  milestoneHistory: [{
+    milestone: String,
+    date: { type: Date, default: Date.now },
+  }],
 
   password: { type: String, required: true },
 

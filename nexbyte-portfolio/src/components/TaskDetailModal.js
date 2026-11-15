@@ -15,13 +15,13 @@ const TaskDetailModal = ({ taskId, isOpen, onClose, onUpdate }) => {
             setLoading(true);
             try {
                 // Fetch task details
-                const taskRes = await fetch(`/api/tasks/${taskId}`);
+                const taskRes = await fetch(`/api/tasks/${taskId}`, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
                 if (!taskRes.ok) throw new Error('Failed to fetch task details');
                 const taskData = await taskRes.json();
                 setTask(taskData);
 
                 // Fetch all users for assignment dropdown
-                const usersRes = await fetch('/api/users');
+                const usersRes = await fetch('/api/users', { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
                 if (!usersRes.ok) throw new Error('Failed to fetch users');
                 const usersData = await usersRes.json();
                 setUsers(usersData);
@@ -44,7 +44,7 @@ const TaskDetailModal = ({ taskId, isOpen, onClose, onUpdate }) => {
             const response = await fetch(`/api/tasks/${task._id}`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                     body: JSON.stringify({ status: newStatus }),
                 });
             if (!response.ok) throw new Error('Failed to update status');
@@ -62,13 +62,13 @@ const TaskDetailModal = ({ taskId, isOpen, onClose, onUpdate }) => {
             const response = await fetch(`/api/tasks/${task._id}/assign`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                     body: JSON.stringify({ userId }),
                 });
             if (!response.ok) throw new Error('Failed to assign user');
             await response.json();
             // Re-fetch to populate the user
-            const populatedTask = await fetch(`/api/tasks/${task._id}`).then(res => res.json());
+            const populatedTask = await fetch(`/api/tasks/${task._id}`, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } }).then(res => res.json());
             setTask(populatedTask);
             onUpdate();
         } catch (err) {
@@ -83,7 +83,7 @@ const TaskDetailModal = ({ taskId, isOpen, onClose, onUpdate }) => {
             const response = await fetch(`/api/tasks/${task._id}/comments`,
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                     body: JSON.stringify({ body: newComment }),
                 });
             if (!response.ok) throw new Error('Failed to add comment');
@@ -106,8 +106,8 @@ const TaskDetailModal = ({ taskId, isOpen, onClose, onUpdate }) => {
                 {error && <p className="error-message">{error}</p>}
                 {task && (
                     <>
-                        <h2>{task.task_title}</h2>
-                        <p>{task.task_description}</p>
+                        <h2>{task.title || task.task_title}</h2>
+                        <p>{task.description || task.task_description}</p>
                         <div className="task-meta">
                             <span><strong>Reward:</strong> ₹{task.reward_amount_in_INR}</span>
                             <span><strong>Effort:</strong> {task.estimated_effort_hours} hours</span>

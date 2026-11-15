@@ -20,12 +20,12 @@ const TaskSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'in-progress', 'completed', 'To Do', 'review', 'testing', 'on-hold', 'Under Review', 'Testing', 'On Hold', 'Done', 'approved', 'cancelled'],
+    enum: ['pending', 'in-progress', 'completed', 'To Do', 'In Progress', 'Needs Review', 'Defect', 'defect', 'todo', 'backlog', 'review', 'testing', 'on-hold', 'Under Review', 'Testing', 'On Hold', 'Done', 'approved', 'cancelled'],
     default: 'pending'
   },
   priority: {
     type: String,
-    enum: ['low', 'medium', 'high'],
+    enum: ['low', 'medium', 'high', 'Low', 'Medium', 'High'],
     default: 'medium'
   },
   dueDate: {

@@ -17,7 +17,7 @@ const ResourceSchema = new Schema({
   },
   url: {
     type: String,
-    required: true
+    default: ''
   },
   category: {
     type: String,

@@ -20,12 +20,12 @@ const TaskDetailPage = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const taskRes = await fetch(`/api/tasks/${taskId}`);
+                const taskRes = await fetch(`/api/tasks/${taskId}`, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
                 if (!taskRes.ok) throw new Error('Failed to fetch task details');
                 const taskData = await taskRes.json();
                 setTask(taskData);
 
-                const usersRes = await fetch('/api/users');
+                const usersRes = await fetch('/api/users', { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
                 if (!usersRes.ok) throw new Error('Failed to fetch users');
                 const usersData = await usersRes.json();
                 setUsers(usersData);
@@ -70,7 +70,7 @@ const TaskDetailPage = () => {
                 body: JSON.stringify({ userId }),
             });
             if (!response.ok) throw new Error('Failed to assign user');
-            const populatedTask = await fetch(`/api/tasks/${task._id}`).then(res => res.json());
+            const populatedTask = await fetch(`/api/tasks/${task._id}`, { headers: { 'x-auth-token': token || '' } }).then(res => res.json());
             setTask(populatedTask);
         } catch (err) {
             setError(err.message);
@@ -80,8 +80,8 @@ const TaskDetailPage = () => {
     const handleTaskEdit = () => {
         setIsEditing(true);
         setEditedTask({
-            task_title: task.task_title,
-            task_description: task.task_description,
+            title: task.title || task.task_title || '',
+            description: task.description || task.task_description || '',
             estimated_effort_hours: task.estimated_effort_hours,
             reward_amount_in_INR: task.reward_amount_in_INR,
             priority: task.priority || 'medium'
@@ -129,7 +129,7 @@ const TaskDetailPage = () => {
         try {
             const response = await fetch(`/api/tasks/${task._id}/comments`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                 body: JSON.stringify({ body: newComment }),
             });
             if (!response.ok) throw new Error('Failed to add comment');
@@ -146,7 +146,7 @@ const TaskDetailPage = () => {
             const response = await fetch(`/api/tasks/${task._id}`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                     body: JSON.stringify({ status: 'Done' }),
                 });
             if (!response.ok) throw new Error('Failed to update status');
@@ -162,7 +162,7 @@ const TaskDetailPage = () => {
             const response = await fetch(`/api/tasks/${task._id}`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                     body: JSON.stringify({ status: 'Defect' }),
                 });
             if (!response.ok) throw new Error('Failed to update status');
@@ -178,7 +178,7 @@ const TaskDetailPage = () => {
             const response = await fetch(`/api/tasks/${task._id}`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                     body: JSON.stringify({ status: 'Needs Review' }),
                 });
             if (!response.ok) throw new Error('Failed to update status');
@@ -259,7 +259,7 @@ const TaskDetailPage = () => {
             <div className="task-detail-content">
                 <div className="task-main-info">
                     <div className="task-title-section">
-                        <h1>{task.task_title}</h1>
+                        <h1>{task.title || task.task_title}</h1>
                         <div className="task-badges">
                             {task.priority && (
                                 <span 
@@ -278,7 +278,7 @@ const TaskDetailPage = () => {
                         </div>
                     </div>
                     
-                    <p className="task-description">{task.task_description}</p>
+                    <p className="task-description">{task.description || task.task_description}</p>
                     
                     <div className="task-meta-grid">
                         <div className="meta-item">
@@ -335,15 +335,15 @@ const TaskDetailPage = () => {
                                         <label>Title</label>
                                         <input
                                             type="text"
-                                            value={editedTask.task_title}
-                                            onChange={(e) => setEditedTask({...editedTask, task_title: e.target.value})}
+                                            value={editedTask.title ?? ''}
+                                            onChange={(e) => setEditedTask({...editedTask, title: e.target.value})}
                                         />
                                     </div>
                                     <div className="form-group">
                                         <label>Description</label>
                                         <textarea
-                                            value={editedTask.task_description}
-                                            onChange={(e) => setEditedTask({...editedTask, task_description: e.target.value})}
+                                            value={editedTask.description ?? ''}
+                                            onChange={(e) => setEditedTask({...editedTask, description: e.target.value})}
                                             rows={4}
                                         />
                                     </div>

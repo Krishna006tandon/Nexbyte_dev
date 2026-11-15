@@ -80,7 +80,7 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
         try {
             const response = await fetch('/api/generate-project-description', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                 body: JSON.stringify({ projectName, projectRequirements: projectGoal }),
             });
             if (!response.ok) {
@@ -117,8 +117,8 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
             
             // Check if remaining budget is sufficient for rewards
             const remainingBudget = totalBudgetNum - fixedCostsNum;
-            if (remainingBudget < 500) {
-                setError('Remaining budget after fixed costs should be at least ₹500 for reward distribution.');
+            if (remainingBudget < 1000) {
+                setError('Remaining budget after fixed costs should be at least ₹1000 for reward distribution.');
                 return;
             }
         }
@@ -130,7 +130,7 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
         try {
             const response = await fetch('/api/preview-tasks', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                 body: JSON.stringify({
                     clientId: clientId,
                     projectName,
@@ -160,7 +160,7 @@ const TaskGenerator = ({ clients, clientId, onClientChange, onTasksSaved }) => {
         try {
             const response = await fetch('/api/save-tasks', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') || '' },
                 body: JSON.stringify({ tasks: generatedTasks }),
             });
             if (!response.ok) {

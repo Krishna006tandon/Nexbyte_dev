@@ -20,6 +20,7 @@ const cookieParser = require('cookie-parser');
 
 
 const User = require('./models/User');
+const Client = require('./models/Client');
 const Bill = require('./models/Bill');
 const Task = require('./models/Task');
 const TeamMember = require('./models/TeamMember');
@@ -190,7 +191,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
           console.error(err);
           return res.status(500).json({ message: 'Error signing token' });
         }
-        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
         res.json({ token, role: role });
       }
     );
@@ -202,7 +203,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
 // @route   POST api/forgot-password
 // @desc    Forgot password (public)
-app.post('/api/forgot-password', async (req, res) => {
+app.post('/api/forgot-password', loginLimiter, async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -223,21 +224,12 @@ app.post('/api/forgot-password', async (req, res) => {
       return res.status(404).json({ message: 'Account not found with this email' });
     }
 
-    // Generate new temporary password
-    const tempPassword = Math.random().toString(36).slice(-8);
+    // Generate new temporary password using CSPRNG
+    const tempPassword = crypto.randomBytes(6).toString('base64url');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(tempPassword, salt);
 
-    // Update password in the database
-    if (isClient) {
-      user.password = hashedPassword;
-      await user.save();
-    } else {
-      user.password = hashedPassword;
-      await user.save();
-    }
-
-    // Send the password via email
+    // Send the password via email first so failed email does not lock out account
     try {
       console.log(`Attempting to send password reset email to ${email}...`);
       const emailResult = await mailSender.sendPasswordReset(
@@ -247,10 +239,12 @@ app.post('/api/forgot-password', async (req, res) => {
       );
       
       if (emailResult.success) {
-        return res.json({ message: 'A new temporary password has been sent to your email.', previewUrl: emailResult.previewUrl || null });
+        user.password = hashedPassword;
+        await user.save();
+        return res.json({ message: 'A new temporary password has been sent to your email.' });
       } else {
         console.error('Failed to send reset email:', emailResult.error);
-        return res.status(500).json({ message: 'Account found, but could not send email. Please contact support.', previewUrl: emailResult.previewUrl || null });
+        return res.status(500).json({ message: 'Account found, but could not send email. Please contact support.' });
       }
     } catch (emailError) {
       console.error('Error in sendPasswordReset notification:', emailError);
@@ -273,7 +267,7 @@ app.get('/api/hello', (req, res) => {
 const Contact = require('./models/Contact');
 
 const auth = (req, res, next) => {
-  const token = req.cookies.token || req.header('x-auth-token');
+  const token = req.cookies?.token || req.header('x-auth-token');
 
   if (!token) {
     return res.status(401).json({ message: 'No token, authorization denied' });
@@ -1150,8 +1144,16 @@ function startPortalAutomationJobsWhenReady() {
 
 startPortalAutomationJobsWhenReady();
 
+const isValidAutomationSecret = (req) => {
+  const expected = String(process.env.AUTOMATION_SECRET || '').trim();
+  if (!expected) return false;
+  const provided = String(req.query?.secret || req.params?.secret || req.header('x-automation-secret') || '').trim();
+  return provided && provided === expected;
+};
+
 app.get('/api/automation/cron/in-progress-overdue', async (req, res) => {
   try {
+    if (!isValidAutomationSecret(req)) return res.status(403).json({ ok: false, message: 'Forbidden' });
     const dryRun = String(req.query?.dryRun || '').trim() === '1';
     const result = await notifyOverdueInProgressTasks({ dryRun });
     res.json({ ok: true, dryRun, ...result });
@@ -1419,7 +1421,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
       internshipEndDate: role === 'intern' ? internshipEndDate : undefined,
       acceptanceDate: role === 'intern' ? acceptanceDate : undefined,
       internFeeAmountInINR: role === 'intern' ? 600 : undefined,
-      internFeeStatus: role === 'intern' ? 'pending' : undefined,
+      internFeeStatus: role === 'intern' ? 'unpaid' : undefined,
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -1457,8 +1459,6 @@ app.post('/api/users', auth, admin, async (req, res) => {
         warning: emailError.message
       });
     }
-
-    res.json({ message: 'User created successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
@@ -1622,6 +1622,34 @@ app.put('/api/profile', auth, async (req, res) => {
   }
 });
 
+// @route   PUT api/settings
+// @desc    Update current user preferences
+// @access  Private
+app.put('/api/settings', auth, async (req, res) => {
+  try {
+    const { emailNotifications, pushNotifications, theme, language } = req.body || {};
+    const update = {};
+    if (typeof emailNotifications === 'boolean') update['settings.emailNotifications'] = emailNotifications;
+    if (typeof pushNotifications === 'boolean') update['settings.pushNotifications'] = pushNotifications;
+    if (typeof theme === 'string' && ['dark', 'light', 'auto'].includes(theme)) update['settings.theme'] = theme;
+    if (typeof language === 'string' && language.trim()) update['settings.language'] = language.trim().slice(0, 10);
+
+    const updated = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: update },
+      { new: true }
+    ).select('settings');
+
+    if (!updated) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.json(updated.settings || {});
+  } catch (err) {
+    console.error('Error updating settings:', err.message);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   DELETE api/users/:id
 // @desc    Delete a user
 // @access  Private (admin)
@@ -1638,11 +1666,9 @@ app.delete('/api/users/:id', auth, admin, async (req, res) => {
   }
 });
 
-const Client = require('./models/Client');
-
 // Function to generate a random password
 const generatePassword = () => {
-  return Math.random().toString(36).slice(-8);
+  return crypto.randomBytes(6).toString('base64url');
 };
 
 // @route   POST api/clients
@@ -1818,7 +1844,19 @@ app.put('/api/clients/:id', auth, admin, async (req, res) => {
         return res.status(400).json({ message: 'Email already exists for another client' });
       }
     }
-    const client = await Client.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+    const allowedClientFields = [
+      'clientName', 'contactPerson', 'email', 'alternateEmail', 'phone', 'companyAddress',
+      'projectName', 'projectType', 'projectRequirements', 'projectDeadline', 'totalBudget',
+      'monthlyMaintenanceCharge', 'billingAddress', 'gstNumber', 'paymentTerms', 'paymentMethod',
+      'domainRegistrarLogin', 'webHostingLogin', 'logoAndBrandingFiles', 'content', 'srsDocument'
+    ];
+    const clientPatch = {};
+    for (const field of allowedClientFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
+        clientPatch[field] = req.body[field];
+      }
+    }
+    const client = await Client.findByIdAndUpdate(req.params.id, { $set: clientPatch }, { new: true }).select('-password');
     
     // Check if alternate email was just added
     if (alternateEmail && alternateEmail !== existingClientById.alternateEmail) {
@@ -1847,7 +1885,7 @@ app.put('/api/clients/:id', auth, admin, async (req, res) => {
 // @route   GET api/clients/:id/password
 // @desc    Get client password
 // @access  Private (admin)
-app.get('/api/clients/:id/password', auth, admin, async (req, res) => {
+app.post('/api/clients/:id/password', auth, admin, async (req, res) => {
   try {
     const client = await Client.findById(req.params.id).select('email clientName contactPerson password');
     if (!client) {
@@ -2171,22 +2209,27 @@ app.post('/api/bills', auth, admin, uploadDocument.single('invoiceFile'), async 
       invoiceFileUrl = blob.url;
     }
 
+    const parsedPaidAmount = req.body.paidAmount !== undefined && req.body.paidAmount !== '' ? Number(req.body.paidAmount) : undefined;
     const newBill = new Bill({
       client,
-      project,
+      project: project || undefined,
       amount,
       dueDate,
       status,
       description,
       otherDetails,
       ...(invoiceFileUrl && { invoiceFile: invoiceFileUrl }),
-      ...(status === 'Paid' && { paidAmount: amount }),
+      ...(status === 'Paid'
+        ? { paidAmount: amount }
+        : Number.isFinite(parsedPaidAmount) && parsedPaidAmount >= 0
+          ? { paidAmount: parsedPaidAmount }
+          : {}),
     });
 
     await newBill.save();
 
     const billLinkBase = process.env.PUBLIC_APP_URL || process.env.CLIENT_URL || '';
-    const billLink = billLinkBase ? `${billLinkBase.replace(/\/$/, '')}/client` : '';
+    const billLink = billLinkBase ? `${billLinkBase.replace(/\/$/, '')}/client-panel` : '';
 
     await sendMailSafe(
       {
@@ -2268,6 +2311,9 @@ app.post('/api/generate-bill-description', auth, admin, async (req, res) => {
 // @access  Private (client)
 app.get('/api/bills/client/:clientId', auth, client, async (req, res) => {
   try {
+    if (req.params.clientId !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const bills = await Bill.find({ client: req.params.clientId }).sort({ billDate: -1 });
     res.json(bills);
   } catch (err) {
@@ -3047,8 +3093,8 @@ app.post('/api/preview-tasks', auth, admin, async (req, res) => {
                 description: task.task_description,
                 estimated_effort_hours: task.estimated_effort_hours,
                 reward_amount_in_INR: reward,
-                client: clientId || null,
-                project: selectedProject || null, // ✅ Add project field
+                client: clientId || (typeof selectedProject === 'string' && selectedProject.startsWith('client-') ? selectedProject.slice(7) : null),
+                project: selectedProject && !String(selectedProject).startsWith('client-') ? selectedProject : null,
                 status: 'To Do',
                 isFreeProject: isFreeProject
             };
@@ -3085,8 +3131,15 @@ app.post('/api/save-tasks', auth, admin, async (req, res) => {
                 status: task.status || 'pending',
                 estimated_effort_hours: task.estimated_effort_hours || 8, // Default 8 hours
                                 reward_amount_in_INR: task.reward_amount_in_INR || 0, // Default  0
-                project: task.project || task.projectId, // Handle both field names
-                client: task.client || null,
+                project: (() => {
+                    const p = task.project || task.projectId || null;
+                    return p && !String(p).startsWith('client-') ? p : null;
+                })(),
+                client: (() => {
+                    if (task.client) return task.client;
+                    const p = task.project || task.projectId;
+                    return typeof p === 'string' && p.startsWith('client-') ? p.slice(7) : null;
+                })(),
                 assignedTo: task.assignedTo || null,
                 dueDate: task.dueDate || null
             };
@@ -3102,27 +3155,70 @@ app.post('/api/save-tasks', auth, admin, async (req, res) => {
     }
 });
 
+const normalizeTaskStatus = (s) => String(s || '').trim().toLowerCase();
+const isInProgressTaskStatus = (s) => {
+    const st = normalizeTaskStatus(s);
+    return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review' || st === 'needs review';
+};
+const isCompletedTaskStatus = (s) => {
+    const st = normalizeTaskStatus(s);
+    return st === 'completed' || st === 'done' || st === 'approved';
+};
+
+async function applyTaskStatusTransition(task, nextStatus, now = new Date()) {
+    const prevStatus = task.status;
+
+    if (isInProgressTaskStatus(prevStatus) && !isInProgressTaskStatus(nextStatus)) {
+        const since = task.lastStatusChangedAt || task.startedAt;
+        if (since instanceof Date && !Number.isNaN(since.getTime())) {
+            const deltaSeconds = Math.max(0, Math.floor((now.getTime() - since.getTime()) / 1000));
+            task.totalActiveSeconds = (Number(task.totalActiveSeconds) || 0) + deltaSeconds;
+        }
+        task.lastStatusChangedAt = now;
+    }
+
+    if (!isInProgressTaskStatus(prevStatus) && isInProgressTaskStatus(nextStatus)) {
+        task.startedAt = task.startedAt || now;
+        task.lastStatusChangedAt = now;
+    }
+
+    if (isCompletedTaskStatus(nextStatus) && !isCompletedTaskStatus(prevStatus)) {
+        if (task.assignedTo && task.reward_amount_in_INR > 0) {
+            await User.findByIdAndUpdate(task.assignedTo, {
+                $inc: { credits: task.reward_amount_in_INR }
+            });
+        }
+        task.completedAt = now;
+    }
+
+    task.status = nextStatus;
+}
+
 // @route   GET api/tasks
-// @desc    Get all tasks for a client
-// @access  Private (client or admin)
+// @desc    Get all tasks for a client/intern/admin
+// @access  Private
 app.get('/api/tasks', auth, async (req, res) => {
     try {
-        let tasks;
+        let query;
         if (req.user.role === 'admin') {
-            // Admin can see all tasks, or filter by clientId if provided
             const { clientId } = req.query;
-            if (clientId) {
-                tasks = await Task.find({ client: clientId }).sort({ createdAt: -1 });
-            } else {
-                tasks = await Task.find().sort({ createdAt: -1 });
-            }
+            query = clientId ? { client: clientId } : {};
         } else if (req.user.role === 'intern') {
-            // Intern can only see tasks assigned to them
-            tasks = await Task.find({ assignedTo: req.user.id }).sort({ createdAt: -1 });
+            const internUser = await User.findById(req.user.id).select('offerStatus internFeeStatus');
+            if (!internUser || (internUser.offerStatus !== 'accepted' && internUser.internFeeStatus !== 'paid')) {
+                return res.status(402).json({ message: 'Payment required. Please complete internship fee payment.' });
+            }
+            query = { assignedTo: req.user.id };
+        } else if (req.user.role === 'member') {
+            query = { assignedTo: req.user.id };
         } else {
-            // A client can only see their own tasks
-            tasks = await Task.find({ client: req.user.id }).sort({ createdAt: -1 });
+            query = { client: req.user.id };
         }
+
+        const tasks = await Task.find(query)
+            .populate('assignedTo', 'firstName lastName email')
+            .populate('client', 'clientName email')
+            .sort({ createdAt: -1 });
         res.json(tasks);
     } catch (err) {
         console.error(err.message);
@@ -3130,14 +3226,114 @@ app.get('/api/tasks', auth, async (req, res) => {
     }
 });
 
+// @route   PUT api/tasks/bulk-assign
+// @desc    Bulk assign tasks to an intern
+// @access  Private (admin)
+app.put('/api/tasks/bulk-assign', auth, admin, async (req, res) => {
+    try {
+        const { taskIds, assignedTo } = req.body || {};
+        if (!Array.isArray(taskIds) || taskIds.length === 0) {
+            return res.status(400).json({ message: 'taskIds array is required' });
+        }
+        const existingTasks = await Task.find({ _id: { $in: taskIds } }).select('assignedTo');
+
+        await Task.updateMany(
+            { _id: { $in: taskIds } },
+            { assignedTo: assignedTo || null }
+        );
+
+        const populatedTasks = await Task.find({ _id: { $in: taskIds } })
+            .populate('assignedTo', 'email');
+
+        const tasksWithNames = populatedTasks.map(task => {
+            if (task.assignedTo) {
+                task.assignedTo.name = task.assignedTo.email.split('@')[0];
+            }
+            return task;
+        });
+
+        const previousAssignmentsById = new Map(
+            existingTasks.map((task) => [String(task._id), task.assignedTo])
+        );
+
+        await Promise.allSettled(
+            populatedTasks.map((task) =>
+                sendTaskAssignmentEmail(task, {
+                    previousAssignedTo: previousAssignmentsById.get(String(task._id)),
+                })
+            )
+        );
+
+        res.json(tasksWithNames);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   PUT api/tasks/bulk-status
+// @desc    Bulk update task status
+// @access  Private (admin)
+app.put('/api/tasks/bulk-status', auth, admin, async (req, res) => {
+    try {
+        const { taskIds, status } = req.body || {};
+        if (!Array.isArray(taskIds) || taskIds.length === 0 || !status) {
+            return res.status(400).json({ message: 'taskIds array and status are required' });
+        }
+
+        const tasks = await Task.find({ _id: { $in: taskIds } });
+        for (const task of tasks) {
+            await applyTaskStatusTransition(task, status);
+            await task.save();
+        }
+
+        const populatedTasks = await Task.find({ _id: { $in: taskIds } })
+            .populate('assignedTo', 'email');
+
+        const tasksWithNames = populatedTasks.map(task => {
+            if (task.assignedTo) {
+                task.assignedTo.name = task.assignedTo.email.split('@')[0];
+            }
+            return task;
+        });
+
+        res.json(tasksWithNames);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   PUT api/tasks/:id
-// @desc    Update a task's status
+// @desc    Update a task's status or details
 // @access  Private (admin)
 app.put('/api/tasks/:id', auth, admin, async (req, res) => {
-    const { status } = req.body;
+    const {
+        status,
+        title,
+        task_title,
+        description,
+        task_description,
+        priority,
+        estimated_effort_hours,
+        reward_amount_in_INR,
+        dueDate
+    } = req.body || {};
 
-    if (!status) {
-        return res.status(400).json({ message: 'Status is required' });
+    const nextTitle = title !== undefined ? title : task_title;
+    const nextDescription = description !== undefined ? description : task_description;
+
+    const hasUpdates =
+        status !== undefined ||
+        nextTitle !== undefined ||
+        nextDescription !== undefined ||
+        priority !== undefined ||
+        estimated_effort_hours !== undefined ||
+        reward_amount_in_INR !== undefined ||
+        dueDate !== undefined;
+
+    if (!hasUpdates) {
+        return res.status(400).json({ message: 'Status or task fields are required' });
     }
 
     try {
@@ -3146,52 +3342,24 @@ app.put('/api/tasks/:id', auth, admin, async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
-        const isInProgressStatus = (s) => {
-            const st = normalizeStatus(s);
-            return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review';
-        };
-        const isCompletedStatus = (s) => {
-            const st = normalizeStatus(s);
-            return st === 'completed' || st === 'done' || st === 'approved';
-        };
+        if (nextTitle !== undefined) task.title = nextTitle;
+        if (nextDescription !== undefined) task.description = nextDescription;
+        if (priority !== undefined) task.priority = priority;
+        if (estimated_effort_hours !== undefined) task.estimated_effort_hours = Number(estimated_effort_hours);
+        if (reward_amount_in_INR !== undefined) task.reward_amount_in_INR = Number(reward_amount_in_INR);
+        if (dueDate !== undefined) task.dueDate = dueDate || null;
 
-        const now = new Date();
-        const prevStatus = task.status;
-        const nextStatus = status;
-
-        // Track active time: accumulate when leaving an in-progress state
-        if (isInProgressStatus(prevStatus) && !isInProgressStatus(nextStatus)) {
-            const since = task.lastStatusChangedAt || task.startedAt;
-            if (since instanceof Date && !Number.isNaN(since.getTime())) {
-                const deltaSeconds = Math.max(0, Math.floor((now.getTime() - since.getTime()) / 1000));
-                task.totalActiveSeconds = (Number(task.totalActiveSeconds) || 0) + deltaSeconds;
-            }
-            task.lastStatusChangedAt = now;
+        if (status) {
+            await applyTaskStatusTransition(task, status);
         }
 
-        // Start timer when entering in-progress for the first time
-        if (!isInProgressStatus(prevStatus) && isInProgressStatus(nextStatus)) {
-            task.startedAt = task.startedAt || now;
-            task.lastStatusChangedAt = now;
-        }
-
-        // Check if status is changing to 'Done' to award credits
-        if (isCompletedStatus(nextStatus) && !isCompletedStatus(prevStatus)) {
-            if (task.assignedTo && task.reward_amount_in_INR > 0) {
-                const user = await User.findById(task.assignedTo);
-                if (user) {
-                    user.credits = (user.credits || 0) + task.reward_amount_in_INR;
-                    await user.save();
-                }
-            }
-            task.completedAt = now;
-        }
-
-        task.status = nextStatus;
         await task.save();
 
-        res.json(task);
+        const populatedTask = await Task.findById(task._id)
+            .populate('assignedTo', 'email')
+            .populate('comments.user', 'email');
+
+        res.json(populatedTask);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ message: 'Server error' });
@@ -3266,13 +3434,13 @@ app.get('/api/users/intern-report/:internId', auth, admin, async (req, res) => {
             : Math.round(parseFloat(completionRate) || 0);
 
         // Tasks by priority
-        const highPriorityTasks = tasks.filter(task => task.priority === 'High');
-        const mediumPriorityTasks = tasks.filter(task => task.priority === 'Medium');
-        const lowPriorityTasks = tasks.filter(task => task.priority === 'Low');
+        const highPriorityTasks = tasks.filter(task => String(task.priority || '').toLowerCase() === 'high');
+        const mediumPriorityTasks = tasks.filter(task => String(task.priority || '').toLowerCase() === 'medium');
+        const lowPriorityTasks = tasks.filter(task => String(task.priority || '').toLowerCase() === 'low');
 
-        const highPriorityCompleted = highPriorityTasks.filter(task => task.status === 'Done').length;
-        const mediumPriorityCompleted = mediumPriorityTasks.filter(task => task.status === 'Done').length;
-        const lowPriorityCompleted = lowPriorityTasks.filter(task => task.status === 'Done').length;
+        const highPriorityCompleted = highPriorityTasks.filter(task => isCompleted(task.status)).length;
+        const mediumPriorityCompleted = mediumPriorityTasks.filter(task => isCompleted(task.status)).length;
+        const lowPriorityCompleted = lowPriorityTasks.filter(task => isCompleted(task.status)).length;
 
         // Monthly task completion trend (use explicit completedAt when available)
         const monthlyStats = {};
@@ -3408,13 +3576,13 @@ app.get('/api/intern/my-report', verifyIntern, async (req, res) => {
             ? Math.round(Math.min(100, (parseFloat(completionRate) || 0) * efficiencyClamped))
             : Math.round(parseFloat(completionRate) || 0);
 
-        const highPriorityTasks = tasks.filter(task => task.priority === 'High');
-        const mediumPriorityTasks = tasks.filter(task => task.priority === 'Medium');
-        const lowPriorityTasks = tasks.filter(task => task.priority === 'Low');
+        const highPriorityTasks = tasks.filter(task => String(task.priority || '').toLowerCase() === 'high');
+        const mediumPriorityTasks = tasks.filter(task => String(task.priority || '').toLowerCase() === 'medium');
+        const lowPriorityTasks = tasks.filter(task => String(task.priority || '').toLowerCase() === 'low');
 
-        const highPriorityCompleted = highPriorityTasks.filter(task => task.status === 'Done').length;
-        const mediumPriorityCompleted = mediumPriorityTasks.filter(task => task.status === 'Done').length;
-        const lowPriorityCompleted = lowPriorityTasks.filter(task => task.status === 'Done').length;
+        const highPriorityCompleted = highPriorityTasks.filter(task => isCompleted(task.status)).length;
+        const mediumPriorityCompleted = mediumPriorityTasks.filter(task => isCompleted(task.status)).length;
+        const lowPriorityCompleted = lowPriorityTasks.filter(task => isCompleted(task.status)).length;
 
         const monthlyStats = {};
         completedTaskList.forEach(task => {
@@ -3516,6 +3684,12 @@ app.get('/api/tasks/:id', auth, async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        const isAssignedUser = task.assignedTo && String(task.assignedTo._id || task.assignedTo) === req.user.id;
+        const isTaskClient = task.client && String(task.client) === req.user.id;
+        if (req.user.role !== 'admin' && !isAssignedUser && !isTaskClient) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
         res.json(task);
     } catch (err) {
         console.error(err.message);
@@ -3536,7 +3710,7 @@ app.put('/api/tasks/:id/assign', auth, admin, async (req, res) => {
         }
 
         const previousAssignedTo = task.assignedTo;
-        task.assignedTo = userId;
+        task.assignedTo = userId || null;
         await task.save();
         await sendTaskAssignmentEmail(task, { previousAssignedTo });
 
@@ -3561,6 +3735,12 @@ app.post('/api/tasks/:id/comments', auth, async (req, res) => {
         const task = await Task.findById(req.params.id);
         if (!task) {
             return res.status(404).json({ message: 'Task not found' });
+        }
+
+        const isAssignedUser = task.assignedTo && String(task.assignedTo) === req.user.id;
+        const isTaskClient = task.client && String(task.client) === req.user.id;
+        if (req.user.role !== 'admin' && !isAssignedUser && !isTaskClient) {
+            return res.status(403).json({ message: 'Access denied' });
         }
 
         const newComment = {
@@ -3590,7 +3770,10 @@ app.post('/api/tasks/:id/comments', auth, async (req, res) => {
 app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
   try {
     const { clientId } = req.params;
-    const client = await Client.findById(clientId);
+    if (req.user.role !== 'admin' && req.user.id !== clientId) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const client = await Client.findById(clientId).select('-password -domainRegistrarLogin -webHostingLogin');
 
     if (!client) {
       return res.status(404).json({ message: 'Client not found' });
@@ -3643,6 +3826,9 @@ app.get('/api/clients/:clientId/milestone', auth, async (req, res) => {
 
     if (client.milestone !== newMilestone) {
       client.milestone = newMilestone;
+      if (!Array.isArray(client.milestoneHistory)) {
+        client.milestoneHistory = [];
+      }
       client.milestoneHistory.push({ milestone: newMilestone, date: new Date() });
       await client.save();
     }
@@ -3710,24 +3896,27 @@ app.post('/api/intern/accept-offer', auth, async (req, res) => {
         {
           title: 'Complete Intern Profile',
           description: 'Update your first name, last name, phone, bio and skills in the Profile Settings section of your dashboard.',
-          priority: 'High',
+          priority: 'high',
           status: 'To Do',
+          estimated_effort_hours: 1,
           reward_amount_in_INR: 100,
           assignedTo: user._id,
         },
         {
           title: 'Setup Dev Environment',
           description: 'Follow the repository readme to set up your local development environment and ensure the project runs successfully.',
-          priority: 'High',
+          priority: 'high',
           status: 'To Do',
+          estimated_effort_hours: 2,
           reward_amount_in_INR: 200,
           assignedTo: user._id,
         },
         {
           title: 'Review Company Processes',
           description: 'Read the company onboarding documents and understand the sprint cycles and reporting requirements.',
-          priority: 'Medium',
+          priority: 'medium',
           status: 'To Do',
+          estimated_effort_hours: 1,
           reward_amount_in_INR: 50,
           assignedTo: user._id,
         }
@@ -4011,12 +4200,6 @@ app.post('/api/automation/weekly-progress', auth, admin, async (req, res) => {
 });
 
 // Cron-friendly automation endpoints (no JWT; protected by AUTOMATION_SECRET)
-const isValidAutomationSecret = (req) => {
-  const expected = String(process.env.AUTOMATION_SECRET || '').trim();
-  if (!expected) return false;
-  const provided = String(req.query?.secret || req.params?.secret || req.header('x-automation-secret') || '').trim();
-  return provided && provided === expected;
-};
 
 app.get('/api/automation/cron/offers-expire', async (req, res) => {
   try {
@@ -4070,7 +4253,7 @@ app.get('/api/automation/cron/weekly-progress/:secret', async (req, res) => {
 
 // Middleware to verify token and check if user is intern
 function verifyIntern(req, res, next) {
-  const token = req.header('x-auth-token');
+  const token = req.cookies?.token || req.header('x-auth-token');
   
   if (!token) {
     return res.status(401).json({ message: 'No token, authorization denied' });
@@ -4099,20 +4282,7 @@ function verifyIntern(req, res, next) {
   }
 }
 
-// Get intern tasks
-app.get('/api/tasks', verifyIntern, async (req, res) => {
-  try {
-    const tasks = await Task.find({ assignedTo: req.user.id })
-      .sort({ createdAt: -1 })
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('client', 'companyName email');
-    
-    res.json(tasks);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
+
 
 // Get intern diary entries
 app.get('/api/diary', verifyIntern, async (req, res) => {
@@ -4595,13 +4765,13 @@ app.put('/api/intern/tasks/:id', verifyIntern, async (req, res) => {
     });
 
     // Check if task is assigned to this intern
-    if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+    if (!task.assignedTo || task.assignedTo.toString() !== req.user.id) {
       console.log('DEBUG: Access denied - task not assigned to user');
       return res.status(403).json({ message: 'Access denied. Task not assigned to you.' });
     }
 
-    // Update the task status
-    task.status = status;
+    // Update the task status with timing/credit tracking
+    await applyTaskStatusTransition(task, status);
     const updatedTask = await task.save();
     
     console.log('DEBUG: Task updated successfully:', updatedTask.status);
@@ -4651,13 +4821,13 @@ app.put('/api/member/tasks/:id', auth, async (req, res) => {
     });
 
     // Check if task is assigned to this member
-    if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+    if (!task.assignedTo || task.assignedTo.toString() !== req.user.id) {
       console.log('DEBUG: Access denied - task not assigned to user');
       return res.status(403).json({ message: 'Access denied. Task not assigned to you.' });
     }
 
-    // Update the task status
-    task.status = status;
+    // Update the task status with timing/credit tracking
+    await applyTaskStatusTransition(task, status);
     const updatedTask = await task.save();
     
     console.log('DEBUG: Task updated successfully:', updatedTask.status);
@@ -4961,6 +5131,9 @@ app.get('/api/team', verifyIntern, async (req, res) => {
 // @access  Private
 app.get('/api/intern-payment/:internId', auth, async (req, res) => {
   try {
+    if (req.user.role !== 'admin' && req.user.id !== req.params.internId) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const intern = await User.findById(req.params.internId);
     
     if (!intern || intern.role !== 'intern') {
@@ -4978,7 +5151,7 @@ app.get('/api/intern-payment/:internId', auth, async (req, res) => {
     } else if (intern.internType === 'stipend') {
       // Stipend intern - intern gets money based on growth
       // Fetch intern's growth reports to calculate stipend
-      const reports = await Report.find({ user: req.params.internId });
+      const reports = await Report.find({ intern: req.params.internId });
       const avgPerformance = reports.length > 0 
         ? reports.reduce((sum, report) => sum + (report.performanceScore || 0), 0) / reports.length 
         : 0;
@@ -5035,40 +5208,7 @@ app.get('/api/interns', auth, admin, async (req, res) => {
 });
 
 
-// @route   POST api/projects/:projectId/tasks
-// @desc    Create a new task for a project
-// @access  Private (admin)
-app.post('/api/projects/:projectId/tasks', auth, admin, async (req, res) => {
-  try {
-    const { title, description, priority, dueDate, assignedTo, status } = req.body;
-    
-    const newTask = new Task({
-      title,
-      description,
-      priority,
-      dueDate,
-      assignedTo,
-      status,
-      project: req.params.projectId
-    });
 
-    await newTask.save();
-    await sendTaskAssignmentEmail(newTask, { isNewTask: true });
-    
-    const populatedTask = await Task.findById(newTask._id)
-      .populate('assignedTo', 'email');
-    
-    // Add name field for frontend compatibility
-    if (populatedTask.assignedTo) {
-      populatedTask.assignedTo.name = populatedTask.assignedTo.email.split('@')[0];
-    }
-    
-    res.json(populatedTask);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 // @route   PUT api/tasks/:id/status
 // @desc    Update task status
@@ -5086,39 +5226,7 @@ app.put('/api/tasks/:id/status', auth, admin, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
-    const isInProgressStatus = (s) => {
-      const st = normalizeStatus(s);
-      return st === 'in-progress' || st === 'in progress' || st === 'review' || st === 'testing' || st === 'under review';
-    };
-    const isCompletedStatus = (s) => {
-      const st = normalizeStatus(s);
-      return st === 'completed' || st === 'done' || st === 'approved';
-    };
-
-    const now = new Date();
-    const prevStatus = task.status;
-    const nextStatus = status;
-
-    if (isInProgressStatus(prevStatus) && !isInProgressStatus(nextStatus)) {
-      const since = task.lastStatusChangedAt || task.startedAt;
-      if (since instanceof Date && !Number.isNaN(since.getTime())) {
-        const deltaSeconds = Math.max(0, Math.floor((now.getTime() - since.getTime()) / 1000));
-        task.totalActiveSeconds = (Number(task.totalActiveSeconds) || 0) + deltaSeconds;
-      }
-      task.lastStatusChangedAt = now;
-    }
-
-    if (!isInProgressStatus(prevStatus) && isInProgressStatus(nextStatus)) {
-      task.startedAt = task.startedAt || now;
-      task.lastStatusChangedAt = now;
-    }
-
-    if (isCompletedStatus(nextStatus) && !isCompletedStatus(prevStatus)) {
-      task.completedAt = now;
-    }
-
-    task.status = nextStatus;
+    await applyTaskStatusTransition(task, status);
     const updatedTask = await task.save();
     await updatedTask.populate('assignedTo', 'email');
     
@@ -5138,80 +5246,7 @@ app.put('/api/tasks/:id/status', auth, admin, async (req, res) => {
   }
 });
 
-// @route   PUT api/tasks/bulk-assign
-// @desc    Bulk assign tasks to an intern
-// @access  Private (admin)
-app.put('/api/tasks/bulk-assign', auth, admin, async (req, res) => {
-  try {
-    const { taskIds, assignedTo } = req.body;
-    const existingTasks = await Task.find({ _id: { $in: taskIds } }).select('assignedTo');
-    
-    await Task.updateMany(
-      { _id: { $in: taskIds } },
-      { assignedTo },
-      { new: true }
-    );
-    
-    const populatedTasks = await Task.find({ _id: { $in: taskIds } })
-      .populate('assignedTo', 'email');
-    
-    // Add name field for frontend compatibility
-    const tasksWithNames = populatedTasks.map(task => {
-      if (task.assignedTo) {
-        task.assignedTo.name = task.assignedTo.email.split('@')[0];
-      }
-      return task;
-    });
 
-    const previousAssignmentsById = new Map(
-      existingTasks.map((task) => [String(task._id), task.assignedTo])
-    );
-
-    await Promise.allSettled(
-      populatedTasks.map((task) =>
-        sendTaskAssignmentEmail(task, {
-          previousAssignedTo: previousAssignmentsById.get(String(task._id)),
-        })
-      )
-    );
-    
-    res.json(tasksWithNames);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   PUT api/tasks/bulk-status
-// @desc    Bulk update task status
-// @access  Private (admin)
-app.put('/api/tasks/bulk-status', auth, admin, async (req, res) => {
-  try {
-    const { taskIds, status } = req.body;
-    
-    const updatedTasks = await Task.updateMany(
-      { _id: { $in: taskIds } },
-      { status },
-      { new: true }
-    );
-    
-    const populatedTasks = await Task.find({ _id: { $in: taskIds } })
-      .populate('assignedTo', 'email');
-    
-    // Add name field for frontend compatibility
-    const tasksWithNames = populatedTasks.map(task => {
-      if (task.assignedTo) {
-        task.assignedTo.name = task.assignedTo.email.split('@')[0];
-      }
-      return task;
-    });
-    
-    res.json(tasksWithNames);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 // @route   DELETE api/tasks/bulk-delete
 // @desc    Bulk delete tasks
@@ -5571,21 +5606,13 @@ app.get('/api/certificates/:certificateId', auth, async (req, res) => {
 // --- New Projects & Bills Endpoints for Multiple Projects Feature ---
 app.get('/api/clients/:clientId/projects', auth, async (req, res) => {
   try {
+    if (req.user.role !== 'admin' && req.user.id !== req.params.clientId) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const projects = await Project.find({ associatedClient: req.params.clientId }).sort({ createdAt: -1 });
     res.json(projects);
   } catch (err) {
     console.error('Error fetching client projects:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-app.post('/api/projects', auth, admin, async (req, res) => {
-  try {
-    const newProject = new Project(req.body);
-    await newProject.save();
-    res.json(newProject);
-  } catch (err) {
-    console.error('Error creating project:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -104,7 +104,7 @@ const CertificateAdminPanel = () => {
         }
       });
       if (res.data.success) {
-        setShowAddForm(false);
+        setFormData({ category: 'INT', studentName: '', email: '', programName: '', awardName: '', issueDate: '', internshipDuration: '', revealDate: '', customId: '' }); setShowAddForm(false);
         setCertificateFile(null);
         fetchCertificates();
       }
@@ -118,7 +118,7 @@ const CertificateAdminPanel = () => {
     if (!window.confirm('Are you sure you want to delete this certificate?')) return;
     try {
       await axios.delete(`/api/certificate/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-auth-token': getToken() }
       });
       fetchCertificates();
     } catch (err) {
@@ -130,7 +130,7 @@ const CertificateAdminPanel = () => {
     if (!window.confirm('Are you sure you want to revoke this certificate?')) return;
     try {
       await axios.put(`/api/certificate/${id}`, { status: 'Revoked' }, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-auth-token': getToken() }
       });
       fetchCertificates();
     } catch (err) {

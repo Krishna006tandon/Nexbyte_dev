@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './Admin.css';
 import Sidebar from '../components/Sidebar';
 import { SrsContext } from '../context/SrsContext';
+import { useAuth } from '../context/AuthContext';
 import TaskGenerator from '../components/TaskGenerator';
 import TaskList from '../components/TaskList';
 import ProjectTracker from '../components/ProjectTracker';
@@ -344,7 +345,18 @@ const Admin = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const { setSrsFullData } = useContext(SrsContext);
+
+  const taskMgmtMatch = location.pathname.match(/^\/admin\/task-management\/([^/]+)\/?$/);
+  const taskMgmtProjectId = taskMgmtMatch ? taskMgmtMatch[1] : null;
+  const isTaskManagementRoute = location.pathname === '/admin/task-management' || Boolean(taskMgmtProjectId);
+
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== 'admin')) {
+      navigate('/login');
+    }
+  }, [authLoading, user, navigate]);
 
   // Check if we have navigation state from TaskGenerator
   useEffect(() => {
@@ -365,11 +377,22 @@ const Admin = () => {
   }, [location.state, projects, navigate, location.pathname]);
 
   useEffect(() => {
+    if (taskMgmtProjectId && projects.length > 0) {
+      const project = projects.find(p => p._id === taskMgmtProjectId);
+      if (project) {
+        setSelectedProjectForTasks(project);
+        setShowProjectTaskManagement(true);
+      }
+    }
+  }, [taskMgmtProjectId, projects]);
+
+  useEffect(() => {
+    if (authLoading || !user || user.role !== 'admin') return;
     if (location.pathname === '/admin/about-us') {
       fetchAboutTeamMembers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, authLoading, user]);
 
   const [clientData, setClientData] = useState({
     clientName: '',
@@ -468,6 +491,7 @@ const Admin = () => {
   });
 
   useEffect(() => {
+    if (authLoading || !user || user.role !== 'admin') return;
     const fetchData = async () => {
       const token = localStorage.getItem('token');
       const headers = { 'x-auth-token': token };
@@ -506,7 +530,7 @@ const Admin = () => {
           } else {
             console.error(data.message);
           }
-        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects', '/admin/task-management', '/admin/invoice-generator'].includes(location.pathname)) {
+        } else if (['/admin/clients', '/admin/srs-generator', '/admin/billing', '/admin/tasks', '/admin/projects', '/admin/invoice-generator'].includes(location.pathname) || isTaskManagementRoute) {
           const res = await fetch('/api/clients', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -586,7 +610,7 @@ const Admin = () => {
           setMicroProjectLoading(false);
         }
 
-        if (['/admin/projects', '/admin/task-management', '/admin/billing', '/admin/invoice-generator'].includes(location.pathname)) {
+        if (['/admin/projects', '/admin/billing', '/admin/invoice-generator'].includes(location.pathname) || isTaskManagementRoute) {
           const res = await fetch('/api/projects', { headers });
           const data = await res.json();
           if (res.ok) {
@@ -611,7 +635,7 @@ const Admin = () => {
     };
 
     fetchData();
-  }, [location.pathname]);
+  }, [location.pathname, authLoading, user, isTaskManagementRoute]);
 
   const handleTasksSaved = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -775,10 +799,9 @@ const Admin = () => {
       const data = await res.json();
       if (res.ok) {
         if (isEdit) {
-          setClients(clients.map(c => c._id === editingClientId ? data : c));
+          setClients(clients.map(c => c._id === editingClientId ? (data?.client || (data?._id ? data : c)) : c));
           setSuccessMessage('Client updated successfully');
         } else {
-          setClients([...clients, data]);
           setSuccessMessage('Client added successfully');
         }
         setEditingClientId(null);
@@ -876,6 +899,7 @@ const Admin = () => {
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(`/api/clients/${id}/password`, {
+        method: 'POST',
         headers: {
           'x-auth-token': token,
         },
@@ -1048,7 +1072,7 @@ const Admin = () => {
       const token = localStorage.getItem('token');
 
       // Find the last bill for the client
-      const clientBills = bills.filter(b => b.client._id === billData.client);
+      const clientBills = bills.filter(b => (b.client?._id || b.client) === billData.client);
       const lastBill = clientBills.length > 0
         ? clientBills.reduce((latest, current) => new Date(latest.billDate) > new Date(current.billDate) ? latest : current)
         : null;
@@ -1065,7 +1089,9 @@ const Admin = () => {
 
       // Filter completed tasks since the last bill
       const completedTasks = tasks.filter(task => {
-        if (task.status !== 'Done' || !task.completedAt) {
+        const normalizedStatus = String(task.status || '').trim().toLowerCase();
+        const isCompleted = normalizedStatus === 'done' || normalizedStatus === 'completed';
+        if (!isCompleted || !task.completedAt) {
           return false;
         }
         if (lastBillDate) {
@@ -1074,7 +1100,7 @@ const Admin = () => {
         return true; // Include all completed tasks if no previous bill
       });
 
-      const completedTaskTitles = completedTasks.map(task => task.task_title);
+      const completedTaskTitles = completedTasks.map(task => task.title || task.task_title).filter(Boolean);
 
       const res = await fetch('/api/generate-bill-description', {
         method: 'POST',
@@ -1907,6 +1933,7 @@ const Admin = () => {
       setInvoiceGenData({
         client: '', project: '', dueDate: '', status: 'Unpaid', paidAmount: 0,
         items: [{ id: Date.now(), description: '', amount: 0 }],
+        otherDetails: '',
       });
 
     } catch (err) {
@@ -2389,7 +2416,7 @@ const Admin = () => {
                       <option value="Unpaid">Unpaid</option>
                       <option value="Paid">Paid</option>
                     </select>
-                    <input type="file" onChange={(e) => setBillInvoiceFile(e.target.files[0])} accept=".pdf,.doc,.docx,.jpg,.png" />
+                    <input type="file" onChange={(e) => setBillInvoiceFile(e.target.files[0])} accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" />
                     <button type="submit" className="btn btn-primary">Add Bill</button>
                   </form>
                 </div>
@@ -2927,7 +2954,7 @@ const Admin = () => {
             </div>
           )}
 
-          {location.pathname === '/admin/task-management' && (
+          {isTaskManagementRoute && (
             <div className="task-management-section">
               {showProjectTaskManagement && selectedProjectForTasks ? (
                 <ProjectTaskManagement
@@ -2936,6 +2963,9 @@ const Admin = () => {
                   onBack={() => {
                     setShowProjectTaskManagement(false);
                     setSelectedProjectForTasks(null);
+                    if (taskMgmtProjectId) {
+                      navigate('/admin/task-management');
+                    }
                   }}
                 />
               ) : (

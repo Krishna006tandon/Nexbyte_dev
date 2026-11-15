@@ -45,7 +45,7 @@ const ApplicationDetail = () => {
     const fetchApplication = async (applicationId) => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/internship/applications/${applicationId}`);
+        const response = await axios.get(`/api/internship/applications/${applicationId}`, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
         const applicationData = response.data;
         setApplication(applicationData);
         setNotes(applicationData.notes || '');
@@ -115,7 +115,7 @@ const ApplicationDetail = () => {
 
       const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
         status: newStatus
-      });
+      }, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
       setApplication(response.data);
     } catch (error) {
       console.error('Error updating status:', error);
@@ -159,7 +159,7 @@ const ApplicationDetail = () => {
         status: 'interview',
         interviewDate: isoDate,
         interviewMeetLink: interviewMeetLink.trim(),
-      });
+      }, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
       setApplication(response.data);
       setShowInterviewModal(false);
       setInterviewDateTime('');
@@ -186,7 +186,7 @@ const ApplicationDetail = () => {
     try {
       const response = await axios.put(`/api/internship/applications/${finalId}/status`, {
         notes: notes
-      });
+      }, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
       setApplication(response.data);
       setIsEditing(false);
     } catch (error) {

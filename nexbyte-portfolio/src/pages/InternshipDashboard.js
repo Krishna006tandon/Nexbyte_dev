@@ -23,7 +23,7 @@ const InternshipDashboard = () => {
     const fetchApplications = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/internship/applications');
+        const response = await axios.get('/api/internship/applications', { headers: { 'x-auth-token': localStorage.getItem('token') || '' } });
         const applicationsData = response.data;
         
         setApplications(applicationsData);

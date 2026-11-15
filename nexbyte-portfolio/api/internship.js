@@ -76,7 +76,7 @@ const uploadResumeToVercelBlob = async (file) => {
   const result = await put(key, blob, {
     access: 'public',
     contentType: file.mimetype || 'application/pdf',
-    addRandomSuffix: false,
+    addRandomSuffix: false, token,
   });
 
   return { url: result.url, pathname: result.pathname };
@@ -414,7 +414,7 @@ const sendMailLogged = async ({ type, to, subject, html }) => {
 
 const generateTempPassword = () => {
   // 10 chars temp password
-  return Math.random().toString(36).slice(-10);
+  return crypto.randomBytes(8).toString('base64url').slice(0, 10);
 };
 
 const parseDateOrNull = (value) => {
@@ -473,7 +473,7 @@ const generateOfferLetterHtml = (email, startDate, endDate, acceptanceDate) => {
 };
 
 // GET all applications
-router.get('/applications', async (req, res) => {
+router.get('/applications', auth, admin, async (req, res) => {
   try {
     const applications = await InternshipApplication.find().sort({ dateApplied: -1 });
     res.json(applications);
@@ -517,8 +517,9 @@ router.post('/applications', upload.single('resume'), async (req, res) => {
 
     const interviewAvailability = parseAvailabilitySlots(req.body.interviewAvailability);
 
+    const { name, email, phone, role, education, experience, skills, coverLetter } = req.body || {};
     const application = new InternshipApplication({
-      ...req.body,
+      name, email, phone, role, education, experience, skills, coverLetter,
       resume,
       resumeUrl,
       resumePublicId,
@@ -566,7 +567,7 @@ router.post('/applications', upload.single('resume'), async (req, res) => {
 });
 
 // GET application by ID
-router.get('/applications/:id', async (req, res) => {
+router.get('/applications/:id', auth, admin, async (req, res) => {
   try {
     console.log('Fetching application with ID:', req.params.id);
     const application = await InternshipApplication.findById(req.params.id);
@@ -583,7 +584,7 @@ router.get('/applications/:id', async (req, res) => {
 });
 
 // GET application resume by application ID
-router.get('/applications/:id/resume', async (req, res) => {
+router.get('/applications/:id/resume', auth, admin, async (req, res) => {
   try {
     const forceDownload =
       req.query.download === '1' || String(req.query.download || '').toLowerCase() === 'true';
@@ -659,8 +660,8 @@ router.get('/applications/:id/resume', async (req, res) => {
 });
 
 // GET resume file
-router.get('/resumes/:filename', async (req, res) => {
-  const filename = req.params.filename;
+router.get('/resumes/:filename', auth, admin, async (req, res) => {
+  const filename = path.basename(String(req.params.filename || '')); if (!filename || filename === '.' || filename === '..') return res.status(400).json({ message: 'Invalid filename' });
   const uploadsDir = getUploadsDir();
   const filePath = path.join(uploadsDir, filename);
 
@@ -685,7 +686,7 @@ router.get('/resumes/:filename', async (req, res) => {
 });
 
 // UPDATE application status
-router.put('/applications/:id/status', async (req, res) => {
+router.put('/applications/:id/status', auth, admin, async (req, res) => {
   try {
     const application = await InternshipApplication.findById(req.params.id);
     if (!application) {
@@ -695,7 +696,7 @@ router.put('/applications/:id/status', async (req, res) => {
     const previousStatus = application.status;
     const { status, notes, interviewDate, interviewMeetLink, rejectionReason, internType, internshipStartDate, internshipEndDate, acceptanceDate } = req.body;
 
-    if (status) application.status = status;
+    const allowedStatuses = ['new', 'reviewing', 'approved', 'rejected', 'interview', 'hired']; if (status && !allowedStatuses.includes(status)) return res.status(400).json({ message: 'Invalid application status' }); if (status) application.status = status;
     if (typeof notes === 'string') application.notes = notes;
     if (typeof rejectionReason === 'string') application.rejectionReason = rejectionReason;
 
@@ -779,7 +780,7 @@ router.put('/applications/:id/status', async (req, res) => {
           const hashedPassword = await bcrypt.hash(plainPassword, salt);
 
           let internUserDoc = await User.findOne({ email: updatedApplication.email });
-          if (!internUserDoc) {
+          if (internUserDoc && internUserDoc.role === 'admin') { return res.status(400).json({ message: 'Cannot convert an admin account to an intern account.' }); } else if (!internUserDoc) {
             internUserDoc = new User({
               email: updatedApplication.email,
               password: hashedPassword,
@@ -874,7 +875,7 @@ router.put('/applications/:id/status', async (req, res) => {
 });
 
 // DELETE application
-router.delete('/applications/:id', async (req, res) => {
+router.delete('/applications/:id', auth, admin, async (req, res) => {
   try {
     const application = await InternshipApplication.findByIdAndDelete(req.params.id);
     if (!application) {
@@ -887,7 +888,7 @@ router.delete('/applications/:id', async (req, res) => {
 });
 
 // GET email logs
-router.get('/email-logs', (req, res) => {
+router.get('/email-logs', auth, admin, (req, res) => {
   res.json(emailLogs);
 });
 
