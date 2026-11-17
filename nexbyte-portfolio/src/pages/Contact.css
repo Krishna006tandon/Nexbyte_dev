@@ -1,83 +1,381 @@
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.contact-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
 }
 
-.contact-page .page-header {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: var(--background-light);
-  animation: fadeInDown 0.5s ease-out forwards;
-}
-
-
-.contact-page .page-title {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--primary-text);
-}
-
-.contact-page .page-subtitle {
-  font-size: 1.2rem;
-  color: var(--primary-text);
+.page-header {
   max-width: 700px;
-  margin: 1rem auto 0;
+  margin: 0 auto 3rem;
 }
 
-.contact-info-wrapper {
-  color: var(--primary-text);
+.contact-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 20px;
+  margin-bottom: 1rem;
 }
 
-.contact-info-wrapper h3 {
-  color: var(--primary-text);
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  transition: color 0.3s ease;
+.page-title {
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  margin-bottom: 1rem;
 }
 
-.contact-info-wrapper h3:hover {
-  color: var(--accent);
+.page-subtitle {
+  font-size: 1.05rem;
+  color: var(--secondary-text);
+  line-height: 1.6;
 }
 
-.contact-info-item {
+/* Contact Tab Switcher */
+.contact-tabs-container {
   display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 3rem;
+}
+
+.tab-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  transition: transform 0.3s ease;
-}
-
-.contact-info-item:hover {
-  transform: translateX(5px);
-}
-
-.contact-info-item .icon {
-  font-size: 1.5rem;
-  color: var(--accent);
-}
-
-.contact-form-wrapper {
-  background-color: var(--background-light);
-  padding: 3rem;
-  border-radius: 12px;
+  gap: 8px;
+  padding: 12px 22px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: rgba(22, 27, 34, 0.8);
   border: 1px solid var(--border);
-}
-
-.contact-form-wrapper h3 {
+  border-radius: 14px;
   color: var(--primary-text);
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
 }
 
-@media (max-width: 992px) {
-  .contact-page .contact-content {
+.tab-btn:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #fff;
+}
+
+.tab-btn.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+}
+
+/* Main Grid */
+.contact-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .contact-main-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Contact Info Card */
+.contact-info-card {
+  background: linear-gradient(160deg, rgba(22, 27, 34, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(48, 54, 61, 0.8);
+  border-radius: 20px;
+  padding: 2.2rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+.contact-info-card h3 {
+  font-size: 1.4rem;
+  color: #fff;
+  margin-top: 0;
+  margin-bottom: 0.6rem;
+}
+
+.info-intro {
+  font-size: 0.9rem;
+  color: var(--secondary-text);
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 2.5rem;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: rgba(13, 17, 23, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--primary-text);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.info-row:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(22, 27, 34, 0.9);
+}
+
+.whatsapp-highlight {
+  border-color: rgba(37, 211, 102, 0.35);
+  background: rgba(37, 211, 102, 0.08);
+}
+
+.whatsapp-highlight:hover {
+  border-color: #25d366;
+  background: rgba(37, 211, 102, 0.15);
+}
+
+.info-icon {
+  font-size: 1.25rem;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.whatsapp-icon {
+  color: #25d366;
+}
+
+.info-row div {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-row strong {
+  font-size: 0.88rem;
+  color: #fff;
+}
+
+.info-row span {
+  font-size: 0.8rem;
+  color: var(--secondary-text);
+}
+
+.consultation-perks {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 12px;
+  padding: 1.2rem;
+}
+
+.consultation-perks h4 {
+  font-size: 0.92rem;
+  color: #38bdf8;
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+}
+
+.consultation-perks ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consultation-perks li {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+/* Interactive Right Panel */
+.contact-interactive-panel {
+  background: linear-gradient(160deg, rgba(22, 27, 34, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 600px) {
+  .contact-interactive-panel {
+    padding: 1.8rem 1.2rem;
+  }
+}
+
+.panel-head {
+  margin-bottom: 1.8rem;
+}
+
+.panel-head h3 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-top: 0;
+  margin-bottom: 0.4rem;
+}
+
+.panel-head p {
+  font-size: 0.92rem;
+  color: var(--secondary-text);
+  margin: 0;
+}
+
+/* Booking Form Elements */
+.booking-form, .message-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.booking-step {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.8rem;
+}
+
+/* Date Picker Pills */
+.date-picker-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+  gap: 8px;
+}
+
+.date-pill {
+  padding: 10px 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--primary-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.date-pill:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.date-pill.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+/* Slots Grid */
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.slot-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--primary-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slot-pill:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.slot-pill.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.submit-booking-btn {
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+}
+
+/* Success Box */
+.booking-success-box {
+  padding: 2.5rem 1rem;
+}
+
+.booking-success-box .success-icon {
+  font-size: 3.5rem;
+  color: #4ade80;
+  margin-bottom: 1.2rem;
+}
+
+.booking-success-box h3 {
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 0.6rem;
+}
+
+.success-sub {
+  font-size: 1.05rem;
+  color: #e2e8f0;
+  max-width: 500px;
+  margin: 0 auto 0.8rem;
+}
+
+.confirm-note {
+  font-size: 0.88rem;
+  color: var(--secondary-text);
+  margin-bottom: 2rem;
+}
+
+.success-action-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.btn-calendar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #ea4335;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 15px rgba(234, 67, 53, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-calendar:hover {
+  background: #d93025;
+  color: #fff;
+  transform: translateY(-2px);
 }

@@ -1336,56 +1336,279 @@ app.post('/api/admin/team-members/upload-image', auth, admin, uploadImage.single
 });
 
 // @route   POST api/register
-// @desc    Register a new user (public)
+// @desc    Register a new user (Client, Intern, or Member)
 // @access  Public
 app.post('/api/register', async (req, res) => {
-  const { name, email, password } = req.body;
+  const {
+    name,
+    email,
+    password,
+    role,
+    accountType,
+    companyName,
+    phone,
+    track,
+    domain,
+    projectName,
+    projectRequirements
+  } = req.body;
 
   if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Please enter all fields' });
+    return res.status(400).json({ message: 'Please enter all required fields' });
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+  const selectedRole = (role || accountType || 'member').toLowerCase().trim();
+
   try {
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
+    // Check if account already exists across User and Client collections
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingClient = await Client.findOne({ email: normalizedEmail });
+    if (existingUser || existingClient) {
+      return res.status(400).json({ message: 'An account with this email already exists' });
     }
 
-    user = new User({
-      email,
-      password,
-      role: 'member', // Default role for public registration
-    });
-
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    await user.save();
+    let tokenPayload = null;
+    let registeredRole = 'member';
 
-    const payload = {
-      user: {
-        id: user.id,
-        role: user.role,
-      },
-    };
+    if (selectedRole === 'client') {
+      // Create Client document so client portal functions immediately
+      const client = new Client({
+        clientName: (companyName && companyName.trim()) || name.trim(),
+        contactPerson: name.trim(),
+        email: normalizedEmail,
+        password: hashedPassword,
+        phone: phone ? phone.trim() : '',
+        projectName: projectName ? projectName.trim() : 'Digital Transformation Project',
+        projectRequirements: projectRequirements ? projectRequirements.trim() : 'Registered via Client Portal.',
+        milestone: 'Planning',
+        milestoneHistory: [{ milestone: 'Planning', date: new Date() }]
+      });
+
+      await client.save();
+      tokenPayload = {
+        user: {
+          id: client._id.toString(),
+          role: 'client'
+        }
+      };
+      registeredRole = 'client';
+    } else if (selectedRole === 'intern') {
+      const names = name.trim().split(' ');
+      const firstName = names[0] || name.trim();
+      const lastName = names.slice(1).join(' ') || '';
+      const chosenTrack = domain || track || 'Full-Stack Web Development';
+
+      const internUser = new User({
+        name: name.trim(),
+        firstName,
+        lastName,
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: 'intern',
+        internType: 'free',
+        internshipStatus: 'in_progress',
+        internFeeStatus: 'paid', // Active so they can immediately access task dashboard
+        offerStatus: 'accepted',
+        offerAcceptedDate: new Date(),
+        acceptanceDate: new Date(),
+        internshipStartDate: new Date(),
+        internshipEndDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
+        phone: phone ? phone.trim() : '',
+        skills: [chosenTrack]
+      });
+
+      await internUser.save();
+      tokenPayload = {
+        user: {
+          id: internUser._id.toString(),
+          role: 'intern'
+        }
+      };
+      registeredRole = 'intern';
+    } else {
+      // Default member role
+      const memberUser = new User({
+        name: name.trim(),
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: 'member'
+      });
+
+      await memberUser.save();
+      tokenPayload = {
+        user: {
+          id: memberUser._id.toString(),
+          role: 'member'
+        }
+      };
+      registeredRole = 'member';
+    }
 
     jwt.sign(
-      payload,
+      tokenPayload,
       process.env.JWT_SECRET,
-      { expiresIn: 3600 },
+      { expiresIn: 3600 * 24 * 7 },
       (err, token) => {
         if (err) {
-          console.error(err);
+          console.error('Error signing token:', err);
           return res.status(500).json({ message: 'Error signing token' });
         }
-        res.json({ token, role: user.role });
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax'
+        });
+        const roleLabel = registeredRole.charAt(0).toUpperCase() + registeredRole.slice(1);
+        res.json({
+          token,
+          role: registeredRole,
+          message: roleLabel + ' account created successfully!'
+        });
       }
     );
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Registration error:', err.message);
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
+
+// @route   POST api/schedule-call
+// @desc    Schedule a 15-minute discovery consultation call
+// @access  Public
+app.post('/api/schedule-call', async (req, res) => {
+  const { name, email, phone, date, timeSlot, topic, notes } = req.body;
+
+  if (!name || !email || !date || !timeSlot) {
+    return res.status(400).json({ message: 'Name, email, date, and time slot are required.' });
+  }
+
+  try {
+    const bookingSummary = `[15-Min Discovery Call Booking]\nDate: ${date}\nTime Slot: ${timeSlot}\nTopic: ${topic || 'General Tech Consultation'}\nClient Notes: ${notes || 'None'}\nPhone/WhatsApp: ${phone || 'Not provided'}`;
+
+    const contactEntry = new Contact({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      mobile: (phone && phone.trim()) || '0000000000',
+      message: bookingSummary
+    });
+    await contactEntry.save();
+
+    // Send confirmation email to client
+    const clientHtml = `
+      <div style="font-family: Arial, sans-serif; color: #222; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e1e4e8; border-radius: 12px; padding: 24px;">
+        <h2 style="color: #0366d6; margin-top: 0;">Discovery Call Confirmed – Nexbyte</h2>
+        <p>Hi <strong>${name}</strong>,</p>
+        <p>Thank you for scheduling a 15-minute consultation with Nexbyte! Here are your meeting details:</p>
+        <div style="background: #f6f8fa; padding: 16px; border-radius: 8px; margin: 18px 0;">
+          <p style="margin: 4px 0;">📅 <strong>Date:</strong> ${date}</p>
+          <p style="margin: 4px 0;">⏰ <strong>Time Slot:</strong> ${timeSlot}</p>
+          <p style="margin: 4px 0;">🎯 <strong>Focus / Topic:</strong> ${topic || 'General Tech Consultation'}</p>
+          <p style="margin: 4px 0;">📞 <strong>Phone / WhatsApp:</strong> ${phone || 'Provided during session'}</p>
+        </div>
+        <p>Our senior technical consultant will reach out via Google Meet / WhatsApp / Phone at the scheduled time.</p>
+        <p style="color: #6a737d; font-size: 13px;">Need to reschedule? Reply directly to this email or message us at nexbyte.dev@gmail.com.</p>
+        <br/>
+        <p>Best regards,<br/><strong>The Nexbyte Engineering Team</strong><br/>https://nexbyte-dev.vercel.app</p>
+      </div>
+    `;
+
+    sendMailSafe({
+      from: getFromAddress('NexByte Consultations'),
+      to: email.toLowerCase().trim(),
+      subject: `Call Confirmed: 15-Min Discovery Session with Nexbyte (${date})`,
+      html: clientHtml
+    }, 'discovery-call-client').catch(err => console.error('Error sending client booking email:', err));
+
+    // Send notification to admin
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'nexbyte.dev@gmail.com';
+    sendMailSafe({
+      from: getFromAddress('NexByte Booking Alert'),
+      to: adminEmail,
+      subject: `New Discovery Call Booked: ${name} (${date} at ${timeSlot})`,
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h3>New 15-Minute Consultation Scheduled</h3>
+          <p><strong>Client:</strong> ${name} (${email})</p>
+          <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
+          <p><strong>Date & Time:</strong> ${date} at ${timeSlot}</p>
+          <p><strong>Topic:</strong> ${topic || 'General'}</p>
+          <p><strong>Notes:</strong> ${notes || 'None'}</p>
+        </div>
+      `
+    }, 'discovery-call-admin').catch(err => console.error('Error sending admin booking email:', err));
+
+    res.json({
+      success: true,
+      message: 'Discovery call successfully scheduled! A confirmation email has been sent.'
+    });
+  } catch (err) {
+    console.error('Error scheduling call:', err);
+    res.status(500).json({ message: 'Failed to schedule consultation. Please try again.' });
+  }
+});
+
+// @route   POST api/quote-request
+// @desc    Submit an instant project estimator quote request
+// @access  Public
+app.post('/api/quote-request', async (req, res) => {
+  const { name, email, phone, projectType, scope, features, urgency, estimateRangeINR, estimateRangeUSD, notes } = req.body;
+
+  if (!name || !email || !projectType) {
+    return res.status(400).json({ message: 'Name, email, and project details are required.' });
+  }
+
+  try {
+    const formattedFeatures = Array.isArray(features) ? features.join(', ') : (features || 'Standard setup');
+    const summary = `[Instant Quote Estimate Request]\nClient: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nProject Type: ${projectType}\nScope: ${scope || 'Standard'}\nSelected Features: ${formattedFeatures}\nTimeline/Urgency: ${urgency || 'Standard'}\nEstimated Budget: ${estimateRangeINR || ''} (${estimateRangeUSD || ''})\nClient Notes: ${notes || 'None'}`;
+
+    const contactEntry = new Contact({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      mobile: (phone && phone.trim()) || '0000000000',
+      message: summary
+    });
+    await contactEntry.save();
+
+    // Send quotation copy to client
+    const quoteHtml = `
+      <div style="font-family: Arial, sans-serif; color: #222; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e1e4e8; border-radius: 12px; padding: 24px;">
+        <h2 style="color: #0366d6; margin-top: 0;">Nexbyte Project Estimate & Proposal Request</h2>
+        <p>Hi <strong>${name}</strong>,</p>
+        <p>Thank you for submitting your project specifications! We've received your brief and our technical architects are preparing your custom proposal.</p>
+        <div style="background: #f6f8fa; padding: 18px; border-radius: 8px; margin: 18px 0; border-left: 4px solid #0366d6;">
+          <p style="margin: 4px 0;">🚀 <strong>Project Type:</strong> ${projectType}</p>
+          <p style="margin: 4px 0;">📐 <strong>Scope / Screens:</strong> ${scope || 'Custom'}</p>
+          <p style="margin: 4px 0;">⚡ <strong>Features:</strong> ${formattedFeatures}</p>
+          <p style="margin: 4px 0;">⏱️ <strong>Target Timeline:</strong> ${urgency || 'Standard'}</p>
+          <p style="margin: 8px 0 0; font-size: 16px; color: #1e3a8a;"><strong>Estimated Investment:</strong> ${estimateRangeINR || ''} (${estimateRangeUSD || ''})</p>
+        </div>
+        <p>A member of our solutions team will connect with you within 24 business hours to refine the architecture and share a detailed milestone roadmap.</p>
+        <br/>
+        <p>Warm regards,<br/><strong>Nexbyte Engineering Studio</strong><br/>WhatsApp: +91 9175603240</p>
+      </div>
+    `;
+
+    sendMailSafe({
+      from: getFromAddress('NexByte Quotes'),
+      to: email.toLowerCase().trim(),
+      subject: `Project Estimate Received: ${projectType} – Nexbyte`,
+      html: quoteHtml
+    }, 'quote-request-client').catch(err => console.error('Error sending quote email:', err));
+
+    res.json({
+      success: true,
+      message: 'Project brief received! Check your inbox for the estimate confirmation.'
+    });
+  } catch (err) {
+    console.error('Error submitting quote request:', err);
+    res.status(500).json({ message: 'Failed to submit quote request. Please try again.' });
+  }
+});
+
 
 // @route   POST api/users
 // @desc    Add a new user

@@ -2,13 +2,26 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Card from '../components/Card';
-import { FaCode, FaMobileAlt, FaPaintBrush } from 'react-icons/fa';
+import Hero3DScene from '../components/Hero3DScene';
+import ProjectEstimator from '../components/ProjectEstimator';
+import { 
+  FaCode, 
+  FaMobileAlt, 
+  FaPaintBrush, 
+  FaRobot, 
+  FaRocket, 
+  FaArrowRight, 
+  FaCalendarAlt, 
+  FaShieldAlt,
+  FaStar,
+  FaCheckCircle
+} from 'react-icons/fa';
 import './Home.css';
 
 export const metadata = {
-  title: "Web Development & SEO Services | NexByte_Core",
+  title: "NexByte Core | Full-Stack Web, Mobile & AI Engineering Studio",
   description:
-    "NexByte_Core offers web development, SEO, and UI/UX services. Fast, secure, and scalable websites for startups & businesses.",
+    "NexByte Core engineers scalable web apps, mobile solutions, and custom AI systems. Instant project cost estimator, transparent pricing, and rapid delivery.",
 };
 
 const Home = () => {
@@ -22,117 +35,221 @@ const Home = () => {
     }
   };
 
+  const scrollToEstimator = () => {
+    const el = document.getElementById('quote-calculator');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <>
       <Helmet>
         <title>{metadata.title}</title>
         <meta name="description" content={metadata.description} />
-        <meta name="keywords" content="web development services, website development, web design, SEO services, nexbyte, nexbyte studio, nexbyte core" />
+        <meta name="keywords" content="web development services, mobile app development, React developers, AI automation, nexbyte, nexbyte core, instant quote calculator" />
         <link rel="canonical" href="https://nexbyte-dev.vercel.app/" />
       </Helmet>
       
       <div className="home-page">
-          {/* Hero Section */}
-          <section className="hero-section">
-            <h1 className="hero-title">NexByte_Core – Web Development & Digital Solutions</h1>
-            <p className="hero-subtitle">We create stunning and powerful web and mobile applications, designed for the modern world.</p>
-            <Link to="/contact" className="btn btn-primary">Get in Touch</Link>
-          </section>
-
-          {/* Services Section */}
-          <section className="services-section">
-            <h2 className="section-title">Our Web Development Services</h2>
-            <div className="services-grid">
-              <Card className="service-card">
-                <div className="icon"><FaCode /></div>
-                <h3>Web Development</h3>
-                <p>We build responsive and scalable web applications using the latest technologies.</p>
-              </Card>
-              <Card className="service-card">
-                <div className="icon"><FaMobileAlt /></div>
-                <h3>Mobile Development</h3>
-                <p>We create native and cross-platform mobile apps for Android and iOS.</p>
-              </Card>
-              <Card className="service-card">
-                <div className="icon"><FaPaintBrush /></div>
-                <h3>UI/UX Design</h3>
-                <p>We design beautiful and intuitive user interfaces that your users will love.</p>
-              </Card>
+        {/* Modern 3D Interactive Hero Section */}
+        <section className="hero-section modern-hero">
+          <div className="hero-content-col">
+            <div className="hero-status-badge">
+              <span className="pulsing-dot"></span>
+              <span>Available for New Projects • Q1/Q2 Delivery</span>
             </div>
-          </section>
 
-          {/* Certificate Verification Section */}
-          <section className="certificate-verification-section" style={{ padding: '60px 20px', backgroundColor: '#F8FAFC', textAlign: 'center', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-            <h2 className="section-title" style={{ color: '#1E3A8A' }}>Verify Certificate Authenticity</h2>
-            <p className="internship-subtitle" style={{ maxWidth: '600px', margin: '0 auto 30px' }}>Enter the unique NexByte Core Certificate ID to verify its authenticity and view the original credential.</p>
+            <h1 className="hero-title">
+              Engineering Next-Gen <span className="text-gradient">Digital Products</span> & Intelligent Systems
+            </h1>
+
+            <p className="hero-subtitle">
+              We partner with founders and forward-thinking businesses to build fast, secure, and beautiful web applications, cross-platform mobile apps, and custom AI workflows.
+            </p>
+
+            <div className="hero-cta-group">
+              <button 
+                type="button" 
+                onClick={scrollToEstimator}
+                className="btn btn-primary hero-btn primary-glow"
+              >
+                <FaRocket /> Calculate Project Quote
+              </button>
+              <Link to="/projects" className="btn btn-outline hero-btn">
+                View Case Studies <FaArrowRight />
+              </Link>
+              <Link to="/contact" className="btn btn-ghost hero-btn">
+                <FaCalendarAlt /> Book 15-Min Call
+              </Link>
+            </div>
+
+            {/* Live Trust Metrics */}
+            <div className="hero-metrics-bar">
+              <div className="metric-item">
+                <span className="metric-number">15+</span>
+                <span className="metric-label">Products Shipped</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-number">99.4%</span>
+                <span className="metric-label">On-Time Delivery</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-number">5.0 ★</span>
+                <span className="metric-label">Client Rating</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-number">100%</span>
+                <span className="metric-label">Code Ownership</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hero-visual-col">
+            <div className="hero-3d-container">
+              <Hero3DScene />
+              <div className="floating-hero-pill">
+                <FaRobot className="pill-icon" />
+                <div>
+                  <strong>AI-Enhanced Engineering</strong>
+                  <span>Fast, robust & production-ready</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Services Showcase */}
+        <section className="services-section">
+          <div className="section-head text-center">
+            <span className="badge-tag">What We Build</span>
+            <h2 className="section-title">End-to-End Engineering Services</h2>
+            <p className="section-desc">
+              From conception to deployment, we deliver modern software solutions tailored to your operational goals.
+            </p>
+          </div>
+
+          <div className="services-grid">
+            <Card className="service-card">
+              <div className="icon"><FaCode /></div>
+              <h3>Full-Stack Web Apps</h3>
+              <p>Scalable web applications built with React, Node.js, Express, and MongoDB with modern authentication and clean API design.</p>
+              <div className="service-tags">
+                <span>React.js</span>
+                <span>Node.js</span>
+                <span>REST / GraphQL</span>
+              </div>
+            </Card>
+
+            <Card className="service-card">
+              <div className="icon"><FaMobileAlt /></div>
+              <h3>Mobile Applications</h3>
+              <p>Native-feel cross-platform mobile apps for iOS and Android powered by React Native and Expo.</p>
+              <div className="service-tags">
+                <span>React Native</span>
+                <span>Expo</span>
+                <span>Offline Sync</span>
+              </div>
+            </Card>
+
+            <Card className="service-card">
+              <div className="icon"><FaRobot /></div>
+              <h3>AI & Automation Workflows</h3>
+              <p>Intelligent agent workflows, custom LLM copilots, automated document processors, and generative interfaces.</p>
+              <div className="service-tags">
+                <span>Gemini API</span>
+                <span>OpenAI</span>
+                <span>RAG & Agents</span>
+              </div>
+            </Card>
+
+            <Card className="service-card">
+              <div className="icon"><FaPaintBrush /></div>
+              <h3>UI/UX & Product Design</h3>
+              <p>Modern glassmorphism, responsive component systems, interactive micro-interactions, and conversion-optimized flows.</p>
+              <div className="service-tags">
+                <span>Figma</span>
+                <span>Design Systems</span>
+                <span>Accessibility</span>
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        {/* Feature 2: Interactive Project Cost / Scope Estimator */}
+        <ProjectEstimator />
+
+        {/* Certificate Verification Section */}
+        <section className="certificate-verification-section">
+          <div className="verify-inner-card">
+            <div className="verify-badge">
+              <FaShieldAlt /> Credential Verification
+            </div>
+            <h2 className="verify-title">Verify Official NexByte Core Certificate</h2>
+            <p className="verify-subtitle">
+              Verify credentials issued to our interns, apprentices, and software contributors with our cryptographic verification portal.
+            </p>
             
-            <form onSubmit={handleVerifySubmit} style={{ display: 'flex', justifyContent: 'center', gap: '10px', maxWidth: '500px', margin: '0 auto' }}>
+            <form onSubmit={handleVerifySubmit} className="verify-form">
               <input 
                 type="text" 
-                placeholder="e.g. NBC-INT-26001" 
+                placeholder="Enter Certificate ID (e.g. NBC-INT-26001)" 
                 value={verifyId}
                 onChange={(e) => setVerifyId(e.target.value)}
-                style={{
-                  padding: '12px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  flex: 1,
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
+                className="verify-input"
                 required
               />
-              <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', whiteSpace: 'nowrap' }}>
-                <i className="fas fa-search"></i> Verify
+              <button type="submit" className="btn btn-primary verify-btn">
+                <FaCheckCircle /> Verify Authenticity
               </button>
             </form>
-          </section>
+          </div>
+        </section>
 
-          {/* Internship Section */}
-          <section className="internship-section">
-            <h2 className="section-title">Start Your Tech Journey with NexByte</h2>
-            <p className="internship-subtitle">Join our free internship program and learn by building real-world projects with a growing startup.</p>
-            <div className="internship-features">
-              <div className="internship-feature">
-                <h3>🎓 Free Learning</h3>
-                <p>No cost internship focused on skill development</p>
-              </div>
-              <div className="internship-feature">
-                <h3>💼 Real Projects</h3>
-                <p>Work on actual startup projects and build your portfolio</p>
-              </div>
-              <div className="internship-feature">
-                <h3>🏆 Certificate</h3>
-                <p>Earn certificate and letter of recommendation</p>
-              </div>
+        {/* Internship Section */}
+        <section className="internship-section">
+          <div className="section-head text-center">
+            <span className="badge-tag">Talent & Learning</span>
+            <h2 className="section-title">Join The NexByte Internship Program</h2>
+            <p className="internship-subtitle">
+              Learn by building real startup systems with code reviews, weekly sprint demos, and accredited certificates.
+            </p>
+          </div>
+
+          <div className="internship-features">
+            <div className="internship-feature">
+              <h3>🎓 Hands-on Mentorship</h3>
+              <p>Direct architectural reviews and daily guidance on modern full-stack engineering.</p>
             </div>
-            <Link to="/internship" className="btn btn-internship">Apply for Internship</Link>
-          </section>
+            <div className="internship-feature">
+              <h3>💼 Real Startup Work</h3>
+              <p>Ship features to production and build an indisputable GitHub portfolio.</p>
+            </div>
+            <div className="internship-feature">
+              <h3>🏆 Verifiable Certificate</h3>
+              <p>Earn an encrypted, 1-click shareable credential with recommendation letters.</p>
+            </div>
+          </div>
+          <div className="text-center mt-4">
+            <Link to="/signup" className="btn btn-internship">
+              Create Intern Account <FaArrowRight />
+            </Link>
+          </div>
+        </section>
 
-          {/* Extended Content for SEO */}
-          <section className="about-services">
-            <h2>Why Choose Our Web Development Services?</h2>
-            <p>At NexByte_Core, we specialize in delivering high-quality web development services that help businesses establish a strong online presence. Our team of experienced developers and designers work together to create custom solutions tailored to your specific needs.</p>
-            
-            <h3>Custom Web Development Solutions</h3>
-            <p>Our web development services cover everything from simple static websites to complex web applications. We use modern technologies like React, Node.js, and Python to ensure your website is fast, secure, and scalable. Whether you need an e-commerce platform, a content management system, or a custom business application, our web development team has the expertise to deliver.</p>
-            
-            <h3>Professional Web Design & Development</h3>
-            <p>We understand that your website is often the first impression customers have of your business. That's why our web development services include comprehensive web design that reflects your brand identity and engages your target audience. We focus on creating responsive, mobile-friendly designs that work seamlessly across all devices.</p>
-            
-            <h3>SEO-Optimized Web Development</h3>
-            <p>Every website we develop is built with SEO best practices in mind. Our web development services include proper site structure, clean code, fast loading speeds, and mobile optimization - all crucial factors for search engine rankings. We ensure your website not only looks great but also performs well in search results.</p>
-            
-            <h3>Full-Stack Web Development Expertise</h3>
-            <p>Our team offers comprehensive web development services covering both frontend and backend development. From intuitive user interfaces to robust server-side logic, we handle every aspect of web development. Our expertise includes database design, API development, and third-party integrations to create fully functional web applications.</p>
-            
-            <h3>Modern Web Development Technologies</h3>
-            <p>We stay updated with the latest web development trends and technologies to deliver cutting-edge solutions. Our tech stack includes React, Vue.js, Angular for frontend, Node.js, Python, PHP for backend, and MySQL, MongoDB for databases. This ensures your website is built using the most suitable technology for your project requirements.</p>
-            
-            <h3>Web Development Maintenance & Support</h3>
-            <p>Our relationship doesn't end after deployment. We offer ongoing web development support and maintenance services to keep your website running smoothly. This includes regular updates, security patches, performance optimization, and feature enhancements to ensure your website continues to meet your business needs.</p>
-          </section>
-        </div>
+        {/* Extended SEO Information */}
+        <section className="about-services">
+          <h2>Why Businesses Choose NexByte Core</h2>
+          <p>
+            At NexByte Core, we blend engineering excellence with transparent collaboration. Whether you are a founder looking to launch a fast MVP or an established business modernizing legacy systems, our modular development process ensures high velocity, strict data security, and long-term maintainability.
+          </p>
+          
+          <h3>Full Source Code & Architecture Ownership</h3>
+          <p>
+            Unlike traditional agencies that lock you in, every project delivered by NexByte includes 100% intellectual property rights, automated testing, documentation, and clean deployment scripts.
+          </p>
+        </section>
+      </div>
     </>
   );
 };
