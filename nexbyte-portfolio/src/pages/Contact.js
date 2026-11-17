@@ -8,7 +8,6 @@ import {
   FaCheckCircle, 
   FaWhatsapp, 
   FaGoogle, 
-  FaExternalLinkAlt, 
   FaComments,
   FaMapMarkerAlt
 } from 'react-icons/fa';

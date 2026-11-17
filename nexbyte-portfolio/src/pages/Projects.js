@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   FaExternalLinkAlt, 
-  FaLayerGroup, 
   FaCheckCircle, 
   FaQuoteLeft, 
   FaStar, 

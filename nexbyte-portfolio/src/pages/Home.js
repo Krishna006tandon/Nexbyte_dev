@@ -13,7 +13,6 @@ import {
   FaArrowRight, 
   FaCalendarAlt, 
   FaShieldAlt,
-  FaStar,
   FaCheckCircle
 } from 'react-icons/fa';
 import './Home.css';
